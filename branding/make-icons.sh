@@ -1,5 +1,6 @@
 #!/bin/sh
-# Regenerates the app's icons from branding/icon.svg, replacing T3 Code's.
+# Regenerates the app's icons from branding/app-icon.svg, replacing T3 Code's.
+# app-icon.svg is the tscircuit logo (branding/icon.svg) on a rounded square.
 #
 #   npm run setup          (the icons are written into .t3code/)
 #   sh branding/make-icons.sh
@@ -9,7 +10,7 @@
 # (dev, nightly, prod) get the same icon.
 set -eu
 cd "$(dirname "$0")/.."
-svg=branding/icon.svg
+svg=branding/app-icon.svg
 app=.t3code
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
@@ -32,7 +33,8 @@ web() { # web PREFIX: favicons and web-app icons named PREFIX-...
   ico "$1-favicon.ico"
 }
 
-# macOS wants the classic safe area: an 824px body inside a 1024px canvas.
+# macOS wants the classic safe area: an 824px body inside a 1024px canvas. An
+# icon that is narrower than that, or a different shape, is drawn smaller.
 for icon in dev/blueprint nightly/nightly prod/black; do
   square 1024 824 "$app/assets/$icon-macos-1024.png"
   square 1024 1024 "$app/assets/$icon-universal-1024.png"
