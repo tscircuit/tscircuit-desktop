@@ -81,7 +81,7 @@ if (conflicts.length > 0) {
 }
 
 git("add", "--all")
-git("commit", "--quiet", "--allow-empty", "-m", "tscircuit desktop: overlay and patches")
+git("commit", "--quiet", "--allow-empty", "--no-verify", "-m", "tscircuit desktop: overlay and patches")
 git("tag", "--force", SAVED_TAG)
 
 if (flags.has("--no-install")) {

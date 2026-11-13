@@ -73,7 +73,7 @@ sync(overlayDir, wantedOverlay)
 sync(patchesDir, wantedPatches)
 
 // Record that the checkout is saved, so `setup` knows it is safe to rebuild.
-git("commit", "--quiet", "--allow-empty", "-m", "tscircuit desktop: exported")
+git("commit", "--quiet", "--allow-empty", "--no-verify", "-m", "tscircuit desktop: exported")
 git("tag", "--force", SAVED_TAG)
 
 step(`overlay/: ${wantedOverlay.size} files`)

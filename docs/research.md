@@ -22,10 +22,14 @@ An earlier prototype of this app called model APIs directly and rendered with Ru
 | Model selector across providers | Built in; models can change mid-thread |
 | Sign in to ChatGPT or Anthropic | It drives the Codex and Claude Code CLIs the user is signed in to, and can start their sign-in from Settings → Providers |
 | A real project folder with a shell | Threads run in the project or a git worktree, so the agent can use the `tsci` CLI |
-| A preview pane beside the chat | An in-app browser in the right panel |
-| Opening that preview from a command | Project actions accept `previewUrl` and `autoOpenPreview` |
+| A pane beside the chat | A right panel with tabs (Diff, Files, Terminal, Browser), each a small typed "surface" |
+| Reading the project's files | The file API behind the Files tab, plus a counter that changes after each agent edit |
 
-The last two rows are why the tscircuit part is so small. `tsci dev` already serves RunFrame with live reload, so the preview is one project action that runs it and names its URL.
+The last two rows are why the tscircuit part is small: the Circuit tab is one more surface in that panel.
+
+The first version of the preview was a project action that ran `tsci dev` and opened it in T3 Code's in-app browser. It took two lines, but it looked like a web page inside the app: an address bar, RunFrame's own File and View menus, and a dev server to keep running. It was replaced by a dedicated Circuit tab. The tab reads the project's files through T3 Code's file API and passes them to RunFrame's hosted viewer (`runframe.tscircuit.com/iframe.html`), which takes a file map and an entry path by message and can hide its menus.
+
+Bundling RunFrame into T3 Code's web app was ruled out for now. In the earlier prototype it brought undeclared dependencies, a zod version clash, and global styles that broke the host's.
 
 ## Why an overlay and not a fork
 

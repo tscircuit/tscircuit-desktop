@@ -1,0 +1,14 @@
+Lets a closed Circuit tab be reopened the same way the Diff and Files tabs are.
+
+diff --git a/apps/web/src/closedViewStore.ts b/apps/web/src/closedViewStore.ts
+index b5db7bd741bef24e0c976652cb852f8025b8042c..e50089bfe69e08f65b4c53692a23b9d8eb7c87ef 100644
+--- a/apps/web/src/closedViewStore.ts
++++ b/apps/web/src/closedViewStore.ts
+@@ -63,6 +63,7 @@ const isClosedViewEntry = (entry: unknown): entry is ClosedViewEntry => {
+     case "diff":
+     case "files":
+     case "pull-requests":
++    case "circuit":
+       return surface.id === surface.kind;
+     case "preview":
+       return surface.resourceId === null || typeof surface.resourceId === "string";

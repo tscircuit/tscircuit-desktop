@@ -21,6 +21,6 @@
     "dev:web": "node scripts/run.ts vp run dev",
     "build": "node scripts/run.ts vp run build:desktop",
     "test": "node --test \"scripts/**/*.test.ts\"",
-    "check:app": "node scripts/run.ts --dir packages/contracts vp run typecheck && node scripts/run.ts --dir packages/contracts vp test run src/tscircuit src/settings.test.ts && node scripts/run.ts --dir packages/shared vp test run src/projectSettings.test.ts src/serverSettings.test.ts"
+    "check:app": "node scripts/run.ts --dir apps/web vp run typecheck && node scripts/run.ts --dir apps/web vp lint src/tscircuit src/rightPanelStore.ts src/closedViewStore.ts src/components/RightPanelTabs.tsx src/components/ChatView.tsx src/components/chat/RightPanelSurfaceContent.tsx && node scripts/run.ts --dir apps/web vp test run --project unit src/tscircuit src/rightPanelStore.test.ts src/closedViewStore.test.ts src/reopenClosedView.test.ts src/components/RightPanelTabs.test.tsx && node scripts/run.ts vp run knip:check"
   }
 }
