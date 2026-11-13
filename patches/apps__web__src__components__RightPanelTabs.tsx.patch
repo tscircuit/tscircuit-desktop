@@ -1,0 +1,75 @@
+Lists Circuit in the empty-panel launcher and the "+" menu, and gives the tab its title and icon. The pieces come from apps/web/src/tscircuit/.
+
+diff --git a/apps/web/src/components/RightPanelTabs.tsx b/apps/web/src/components/RightPanelTabs.tsx
+index d220385e2814282dc5dfecbae80d3bae7848594e..701c3d6662c9981b07e7d1f825a71ff8e627ab07 100644
+--- a/apps/web/src/components/RightPanelTabs.tsx
++++ b/apps/web/src/components/RightPanelTabs.tsx
+@@ -106,6 +106,8 @@ import { resolvePullRequestState } from "./pullRequest/pullRequestPresentation";
+ import { PullRequestGlyph } from "~/components/pullRequest/pullRequestIcons";
+ import { observeResize } from "~/lib/observeResize";
+ import { surfaceShortcutKey } from "~/lib/surfaceShortcutKey";
++import { circuitTabTitle } from "~/tscircuit/circuitSurface";
++import { CircuitTabIcon, circuitSurfaceActions } from "~/tscircuit/circuitTab";
+ 
+ export interface RightPanelTabsProps {
+   mode: PreviewPanelMode;
+@@ -140,6 +142,8 @@ export interface RightPanelTabsProps {
+   onAddTerminal: () => void;
+   onAddDiff: () => void;
+   onAddFiles: () => void;
++  /** tscircuit desktop: absent where there is no thread to open a circuit for. */
++  onAddCircuit?: (() => void) | undefined;
+   onAddPullRequest: () => void;
+   onAddPullRequests: () => void;
+   onAddDevice: () => void;
+@@ -321,6 +325,8 @@ function RightPanelEmptyState(props: {
+   onAddTerminal: () => void;
+   onAddDiff: () => void;
+   onAddFiles: () => void;
++  /** tscircuit desktop: absent where there is no thread to open a circuit for. */
++  onAddCircuit?: (() => void) | undefined;
+   onAddPullRequest: () => void;
+   onAddPullRequests: () => void;
+   onAddDevice: () => void;
+@@ -363,6 +369,7 @@ function RightPanelEmptyState(props: {
+       disabledReason: SURFACE_UNAVAILABLE_HINTS.files,
+       onClick: props.onAddFiles,
+     },
++    ...circuitSurfaceActions(props.onAddCircuit),
+     {
+       label: "Diff",
+       icon: FileDiff,
+@@ -596,6 +603,8 @@ function surfaceTitle(
+       return surface.title ?? surface.target?.name ?? "Device";
+     case "side-chat":
+       return "Side chat";
++    case "circuit":
++      return circuitTabTitle(surface);
+     case "preview": {
+       const snapshot = surface.resourceId ? sessions[surface.resourceId] : null;
+       if (!snapshot || snapshot.navStatus._tag === "Idle") return "Browser";
+@@ -686,6 +695,8 @@ function SurfaceIcon({
+       return <PullRequestGlyph.link className="size-3 shrink-0" />;
+     case "side-chat":
+       return <SideChatTabIcon environmentId={environmentId} threadId={surface.threadId} />;
++    case "circuit":
++      return <CircuitTabIcon />;
+     case "device":
+       return surface.target?.platform === "ios" ? (
+         <AppleIcon className="size-3 shrink-0" />
+@@ -1122,6 +1133,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
+       disabledReason: SURFACE_DISABLED_REASONS.files,
+       onClick: props.onAddFiles,
+     },
++    ...circuitSurfaceActions(props.onAddCircuit),
+     {
+       label: "Diff",
+       icon: FileDiff,
+@@ -1545,6 +1557,7 @@ export function RightPanelTabs(props: RightPanelTabsProps) {
+             onAddTerminal={props.onAddTerminal}
+             onAddDiff={props.onAddDiff}
+             onAddFiles={props.onAddFiles}
++            onAddCircuit={props.onAddCircuit}
+             onAddPullRequest={props.onAddPullRequest}
+             onAddPullRequests={props.onAddPullRequests}
+             onAddDevice={props.onAddDevice}

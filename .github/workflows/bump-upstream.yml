@@ -1,0 +1,67 @@
+name: Bump T3 Code
+
+# Moves the pin to the newest upstream commit every day. When our patches
+# still apply and the checks pass, it opens (or updates) one pull request.
+# When a patch conflicts, the run fails and names the file; resolve it locally
+# with `npm run bump`.
+
+on:
+  schedule:
+    - cron: "23 9 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: bump-upstream
+  cancel-in-progress: true
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - id: bump
+        run: node scripts/bump.ts
+
+      - if: steps.bump.outputs.changed == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .t3code/package.json
+      - if: steps.bump.outputs.changed == 'true'
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: .t3code/package.json
+      - if: steps.bump.outputs.changed == 'true'
+        run: node scripts/setup.ts && npm run check:app
+
+      - if: steps.bump.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FROM: ${{ steps.bump.outputs.from }}
+          TO: ${{ steps.bump.outputs.to }}
+          COMPARE: ${{ steps.bump.outputs.compare }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B bump/t3code
+          git add upstream.json overlay patches
+          git commit -m "Bump T3 Code to ${TO:0:10}"
+          git push --force origin bump/t3code
+
+          title="Bump T3 Code to ${TO:0:10}"
+          body="Moves the pin from \`${FROM:0:10}\` to \`${TO:0:10}\`. Every patch still applied and \`npm run check:app\` passed in the workflow run that opened this.
+
+          What upstream changed: ${COMPARE}"
+          if gh pr view bump/t3code --json state --jq .state 2>/dev/null | grep -q OPEN; then
+            gh pr edit bump/t3code --title "$title" --body "$body"
+          else
+            gh pr create --base main --head bump/t3code --title "$title" --body "$body"
+          fi

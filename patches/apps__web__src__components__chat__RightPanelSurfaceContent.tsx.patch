@@ -1,0 +1,34 @@
+Renders the Circuit tab's content (apps/web/src/tscircuit/CircuitPanel.tsx, loaded lazily).
+
+diff --git a/apps/web/src/components/chat/RightPanelSurfaceContent.tsx b/apps/web/src/components/chat/RightPanelSurfaceContent.tsx
+index 5ba6985e19d21991088de4ace647823f41c8f792..2fbfff2f87d66ea49d218c9130dac236ccbdf318 100644
+--- a/apps/web/src/components/chat/RightPanelSurfaceContent.tsx
++++ b/apps/web/src/components/chat/RightPanelSurfaceContent.tsx
+@@ -33,6 +33,7 @@ const DevicePanel = lazy(() =>
+   import("../device/DevicePanel").then((module) => ({ default: module.DevicePanel })),
+ );
+ const FilePreviewPanel = lazy(() => import("../files/FilePreviewPanel"));
++const CircuitPanel = lazy(() => import("../../tscircuit/CircuitPanel"));
+ 
+ type RightPanelTerminalProps = Omit<
+   PersistentThreadTerminalPanelProps,
+@@ -200,6 +201,19 @@ export function RightPanelSurfaceContent(props: {
+           />
+         </Suspense>
+       );
++    case "circuit":
++      return (
++        <Suspense fallback={null}>
++          <CircuitPanel
++            key={`${props.environmentId}:${props.files.workspaceRoot}`}
++            environmentId={props.environmentId}
++            cwd={props.files.workspaceRoot}
++            relativePath={surface.relativePath ?? null}
++            visible={visible}
++            workspaceMutationId={props.workspaceMutationId}
++          />
++        </Suspense>
++      );
+     case "files":
+     case "file": {
+       const files = props.files;

@@ -1,0 +1,43 @@
+name: Check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  scripts:
+    name: Overlay scripts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: npm test
+
+  app:
+    name: Patched app
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Builds .t3code/ from the pin, overlay/ and patches/. Fails here if a
+      # patch no longer applies.
+      - run: node scripts/setup.ts --no-install
+      - run: node scripts/export.ts --check
+
+      # From here on use the Node and pnpm versions T3 Code itself asks for.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .t3code/package.json
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: .t3code/package.json
+      - run: node scripts/setup.ts
+      - run: npm run check:app
