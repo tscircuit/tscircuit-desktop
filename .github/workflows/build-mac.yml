@@ -1,7 +1,7 @@
 name: Build Mac app
 
-# Builds tscircuit desktop for Apple Silicon Macs and keeps the installer as a
-# workflow artifact for 14 days.
+# Builds tscircuit desktop for Apple Silicon Macs and keeps the zipped app as a
+# workflow artifact for 14 days. Unzip it and move the app to Applications.
 #
 # This is a test build, not a release:
 #   - It is not signed with an Apple Developer ID, so macOS asks for
@@ -52,27 +52,32 @@ jobs:
           version="${base}-preview.$(date -u +%Y%m%d).${GITHUB_RUN_NUMBER}"
           echo "Building version $version"
           node scripts/run.ts vp run dist:desktop:artifact \
-            --platform mac --target dmg --arch arm64 \
+            --platform mac --target zip --arch arm64 \
             --build-version "$version" --verbose
 
-      # An Apple Silicon Mac refuses to start an app whose signature is broken,
-      # so show what the build produced. Unsigned builds should be ad-hoc signed.
-      - name: Show the app's signature
+      # Without a Developer ID the build script leaves the app bundle unsigned:
+      # only the program file keeps the signature its linker gave it, and
+      # `codesign --verify` rejects the bundle. Sign the whole bundle ad hoc
+      # (no identity) so macOS sees one consistent app with our app ID, then
+      # zip it again, since signing changed the files.
+      - name: Sign the app ad hoc and zip it
         run: |
-          ls -la .t3code/release
-          mkdir -p "$RUNNER_TEMP/unzipped"
-          ditto -x -k .t3code/release/*.zip "$RUNNER_TEMP/unzipped"
-          app="$(find "$RUNNER_TEMP/unzipped" -maxdepth 1 -name '*.app' | head -1)"
+          work="$RUNNER_TEMP/app"
+          mkdir -p "$work" out
+          zip="$(ls .t3code/release/*.zip)"
+          ditto -x -k "$zip" "$work"
+          app="$(find "$work" -maxdepth 1 -name '*.app' | head -1)"
           echo "App: $app"
-          codesign --display --verbose=2 "$app" || true
-          codesign --verify --deep --strict --verbose=2 "$app" || true
+          codesign --force --deep --sign - "$app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign --display --verbose=2 "$app"
+          ditto -c -k --keepParent "$app" "out/$(basename "$zip")"
+          ls -la out
 
       - uses: actions/upload-artifact@v4
         with:
           name: tscircuit-desktop-mac-arm64
-          path: |
-            .t3code/release/*.dmg
-            .t3code/release/*.zip
+          path: out/*.zip
           if-no-files-found: error
           retention-days: 14
           compression-level: 0
