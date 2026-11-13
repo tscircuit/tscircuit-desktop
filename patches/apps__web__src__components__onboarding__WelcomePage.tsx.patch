@@ -1,0 +1,17 @@
+The welcome screen said the app collects anonymous usage data. In this build that is off by default (see the AnalyticsService patch), so it says so.
+
+diff --git a/apps/web/src/components/onboarding/WelcomePage.tsx b/apps/web/src/components/onboarding/WelcomePage.tsx
+index faf7ef99ea3bd9167bafb1b85bb4ed0673c520e6..038fe49b4ac70b22565c61cae010b22285577d3b 100644
+--- a/apps/web/src/components/onboarding/WelcomePage.tsx
++++ b/apps/web/src/components/onboarding/WelcomePage.tsx
+@@ -327,8 +327,8 @@ function TelemetryNotice({ environmentId }: { readonly environmentId: Environmen
+   const telemetryOff = managedTelemetryOffMessage(useManagedPolicy(environmentId));
+   return (
+     <p className="mt-auto pt-12 text-2xs leading-relaxed text-muted-foreground/70">
+-      {telemetryOff ?? "tscircuit desktop collects anonymous usage data to improve the app."}{" "}
+-      {telemetryOff === undefined ? "To opt out, see the" : "See the"}{" "}
++      {telemetryOff ?? "tscircuit desktop does not collect usage data unless you turn it on."}{" "}
++      See the{" "}
+       <a
+         className="underline decoration-current/40 underline-offset-2 hover:text-muted-foreground"
+         href={PRIVACY_POLICY_URL}

@@ -13,8 +13,17 @@ export const patchesDir = join(repoRoot, "patches")
 
 export const pinFile = join(repoRoot, "upstream.json")
 
+/** Find-and-replace rules applied to upstream before the overlay and patches. */
+export const renamesFile = join(repoRoot, "renames.json")
+
 /** Tag inside the checkout marking the pinned upstream commit. */
 export const PIN_TAG = "upstream-pin"
+
+/**
+ * Tag inside the checkout marking upstream after the renames in renames.json.
+ * overlay/ and patches/ are the difference from this point, not from the pin.
+ */
+export const BASE_TAG = "tscircuit-base"
 
 /** Branch inside the checkout that holds upstream plus our changes. */
 export const WORK_BRANCH = "tscircuit"

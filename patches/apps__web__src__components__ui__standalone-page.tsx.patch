@@ -1,0 +1,24 @@
+Shows "tscircuit desktop" on full-page screens (sign-in, errors) in place of the T3 logo and "Code".
+
+diff --git a/apps/web/src/components/ui/standalone-page.tsx b/apps/web/src/components/ui/standalone-page.tsx
+index 3eaec9e231fa99f167b7a2af123ffbef4d188acf..a5656c638792a74ab05411de4247719737eb8bd1 100644
+--- a/apps/web/src/components/ui/standalone-page.tsx
++++ b/apps/web/src/components/ui/standalone-page.tsx
+@@ -1,6 +1,5 @@
+ import type { ReactNode } from "react";
+ 
+-import { T3Wordmark } from "../T3Wordmark";
+ 
+ export function StandalonePage({ children }: { readonly children: ReactNode }) {
+   return (
+@@ -24,8 +23,8 @@ export function StandalonePageHeader({
+     <>
+       <div className="flex items-baseline justify-between gap-3 text-muted-foreground">
+         <span className="flex items-baseline gap-1.5" role="img" aria-label="tscircuit desktop">
+-          <T3Wordmark className="h-3 w-auto shrink-0 text-foreground" aria-hidden />
+-          <span className="text-lg font-medium tracking-tight">Code</span>
++          <span className="text-lg font-medium tracking-tight text-foreground">tscircuit</span>
++          <span className="text-lg font-medium tracking-tight">desktop</span>
+         </span>
+         {context ? <span className="text-sm">{context}</span> : null}
+       </div>

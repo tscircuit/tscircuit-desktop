@@ -1,0 +1,9 @@
+Points the app's privacy link at this repository's Privacy section. T3 Code's privacy policy does not cover this build.
+
+diff --git a/apps/web/src/legalLinks.ts b/apps/web/src/legalLinks.ts
+index 2c42b814355f00b0b65ff3c1286e2620a6887fb6..2e7404c94906120bcae2f910548a4f638d5d6e0f 100644
+--- a/apps/web/src/legalLinks.ts
++++ b/apps/web/src/legalLinks.ts
+@@ -1 +1 @@
+-export const PRIVACY_POLICY_URL = "https://t3.codes/privacy-policy";
++export const PRIVACY_POLICY_URL = "https://github.com/tscircuit/tscircuit-desktop#privacy";

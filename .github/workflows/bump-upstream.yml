@@ -2,8 +2,8 @@ name: Bump T3 Code
 
 # Moves the pin to the newest upstream commit every day. When our patches
 # still apply and the checks pass, it opens (or updates) one pull request.
-# When a patch conflicts, the run fails and names the file; resolve it locally
-# with `npm run bump`.
+# When a patch conflicts, or a rule in renames.json stops matching, the run
+# fails and names it; resolve it locally with `npm run bump`.
 
 on:
   schedule:

@@ -2,9 +2,10 @@
  * Builds the working copy of the app in .t3code/:
  *
  *   1. check out upstream T3 Code at the commit pinned in upstream.json
- *   2. copy overlay/ on top (files that only exist in tscircuit desktop)
- *   3. apply patches/ (our changes to upstream's own files)
- *   4. install dependencies
+ *   2. apply the find-and-replace rules in renames.json
+ *   3. copy overlay/ on top (files that only exist here, and replaced binaries)
+ *   4. apply patches/ (our changes to upstream's own files)
+ *   5. install dependencies
  *
  * Usage: node scripts/setup.ts [--force] [--no-install]
  *
@@ -16,14 +17,17 @@ import { checkoutExists, git, tryGit } from "./lib/checkout.ts"
 import { fail, run, step, tryRun } from "./lib/exec.ts"
 import { upstreamPathOf } from "./lib/patch-files.ts"
 import {
+  BASE_TAG,
   checkoutDir,
   overlayDir,
   patchesDir,
   PIN_TAG,
+  renamesFile,
   SAVED_TAG,
   WORK_BRANCH,
 } from "./lib/paths.ts"
 import { readPin } from "./lib/pin.ts"
+import { applyRenames, readRenames } from "./lib/renames.ts"
 
 const CONFLICT_EXIT_CODE = 3
 
@@ -50,6 +54,27 @@ git("checkout", "--quiet", "--force", "-B", WORK_BRANCH, pin.commit)
 // Removes leftovers from the previous pin but keeps ignored files such as node_modules.
 git("clean", "--quiet", "-fd")
 git("tag", "--force", PIN_TAG, pin.commit)
+
+const renames = readRenames(renamesFile)
+if (renames) {
+  const tracked = git("ls-files", "-z", "--", ...renames.paths)
+    .split("\0")
+    .filter(Boolean)
+  const result = applyRenames(checkoutDir, tracked, renames)
+  if (result.unmatched.length > 0) {
+    fail(
+      "These rules in renames.json no longer match anything in T3 Code:\n" +
+        result.unmatched.map((label) => `  ${label}`).join("\n") +
+        "\n\nUpstream has probably reworded what they were written for. Find the new\n" +
+        "wording in .t3code/ and update the rule, or delete it if it is not needed.",
+    )
+  }
+  step(`Renamed names in ${result.touched} files (renames.json)`)
+  git("add", "--all")
+  git("commit", "--quiet", "--allow-empty", "--no-verify", "-m", "tscircuit desktop: renames")
+}
+// overlay/ and patches/ are measured from here, so a rename is never a patch.
+git("tag", "--force", BASE_TAG)
 
 if (existsSync(overlayDir)) {
   step("Copying overlay/")

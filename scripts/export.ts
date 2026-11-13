@@ -2,7 +2,11 @@
  * Saves the work in .t3code/ back into this repo:
  *
  *   - files that do not exist upstream are copied to overlay/
- *   - every upstream file we changed gets one patch in patches/
+ *   - so are upstream binary files we replaced, such as icons
+ *   - every upstream text file we changed gets one patch in patches/
+ *
+ * "Upstream" here means T3 Code after the renames in renames.json, so a
+ * rename never shows up as a patch.
  *
  * Usage: node scripts/export.ts [--check]
  *
@@ -19,7 +23,7 @@ import {
   writeFileSync,
 } from "node:fs"
 import { dirname, join, relative } from "node:path"
-import { checkoutExists, diffAgainstPin, git, readCheckoutChanges } from "./lib/checkout.ts"
+import { checkoutExists, diffAgainstBase, git, readCheckoutChanges } from "./lib/checkout.ts"
 import { fail, step } from "./lib/exec.ts"
 import {
   composePatch,
@@ -36,7 +40,10 @@ if (!checkoutExists()) fail("There is no checkout yet. Run `npm run setup` first
 const changes = readCheckoutChanges()
 
 const wantedOverlay = new Map<string, Buffer>(
-  changes.added.map((path) => [path, readFileSync(join(checkoutDir, path))]),
+  [...changes.added, ...changes.replaced].map((path) => [
+    path,
+    readFileSync(join(checkoutDir, path)),
+  ]),
 )
 
 const wantedPatches = new Map<string, string>(
@@ -44,7 +51,7 @@ const wantedPatches = new Map<string, string>(
     const fileName = patchFileName(path)
     const existing = join(patchesDir, fileName)
     const note = existsSync(existing) ? readNote(readFileSync(existing, "utf8")) : ""
-    return [fileName, composePatch(note, diffAgainstPin(path))]
+    return [fileName, composePatch(note, diffAgainstBase(path))]
   }),
 )
 

@@ -1,0 +1,15 @@
+Same correction as the welcome screen, for the privacy row in Settings: usage data is off by default in this build.
+
+diff --git a/apps/web/src/components/settings/SettingsPanels.tsx b/apps/web/src/components/settings/SettingsPanels.tsx
+index 4ab1569f6e3cf7c8f88373f657390a497e419121..4a000333e5d42e0a362aba5bb9288484d45c3c58 100644
+--- a/apps/web/src/components/settings/SettingsPanels.tsx
++++ b/apps/web/src/components/settings/SettingsPanels.tsx
+@@ -2325,7 +2325,7 @@ export function AboutSettingsPanel() {
+           {...searchableSetting("privacy-policy")}
+           description={
+             telemetryOff === undefined
+-              ? "How we handle your data, including the anonymous usage data tscircuit desktop collects."
++              ? "What this app sends from your computer. Usage data is off unless you turn it on."
+               : `How we handle your data. ${telemetryOff}`
+           }
+           control={
