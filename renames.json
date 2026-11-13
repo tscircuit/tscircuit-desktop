@@ -25,6 +25,16 @@
       "why": "Upstream's name followed by the word desktop, which would otherwise come out as \"tscircuit desktop desktop\"."
     },
     {
+      "from": "T3 Code (Beta)",
+      "to": "tscircuit desktop",
+      "why": "The installed app is called plain \"tscircuit desktop\", with no Beta or Nightly label. Only the development run keeps a label, \"(Dev)\"."
+    },
+    {
+      "from": "T3 Code (Nightly)",
+      "to": "tscircuit desktop",
+      "why": "The installed app is called plain \"tscircuit desktop\", with no Beta or Nightly label. Only the development run keeps a label, \"(Dev)\"."
+    },
+    {
       "from": "T3 Code",
       "to": "tscircuit desktop",
       "why": "The product name. Upstream writes it in about 1,200 places: window titles, dialogs, error messages, agent prompts."

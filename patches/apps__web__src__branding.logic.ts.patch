@@ -1,0 +1,15 @@
+Same as the DesktopEnvironment patch, for window titles built in the web app: no release label except (Dev).
+
+diff --git a/apps/web/src/branding.logic.ts b/apps/web/src/branding.logic.ts
+index f53103d904ad0545fbd377ff9aab31a873554c72..69b975e35bec32fa2fcdf2cf33ee4ce126e10b28 100644
+--- a/apps/web/src/branding.logic.ts
++++ b/apps/web/src/branding.logic.ts
+@@ -4,7 +4,8 @@ export function formatAppDisplayName(input: {
+   readonly baseName: string;
+   readonly stageLabel: string;
+ }): string {
+-  if (input.stageLabel.trim().toLowerCase() === "latest") {
++  // tscircuit desktop: only the development run carries a label.
++  if (input.stageLabel.trim().toLowerCase() !== "dev") {
+     return input.baseName;
+   }

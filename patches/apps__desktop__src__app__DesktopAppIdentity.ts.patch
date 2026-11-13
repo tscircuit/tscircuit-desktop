@@ -1,0 +1,17 @@
+Same as the DesktopEnvironment patch, for the name macOS shows in the app menu: no Beta or Nightly label.
+
+diff --git a/apps/desktop/src/app/DesktopAppIdentity.ts b/apps/desktop/src/app/DesktopAppIdentity.ts
+index 5fd6983c666822ed5effd50ab8c9e75a3bfde165..c059ae299c952738684a8be8ec48e1d2b3e755d3 100644
+--- a/apps/desktop/src/app/DesktopAppIdentity.ts
++++ b/apps/desktop/src/app/DesktopAppIdentity.ts
+@@ -93,7 +93,9 @@ export const make = Effect.gen(function* () {
+     const commitHash = yield* resolveAboutCommitHash;
+     // Electron strips spaces but keeps parentheses in its User-Agent token, breaking Turnstile in preview sessions.
+     yield* electronApp.setName(
+-      `${environment.branding.baseName} ${environment.branding.stageLabel}`,
++      environment.branding.stageLabel === "Dev"
++        ? `${environment.branding.baseName} Dev`
++        : environment.branding.baseName,
+     );
+     yield* electronApp.setAboutPanelOptions({
+       applicationName: environment.displayName,

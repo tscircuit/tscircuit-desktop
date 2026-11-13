@@ -97,6 +97,7 @@ The **Bump T3 Code** workflow does this daily and opens a pull request when ever
 | Change | Where |
 | --- | --- |
 | The app is called tscircuit desktop: window titles, dialogs, error messages, agent prompts | `renames.json` |
+| No Beta or Nightly label on the name; only `npm run dev` shows "(Dev)" | `renames.json`, three patches |
 | Its own app ID, link scheme (`tscircuit-desktop://`) and data folders (`~/.tscircuit-desktop`), so it can sit beside an installed T3 Code without sharing its data or taking its links | `renames.json` |
 | tscircuit's icon for the app, the window and the favicon; "tscircuit desktop" in the sidebar | `overlay/assets/`, `overlay/apps/web/public/`, `branding/`, three patches |
 | Usage analytics off by default, and the screens that describe them corrected | Four patches |
