@@ -1,6 +1,7 @@
 #!/bin/sh
 # Regenerates the app's icons from branding/app-icon.svg, replacing T3 Code's.
-# app-icon.svg is the tscircuit logo (branding/icon.svg) on a rounded square.
+# app-icon.svg is the tscircuit logo (branding/icon.svg) on the rounded square
+# macOS expects. icon.svg matches https://tscircuit.com/tscircuit-logo.png.
 #
 #   npm run setup          (the icons are written into .t3code/)
 #   sh branding/make-icons.sh
