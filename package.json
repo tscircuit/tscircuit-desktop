@@ -1,0 +1,26 @@
+{
+  "name": "tscircuit-desktop",
+  "private": true,
+  "description": "Desktop app for designing electronics with tscircuit and AI, built on T3 Code",
+  "license": "MIT",
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tscircuit/tscircuit-desktop.git"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.ts",
+    "export": "node scripts/export.ts",
+    "export:check": "node scripts/export.ts --check",
+    "bump": "node scripts/bump.ts",
+    "t3": "node scripts/run.ts",
+    "dev": "node scripts/run.ts vp run dev:desktop",
+    "dev:web": "node scripts/run.ts vp run dev",
+    "build": "node scripts/run.ts vp run build:desktop",
+    "test": "node --test \"scripts/**/*.test.ts\"",
+    "check:app": "node scripts/run.ts --dir packages/contracts vp run typecheck && node scripts/run.ts --dir packages/contracts vp test run src/tscircuit src/settings.test.ts && node scripts/run.ts --dir packages/shared vp test run src/projectSettings.test.ts src/serverSettings.test.ts"
+  }
+}

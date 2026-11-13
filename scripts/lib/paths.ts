@@ -1,0 +1,23 @@
+import { join } from "node:path"
+
+export const repoRoot = join(import.meta.dirname, "..", "..")
+
+/** The generated T3 Code checkout. Never committed; rebuilt by `setup`. */
+export const checkoutDir = join(repoRoot, ".t3code")
+
+/** New files, laid out exactly as they sit inside the checkout. */
+export const overlayDir = join(repoRoot, "overlay")
+
+/** One patch per upstream file that tscircuit desktop changes. */
+export const patchesDir = join(repoRoot, "patches")
+
+export const pinFile = join(repoRoot, "upstream.json")
+
+/** Tag inside the checkout marking the pinned upstream commit. */
+export const PIN_TAG = "upstream-pin"
+
+/** Branch inside the checkout that holds upstream plus our changes. */
+export const WORK_BRANCH = "tscircuit"
+
+/** Tag inside the checkout marking the state that is saved in this repo. */
+export const SAVED_TAG = "tscircuit-saved"
