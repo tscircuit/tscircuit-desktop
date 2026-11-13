@@ -13,3 +13,4 @@ index 16e9c15328683d12dcc0dea6c8b869aef903023f..24d4130dcece4bf967b08b2ef4f4a14d
 +    displayName: stageLabel === "Dev" ? `${APP_BASE_NAME} (Dev)` : APP_BASE_NAME,
    };
  }
+ 

@@ -26,7 +26,9 @@ export function readNote(patchText: string): string {
 }
 
 export function composePatch(note: string, diff: string): string {
-  return `${note.trim() || NOTE_PLACEHOLDER}\n\n${diff.trimEnd()}\n`
+  // Only newlines are trimmed from the end of the diff. A hunk can end with a
+  // blank context line, which is a single space; removing it corrupts the patch.
+  return `${note.trim() || NOTE_PLACEHOLDER}\n\n${diff.replace(/\n+$/, "")}\n`
 }
 
 export const hasPlaceholderNote = (patchText: string): boolean =>

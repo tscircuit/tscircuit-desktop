@@ -278,3 +278,18 @@ test("an upstream binary file we replace is saved whole in overlay/", () => {
   assert.deepEqual(readFileSync(join(checkout, "icon.png")), ourIcon)
   assert.equal(script("export", "--check").status, 0)
 })
+
+test("a patch whose last context line is blank still applies", () => {
+  const upstreamText = "a\nb\nc\nd\n\ne\nf\ng\n"
+  const sandbox = createSandbox({ "gap.txt": upstreamText })
+  const { checkout, script } = sandbox
+  assert.equal(script("setup", "--no-install").status, 0)
+
+  // Changing "b" leaves "c", "d" and the blank line as the hunk's trailing context.
+  writeFileSync(join(checkout, "gap.txt"), upstreamText.replace("b", "B"))
+  assert.equal(script("export").status, 0)
+
+  const rebuilt = script("setup", "--no-install", "--force")
+  assert.equal(rebuilt.status, 0, rebuilt.stderr)
+  assert.equal(readFileSync(join(checkout, "gap.txt"), "utf8"), upstreamText.replace("b", "B"))
+})

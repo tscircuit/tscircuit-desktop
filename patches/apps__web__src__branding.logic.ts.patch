@@ -13,3 +13,4 @@ index f53103d904ad0545fbd377ff9aab31a873554c72..69b975e35bec32fa2fcdf2cf33ee4ce1
 +  if (input.stageLabel.trim().toLowerCase() !== "dev") {
      return input.baseName;
    }
+ 
