@@ -48,6 +48,12 @@ The Circuit tab reads the project's files directly, so there is no dev server to
 
 For better results, give the agent tscircuit's reference docs: run `npx skills add tscircuit/skill` in the project.
 
+### Install it on a Mac
+
+There are no releases yet. The **Build Mac app** workflow (Actions tab, "Run workflow") builds the app for Apple Silicon and attaches a zip to the run. Unzip it and move the app to Applications.
+
+That build is not signed with an Apple Developer ID, so macOS asks for confirmation the first time it opens, and it does not update itself. Automatic updates need a signed and notarized build published as a GitHub release.
+
 ## Change the app
 
 ```sh
@@ -118,7 +124,7 @@ This list covers what was checked while building the rename. It is not a full au
 ## Known gaps
 
 - **Some T3 names remain on purpose.** The command-line tool is still `t3`, settings use `T3CODE_` environment variables, and T3 Connect and T3 Chat keep their names because they are T3's own services.
-- **No installers yet.** The app has only been run with `npm run dev` on Linux. The rules rename the app ID, link scheme and file names that installers use, but no macOS, Windows or Linux package has been built or tried.
+- **No releases, and no automatic updates.** The Build Mac app workflow makes an unsigned test build for Apple Silicon, which has been installed and opened on one Mac. Nothing is signed, notarized or published, and no Windows or Linux package has been built.
 - **"Report a problem" still files to T3 Code.** The built-in triage agent is written to search and open issues in T3 Code's repository. It needs rewriting for this repository before the app is given to users.
 - **The server's own updater still looks at T3 Code's releases.** It applies to servers started with `t3` from a terminal, not to the desktop app.
 - **A few of T3 Code's own tests fail after the renames.** They use the old name as test data or check an upstream link. `npm run check:app` does not run them; see `docs/research.md` for the list.
