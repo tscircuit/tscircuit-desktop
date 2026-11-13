@@ -1,0 +1,78 @@
+name: Build Mac app
+
+# Builds tscircuit desktop for Apple Silicon Macs and keeps the installer as a
+# workflow artifact for 14 days.
+#
+# This is a test build, not a release:
+#   - It is not signed with an Apple Developer ID, so macOS asks for
+#     confirmation the first time it is opened.
+#   - It has a preview version number, which the build script treats as
+#     "no update feed". The app will say updates are unavailable instead of
+#     looking for releases that do not exist.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/build-mac.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-mac-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Apple Silicon
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      # Builds .t3code/ from the pin, renames.json, overlay/ and patches/.
+      - run: node scripts/setup.ts --no-install
+
+      # From here on use the Node and pnpm versions T3 Code itself asks for.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .t3code/package.json
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: .t3code/package.json
+      - run: node scripts/setup.ts
+
+      - name: Build the app
+        run: |
+          base="$(node -p "require('./.t3code/apps/desktop/package.json').version")"
+          version="${base}-preview.$(date -u +%Y%m%d).${GITHUB_RUN_NUMBER}"
+          echo "Building version $version"
+          node scripts/run.ts vp run dist:desktop:artifact \
+            --platform mac --target dmg --arch arm64 \
+            --build-version "$version" --verbose
+
+      # An Apple Silicon Mac refuses to start an app whose signature is broken,
+      # so show what the build produced. Unsigned builds should be ad-hoc signed.
+      - name: Show the app's signature
+        run: |
+          ls -la .t3code/release
+          mkdir -p "$RUNNER_TEMP/unzipped"
+          ditto -x -k .t3code/release/*.zip "$RUNNER_TEMP/unzipped"
+          app="$(find "$RUNNER_TEMP/unzipped" -maxdepth 1 -name '*.app' | head -1)"
+          echo "App: $app"
+          codesign --display --verbose=2 "$app" || true
+          codesign --verify --deep --strict --verbose=2 "$app" || true
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tscircuit-desktop-mac-arm64
+          path: |
+            .t3code/release/*.dmg
+            .t3code/release/*.zip
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
