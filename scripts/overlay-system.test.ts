@@ -293,3 +293,46 @@ test("a patch whose last context line is blank still applies", () => {
   assert.equal(rebuilt.status, 0, rebuilt.stderr)
   assert.equal(readFileSync(join(checkout, "gap.txt"), "utf8"), upstreamText.replace("b", "B"))
 })
+
+test("the skill named in skill.json is bundled on every setup and never exported", () => {
+  const sandbox = createSandbox()
+  const { repo, checkout, script } = sandbox
+  const skillRepo = join(repo, "..", "skill")
+  mkdirSync(join(skillRepo, "scripts"), { recursive: true })
+  git(skillRepo, "init", "--quiet", "--initial-branch=main")
+  writeFileSync(join(skillRepo, "SKILL.md"), "first\n")
+  writeFileSync(join(skillRepo, "scripts", "run.sh"), "#!/bin/sh\n", { mode: 0o755 })
+  writeFileSync(join(skillRepo, ".gitignore"), "node_modules\n")
+  git(skillRepo, "add", "--all")
+  git(skillRepo, "commit", "--quiet", "-m", "first")
+  writeFileSync(
+    join(repo, "skill.json"),
+    JSON.stringify({ name: "demo", repository: skillRepo, branch: "main", into: "skill.generated.json" }),
+  )
+  const bundled = () =>
+    JSON.parse(readFileSync(join(checkout, "skill.generated.json"), "utf8")) as {
+      name: string
+      commit: string
+      files: Array<{ path: string; content: string; executable: boolean }>
+    }
+
+  assert.equal(script("setup", "--no-install").status, 0)
+  assert.equal(bundled().commit, git(skillRepo, "rev-parse", "HEAD"))
+  assert.deepEqual(
+    bundled().files.map((file) => [file.path, file.executable]),
+    [
+      ["SKILL.md", false],
+      ["scripts/run.sh", true],
+    ],
+  )
+
+  // Generated, so it is neither saved to overlay/ nor treated as unsaved work.
+  assert.equal(script("export").status, 0)
+  assert.equal(existsSync(join(repo, "overlay", "skill.generated.json")), false)
+
+  writeFileSync(join(skillRepo, "SKILL.md"), "second\n")
+  git(skillRepo, "commit", "--quiet", "--all", "-m", "second")
+  const again = script("setup", "--no-install")
+  assert.equal(again.status, 0, again.stderr)
+  assert.equal(bundled().files[0]?.content, "second\n")
+})

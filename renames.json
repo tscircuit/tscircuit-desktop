@@ -160,6 +160,16 @@
       "why": "The same tool-label recognition, for labels written as \"name \u00b7 tool\"."
     },
     {
+      "from": "author: \"T3 Tools\"",
+      "to": "author: \"tscircuit\"",
+      "why": "The author recorded inside the packaged app."
+    },
+    {
+      "from": "homepage: \"https://t3.codes\"",
+      "to": "homepage: \"https://github.com/tscircuit/tscircuit-desktop\"",
+      "why": "The homepage recorded inside the packaged app."
+    },
+    {
       "pattern": "(?<![A-Za-z0-9_/.$@-])T3(?='s\\b| [a-z]| Server\\b)",
       "to": "tscircuit desktop",
       "why": "The short form of the product name in running text, such as \"T3 threads\" or \"T3's browser\". It leaves alone T3 Connect, T3 Chat and T3 Tools, which are T3's own services and company, and bare \"T3\" used as data."

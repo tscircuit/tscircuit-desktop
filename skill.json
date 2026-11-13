@@ -1,0 +1,6 @@
+{
+  "name": "tscircuit",
+  "repository": "https://github.com/tscircuit/skill.git",
+  "branch": "main",
+  "into": "apps/server/src/tscircuit/bundledSkill.generated.json"
+}

@@ -1,0 +1,129 @@
+name: Release
+
+# Builds tscircuit desktop for Apple Silicon Macs.
+#
+#   - On every push to main it publishes a GitHub release, v<major>.<minor>.<run>.
+#     Major and minor come from "version" in package.json; the last number is
+#     this workflow's run number, so no commit is needed to bump it.
+#   - On a pull request that changes this file it only builds, and keeps the
+#     zip as a workflow artifact, so the workflow can be tried before merging.
+#
+# The builds are not signed with an Apple Developer ID yet:
+#   - macOS asks for confirmation the first time a downloaded copy is opened
+#     (System Settings > Privacy & Security > Open Anyway).
+#   - The app cannot update itself, because macOS only applies an update that
+#     is signed by the same developer. So the build is made without an update
+#     feed, and the app says updates are unavailable instead of failing.
+# Once signing is set up, building with GITHUB_REPOSITORY set makes the app
+# look for updates in this repository's releases; see "Automatic updates" in
+# the README.
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  mac:
+    name: Apple Silicon
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Choose the version
+        id: version
+        run: |
+          base="$(node -p "require('./package.json').version.split('.').slice(0, 2).join('.')")"
+          version="${base}.${GITHUB_RUN_NUMBER}"
+          if [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            version="${version}-pr.${{ github.event.pull_request.number }}.${GITHUB_RUN_NUMBER}"
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "Version $version"
+
+      # Builds .t3code/ from the pin, renames.json, overlay/ and patches/.
+      - run: node scripts/setup.ts --no-install
+
+      # From here on use the Node and pnpm versions T3 Code itself asks for.
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .t3code/package.json
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: .t3code/package.json
+      - run: node scripts/setup.ts
+
+      # GITHUB_REPOSITORY is hidden from the build so that it bakes in no update
+      # feed. An unsigned app cannot apply an update it downloads.
+      - name: Build the app
+        run: |
+          env -u GITHUB_REPOSITORY node scripts/run.ts vp run dist:desktop:artifact \
+            --platform mac --target zip --arch arm64 \
+            --build-version "${{ steps.version.outputs.version }}" --verbose
+
+      # Without a Developer ID the build script leaves the app bundle unsigned:
+      # only the program file keeps the signature its linker gave it, and
+      # `codesign --verify` rejects the bundle. Sign the whole bundle ad hoc
+      # (no identity) so macOS sees one consistent app with our app ID, then
+      # package it again, since signing changed the files.
+      - name: Sign the app ad hoc and package it
+        run: |
+          work="$RUNNER_TEMP/app"
+          mkdir -p "$work" out
+          zip="$(ls .t3code/release/*.zip)"
+          name="$(basename "$zip" .zip)"
+          ditto -x -k "$zip" "$work"
+          app="$(find "$work" -maxdepth 1 -name '*.app' | head -1)"
+          echo "App: $app"
+          codesign --force --deep --sign - "$app"
+          codesign --verify --deep --strict --verbose=2 "$app"
+          codesign --display --verbose=2 "$app"
+          ditto -c -k --keepParent "$app" "out/$name.zip"
+
+          # A disk image with the usual "drag to Applications" layout.
+          ln -s /Applications "$work/Applications"
+          hdiutil create -volname "tscircuit desktop" -srcfolder "$work" \
+            -ov -format UDZO "out/$name.dmg"
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tscircuit-desktop-mac-arm64
+          path: out/*.zip
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Publish the release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          cat > "$RUNNER_TEMP/notes.md" <<'NOTES'
+          **Install on an Apple Silicon Mac:** download the `.dmg`, open it, and drag tscircuit desktop to Applications.
+
+          This build is not signed with an Apple Developer ID. The first time you open it, macOS will refuse; go to System Settings > Privacy & Security and choose **Open Anyway**. It also does not update itself: download a newer release to update.
+          NOTES
+          gh release create "v$VERSION" out/*.dmg out/*.zip \
+            --target "$GITHUB_SHA" \
+            --title "tscircuit desktop $VERSION" \
+            --notes-file "$RUNNER_TEMP/notes.md" \
+            --generate-notes
