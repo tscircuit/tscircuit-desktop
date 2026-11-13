@@ -23,7 +23,7 @@ function git(cwd: string, ...args: string[]): string {
 }
 
 /** A fake upstream with one commit, and a copy of these scripts pinned to it. */
-function createSandbox() {
+function createSandbox(extraUpstreamFiles: Record<string, string | Buffer> = {}) {
   const root = mkdtempSync(join(tmpdir(), "tscircuit-desktop-test-"))
   const upstream = join(root, "upstream")
   const repo = join(root, "repo")
@@ -34,6 +34,9 @@ function createSandbox() {
   // Lets a local path serve a single commit by hash, as GitHub does.
   git(upstream, "config", "uploadpack.allowAnySHA1InWant", "true")
   writeFileSync(join(upstream, "app.txt"), UPSTREAM_FILE)
+  for (const [path, content] of Object.entries(extraUpstreamFiles)) {
+    writeFileSync(join(upstream, path), content)
+  }
   const commitUpstream = (message: string) => {
     git(upstream, "add", "--all")
     git(upstream, "commit", "--quiet", "-m", message)
@@ -60,7 +63,10 @@ function createSandbox() {
   const pinnedCommit = () =>
     (JSON.parse(readFileSync(join(repo, "upstream.json"), "utf8")) as { commit: string }).commit
 
-  return { repo, checkout, script, editUpstream, pinnedCommit }
+  const writeRenames = (rules: Array<Record<string, string>>) =>
+    writeFileSync(join(repo, "renames.json"), JSON.stringify({ paths: ["."], rules }))
+
+  return { repo, checkout, script, editUpstream, pinnedCommit, writeRenames }
 }
 
 /** Makes the two kinds of change a contributor can make, then saves them. */
@@ -193,4 +199,82 @@ test("bump does nothing when the pin is already the tip of the branch", () => {
   assert.equal(bump.status, 0)
   assert.match(bump.stdout, /Already at/)
   assert.equal(pinnedCommit(), before)
+})
+
+test("renames.json rewrites upstream text and file names without becoming a patch", () => {
+  const sandbox = createSandbox({ "old-name.txt": "made by old-name\n" })
+  const { repo, checkout, script, writeRenames } = sandbox
+  writeRenames([{ from: "old-name", to: "new-name", why: "Our name." }])
+
+  assert.equal(script("setup", "--no-install").status, 0)
+
+  assert.equal(readFileSync(join(checkout, "new-name.txt"), "utf8"), "made by new-name\n")
+  assert.equal(existsSync(join(checkout, "old-name.txt")), false)
+  assert.equal(script("export").status, 0)
+  assert.equal(existsSync(join(repo, "patches", "new-name.txt.patch")), false)
+  assert.equal(existsSync(join(repo, "overlay", "new-name.txt")), false)
+})
+
+test("a patch to a renamed file holds only our own edit", () => {
+  const sandbox = createSandbox()
+  const { repo, checkout, script, writeRenames } = sandbox
+  writeRenames([{ pattern: "\\bthree\\b", to: "trois", why: "A rule with a boundary check." }])
+  assert.equal(script("setup", "--no-install").status, 0)
+
+  const renamed = UPSTREAM_FILE.replace("three", "trois")
+  assert.equal(readFileSync(join(checkout, "app.txt"), "utf8"), renamed)
+  writeFileSync(join(checkout, "app.txt"), renamed.replace("two", "TWO"))
+  assert.equal(script("export").status, 0)
+
+  const patch = readFileSync(join(repo, "patches", "app.txt.patch"), "utf8")
+  assert.match(patch, /^\+TWO$/m)
+  assert.doesNotMatch(patch, /^[-+]t(hree|rois)$/m)
+  assert.equal(script("setup", "--no-install", "--force").status, 0)
+  assert.equal(readFileSync(join(checkout, "app.txt"), "utf8"), renamed.replace("two", "TWO"))
+})
+
+test("bump applies the renames to text upstream adds later", () => {
+  const sandbox = createSandbox()
+  const { checkout, script, editUpstream, writeRenames } = sandbox
+  writeRenames([{ from: "one", to: "uno", why: "Our name." }])
+  assert.equal(script("setup", "--no-install").status, 0)
+  const app = join(checkout, "app.txt")
+  writeFileSync(app, readFileSync(app, "utf8").replace("two", "TWO"))
+  assert.equal(script("export").status, 0)
+  editUpstream("eight", "eight\none more")
+
+  const bump = script("bump")
+
+  assert.equal(bump.status, 0, bump.stderr)
+  const merged = readFileSync(join(checkout, "app.txt"), "utf8")
+  assert.match(merged, /^uno$/m)
+  assert.match(merged, /^uno more$/m)
+  assert.match(merged, /^TWO$/m)
+})
+
+test("setup stops when a rename rule no longer matches anything upstream", () => {
+  const { script, writeRenames } = createSandbox()
+  writeRenames([{ from: "a name upstream dropped", to: "ours", why: "Our name." }])
+
+  const setup = script("setup", "--no-install")
+
+  assert.equal(setup.status, 1)
+  assert.match(setup.stderr, /no longer match[\s\S]*a name upstream dropped/)
+})
+
+test("an upstream binary file we replace is saved whole in overlay/", () => {
+  const upstreamIcon = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 1, 2, 3])
+  const ourIcon = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 9, 9, 9, 9])
+  const sandbox = createSandbox({ "icon.png": upstreamIcon })
+  const { repo, checkout, script } = sandbox
+  assert.equal(script("setup", "--no-install").status, 0)
+
+  writeFileSync(join(checkout, "icon.png"), ourIcon)
+  assert.equal(script("export").status, 0)
+
+  assert.deepEqual(readFileSync(join(repo, "overlay", "icon.png")), ourIcon)
+  assert.equal(existsSync(join(repo, "patches", "icon.png.patch")), false)
+  assert.equal(script("setup", "--no-install", "--force").status, 0)
+  assert.deepEqual(readFileSync(join(checkout, "icon.png")), ourIcon)
+  assert.equal(script("export", "--check").status, 0)
 })

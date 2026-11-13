@@ -4,7 +4,7 @@ A desktop app for designing electronics with [tscircuit](https://github.com/tsci
 
 ![The Circuit tab showing the schematic of led.tsx beside the chat](docs/screenshot.png)
 
-It is [T3 Code](https://github.com/pingdotgg/t3code) plus a small set of tscircuit changes. T3 Code provides the app: the chat, the model selector, and sign-in through the agents you already use (Claude Code, Codex and others). This repo adds the tscircuit parts.
+It is built on [T3 Code](https://github.com/pingdotgg/t3code), which provides the chat, the model selector, and sign-in through the agents you already use (Claude Code, Codex and others). This repo renames it, gives it tscircuit's icon, and adds the tscircuit parts.
 
 ## This repo is a diff, not a fork
 
@@ -12,13 +12,21 @@ T3 Code lands around 180 commits a day, so this repo does not carry a copy of it
 
 ```
 upstream.json   which T3 Code commit we build on
-overlay/        files that exist only here, laid out as they sit in T3 Code
+renames.json    find-and-replace rules: T3 Code's name, IDs and folders become ours
+overlay/        files that exist only here, and icons that replace T3 Code's
 patches/        one patch per T3 Code file we change, each with a note saying why
+branding/       the icon source and the script that generates the icon files
 scripts/        setup, export, bump
-.t3code/        the generated app: T3 Code + overlay + patches (not committed)
+.t3code/        the generated app: T3 Code + renames + overlay + patches (not committed)
 ```
 
-Everything tscircuit-specific is visible in `overlay/` and `patches/`. Keep patches small: put new code in `overlay/` and use a patch only for the line or two that hooks it in. Small hooks are what keep upstream bumps painless.
+Everything tscircuit-specific is visible in `renames.json`, `overlay/` and `patches/`. Keep patches small: put new code in `overlay/` and use a patch only for the line or two that hooks it in. Small hooks are what keep upstream bumps painless.
+
+### Renames
+
+T3 Code writes its name in about 1,200 places. Carrying those as patches would conflict on every bump, so they are rules in `renames.json` instead: `setup` re-runs them on each new upstream commit, which also covers text upstream adds later. Each rule says why it exists. Patches are then measured against the renamed code, so a rename never shows up as a patch.
+
+`setup` stops if a rule no longer matches anything, because that means upstream reworded the thing the rule was for.
 
 ## Run it
 
@@ -48,7 +56,7 @@ npm run setup            # once, or after pulling
 npm run export           # save your work back to overlay/ and patches/
 ```
 
-`export` sorts your changes: files that do not exist upstream go to `overlay/`, and each upstream file you edited gets a patch in `patches/`. A new patch starts with a TODO line; replace it with a sentence on why tscircuit desktop needs the change. Then commit `overlay/` and `patches/`.
+`export` sorts your changes: files that do not exist upstream go to `overlay/`, so do upstream images you replaced, and each upstream text file you edited gets a patch in `patches/`. A new patch starts with a TODO line; replace it with a sentence on why tscircuit desktop needs the change. Then commit `overlay/` and `patches/`.
 
 `setup` rebuilds `.t3code/` from scratch, so it refuses to run while the checkout holds work you have not exported. Use `npm run setup -- --force` to throw that work away.
 
@@ -82,17 +90,38 @@ The **Bump T3 Code** workflow does this daily and opens a pull request when ever
 
 | Change | Where |
 | --- | --- |
+| The app is called tscircuit desktop: window titles, dialogs, error messages, agent prompts | `renames.json` |
+| Its own app ID, link scheme (`tscircuit-desktop://`) and data folders (`~/.tscircuit-desktop`), so it can sit beside an installed T3 Code without sharing its data or taking its links | `renames.json` |
+| tscircuit's icon for the app, the window and the favicon; "tscircuit desktop" in the sidebar | `overlay/assets/`, `overlay/apps/web/public/`, `branding/`, three patches |
+| Usage analytics off by default, and the screens that describe them corrected | Four patches |
+| No import of settings from an installed T3 Code's older profile folders | Two patches |
+| Download, release and bug-report links point at this repository | `renames.json` |
 | A **Circuit** tab in the right panel that renders a tscircuit file with RunFrame | `overlay/apps/web/src/tscircuit/` |
 | Opening a `.tsx` file shows it in the Circuit tab | `circuitSurface.ts` in that folder, called from `patches/apps__web__src__rightPanelStore.ts.patch` |
-| Circuit appears in the panel's launcher and "+" menu, and can be reopened after closing | The other four patches |
+| Circuit appears in the panel's launcher and "+" menu, and can be reopened after closing | Four patches |
 
-That is six new files and five patches that add about 40 lines to T3 Code's own files. The tab is a right-panel tab like Diff or Files, so it gets the panel's layout, shortcuts and persistence without extra code.
+How the Circuit tab works: it reads the project's source files through T3 Code's own file API, picks the file to render (the one you opened, else `mainEntrypoint` from `tscircuit.config.json`, else `index.tsx` and similar), and hands both to RunFrame's hosted viewer in a frame, with RunFrame's file menu and run button turned off.
 
-How the tab works: it reads the project's source files through T3 Code's own file API, picks the file to render (the one you opened, else `mainEntrypoint` from `tscircuit.config.json`, else `index.tsx` and similar), and hands both to RunFrame's hosted viewer in a frame, with RunFrame's file menu and run button turned off.
+To change the icon, replace `branding/icon.svg` and run `sh branding/make-icons.sh`, then `npm run export`.
+
+## Privacy
+
+This section is where the app's privacy link points. tscircuit desktop has no privacy policy of its own yet, and T3 Code's does not cover this build.
+
+- **Usage analytics are off.** T3 Code sends anonymous usage data to its own analytics service. This build does not, unless you start it with `T3CODE_TELEMETRY_ENABLED=true`, in which case the data goes to T3 Code's service, not to tscircuit.
+- **Your agent talks to its provider.** Prompts and code go to whichever agent you connect (Claude Code, Codex and others), under that provider's terms.
+- **The Circuit tab loads RunFrame from `runframe.tscircuit.com`** and gives it the project's source files to render. Rendering happens in the app; RunFrame may fetch packages your circuit imports.
+- **The list of available models is fetched from T3 Code's GitHub repository.**
+
+This list covers what was checked while building the rename. It is not a full audit of what T3 Code's code contacts.
 
 ## Known gaps
 
-- **Still branded T3 Code.** Name, icons and update feed are upstream's. T3 Code's MIT license covers its code, not its name and logo, so a build you distribute needs its own branding first.
+- **Some T3 names remain on purpose.** The command-line tool is still `t3`, settings use `T3CODE_` environment variables, and T3 Connect and T3 Chat keep their names because they are T3's own services.
+- **No installers yet.** The app has only been run with `npm run dev` on Linux. The rules rename the app ID, link scheme and file names that installers use, but no macOS, Windows or Linux package has been built or tried.
+- **"Report a problem" still files to T3 Code.** The built-in triage agent is written to search and open issues in T3 Code's repository. It needs rewriting for this repository before the app is given to users.
+- **The server's own updater still looks at T3 Code's releases.** It applies to servers started with `t3` from a terminal, not to the desktop app.
+- **A few of T3 Code's own tests fail after the renames.** They use the old name as test data or check an upstream link. `npm run check:app` does not run them; see `docs/research.md` for the list.
 - **The viewer needs internet.** RunFrame is loaded from `runframe.tscircuit.com` (about 34 MB the first time) and is not bundled into the app. Bundling it was tried in an earlier prototype and clashed with the host app's dependencies and styles.
 - **`.tsx` files open in the Circuit tab, not the source viewer.** That includes `.tsx` files that are not circuits. A link to a specific line still opens the source.
 - **Imports from npm packages are untested.** The viewer gets the project's own source files, not `node_modules`, and resolves packages itself.
@@ -105,4 +134,4 @@ Background on these choices is in [docs/research.md](docs/research.md).
 
 ## License
 
-The files in this repo are MIT licensed, © tscircuit. T3 Code is MIT licensed, © T3 Tools Inc.; it is downloaded by `npm run setup` and is not redistributed here, apart from the few context lines inside `patches/`.
+The files in this repo are MIT licensed, © tscircuit. T3 Code is MIT licensed, © T3 Tools Inc.; it is downloaded by `npm run setup` and is not redistributed here, apart from the few context lines inside `patches/`. A build you give to others contains T3 Code's code, so it must ship with T3 Code's license and copyright notice.

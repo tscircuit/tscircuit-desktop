@@ -1,7 +1,7 @@
 Lists Circuit in the empty-panel launcher and the "+" menu, and gives the tab its title and icon. The pieces come from apps/web/src/tscircuit/.
 
 diff --git a/apps/web/src/components/RightPanelTabs.tsx b/apps/web/src/components/RightPanelTabs.tsx
-index d220385e2814282dc5dfecbae80d3bae7848594e..701c3d6662c9981b07e7d1f825a71ff8e627ab07 100644
+index b08f5031903c86d04be86f84e1a7d7d20beacd5d..9ff2af5bfa6e857a05f9777301ef6f2a98bdc3b1 100644
 --- a/apps/web/src/components/RightPanelTabs.tsx
 +++ b/apps/web/src/components/RightPanelTabs.tsx
 @@ -106,6 +106,8 @@ import { resolvePullRequestState } from "./pullRequest/pullRequestPresentation";

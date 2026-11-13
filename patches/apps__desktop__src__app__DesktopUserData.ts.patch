@@ -1,0 +1,15 @@
+Stops the Windows build copying saved credentials state from T3 Code's profile folder.
+
+diff --git a/apps/desktop/src/app/DesktopUserData.ts b/apps/desktop/src/app/DesktopUserData.ts
+index 6c84d4599b896e7d6c6f90ff0a2648652bd79ffc..6f5b07a34a1f09a0564ac40fbdb438b0c5becdde 100644
+--- a/apps/desktop/src/app/DesktopUserData.ts
++++ b/apps/desktop/src/app/DesktopUserData.ts
+@@ -62,7 +62,7 @@ export const resolveUserDataPath = Effect.fn("desktop.userData.resolveUserDataPa
+     const legacyState = path.join(legacyPath, "Local State");
+     const sourceState = (yield* inspect(legacyState))
+       ? legacyState
+-      : path.join(input.appDataDirectory, "t3code", "Local State");
++      : path.join(input.appDataDirectory, names.current, "Local State");
+     if (!(yield* inspect(sourceState))) return destinationPath;
+     // Windows safeStorage keys live here. Copy only these preferences, never locked databases.
+     const state = yield* fs

@@ -1,0 +1,163 @@
+{
+  "paths": [
+    "apps/desktop",
+    "apps/web",
+    "apps/server",
+    "packages",
+    "scripts",
+    ".gitignore",
+    "vite.config.ts"
+  ],
+  "rules": [
+    {
+      "from": "T3 Code desktop",
+      "to": "tscircuit desktop",
+      "why": "Upstream's name followed by the word desktop, which would otherwise come out as \"tscircuit desktop desktop\"."
+    },
+    {
+      "from": "T3 Code Desktop",
+      "to": "tscircuit desktop",
+      "why": "Upstream's name followed by the word desktop, which would otherwise come out as \"tscircuit desktop desktop\"."
+    },
+    {
+      "from": "T3 desktop",
+      "to": "tscircuit desktop",
+      "why": "Upstream's name followed by the word desktop, which would otherwise come out as \"tscircuit desktop desktop\"."
+    },
+    {
+      "from": "T3 Code",
+      "to": "tscircuit desktop",
+      "why": "The product name. Upstream writes it in about 1,200 places: window titles, dialogs, error messages, agent prompts."
+    },
+    {
+      "from": "T3%20Code",
+      "to": "tscircuit%20desktop",
+      "why": "The product name inside links, where the space is encoded."
+    },
+    {
+      "from": "T3-Code-",
+      "to": "tscircuit-desktop-",
+      "why": "Installer and update file names, so a download is not called T3-Code-1.2.3.dmg."
+    },
+    {
+      "from": "com.t3tools.t3code",
+      "to": "com.tscircuit.desktop",
+      "why": "The app ID (macOS bundle ID, Windows app user model ID). With upstream's ID the OS treats this app and T3 Code as the same app."
+    },
+    {
+      "from": "com.t3tools.T3Code",
+      "to": "com.tscircuit.Desktop",
+      "why": "The Linux desktop entry and D-Bus names. With upstream's names this app overwrites T3 Code's launcher entry."
+    },
+    {
+      "from": "t3code-dev",
+      "to": "tscircuit-desktop-dev",
+      "why": "The development build's link scheme and profile folder, so `npm run dev` here and T3 Code's own dev build do not share a profile or steal each other's links."
+    },
+    {
+      "from": "t3code://",
+      "to": "tscircuit-desktop://",
+      "why": "The link scheme the OS routes to the app. With upstream's scheme, links meant for T3 Code open this app and the other way round."
+    },
+    {
+      "from": "\"t3code:\"",
+      "to": "\"tscircuit-desktop:\"",
+      "why": "The same link scheme, where code compares it against a URL's protocol."
+    },
+    {
+      "from": "DESKTOP_PRODUCTION_SCHEME = \"t3code\"",
+      "to": "DESKTOP_PRODUCTION_SCHEME = \"tscircuit-desktop\"",
+      "why": "The production link scheme, in one of the places upstream writes it as a bare name. See the t3code:// rule."
+    },
+    {
+      "from": ": [\"t3code\"]",
+      "to": ": [\"tscircuit-desktop\"]",
+      "why": "The production link scheme, in one of the places upstream writes it as a bare name. See the t3code:// rule."
+    },
+    {
+      "from": ": \"t3code\"}://",
+      "to": ": \"tscircuit-desktop\"}://",
+      "why": "The production link scheme, in one of the places upstream writes it as a bare name. See the t3code:// rule."
+    },
+    {
+      "from": "scheme = \"t3code\"",
+      "to": "scheme = \"tscircuit-desktop\"",
+      "why": "The production link scheme, in one of the places upstream writes it as a bare name. See the t3code:// rule."
+    },
+    {
+      "from": "scheme: \"t3code\"",
+      "to": "scheme: \"tscircuit-desktop\"",
+      "why": "The production link scheme, in one of the places upstream writes it as a bare name. See the t3code:// rule."
+    },
+    {
+      "from": "schemes: [\"t3code\", ",
+      "to": "schemes: [\"tscircuit-desktop\", ",
+      "why": "The production link scheme, in one of the places upstream writes it as a bare name. See the t3code:// rule."
+    },
+    {
+      "from": "t3code-v2",
+      "to": "tscircuit-desktop",
+      "why": "The installed app's profile folder, so it does not open T3 Code's profile."
+    },
+    {
+      "from": "https://t3.codes/download",
+      "to": "https://github.com/tscircuit/tscircuit-desktop/releases",
+      "why": "Where the app sends people to download it."
+    },
+    {
+      "from": "\"https://github.com/pingdotgg/t3code/releases\"",
+      "to": "\"https://github.com/tscircuit/tscircuit-desktop/releases\"",
+      "why": "The releases page shown when the app cannot start or update."
+    },
+    {
+      "from": "\"https://github.com/pingdotgg/t3code/issues/new\"",
+      "to": "\"https://github.com/tscircuit/tscircuit-desktop/issues/new\"",
+      "why": "Where the startup error screen sends bug reports. They should not land in T3 Code's tracker."
+    },
+    {
+      "from": "const REPOSITORY = \"pingdotgg/t3code\"",
+      "to": "const REPOSITORY = \"tscircuit/tscircuit-desktop\"",
+      "why": "The repository the app asks people to star."
+    },
+    {
+      "from": "DEFAULT_DESKTOP_RELEASE_REPOSITORY = \"pingdotgg/t3code\"",
+      "to": "DEFAULT_DESKTOP_RELEASE_REPOSITORY = \"tscircuit/tscircuit-desktop\"",
+      "why": "The repository whose release notes the update dialog links to."
+    },
+    {
+      "from": "^t3code(?:-[a-z]+)?:$",
+      "to": "^tscircuit-desktop(?:-[a-z]+)?:$",
+      "why": "The link scheme again, where upstream writes it as a pattern, in upper case, or in a Linux MIME type. See the t3code:// rule."
+    },
+    {
+      "from": "x-scheme-handler/t3code",
+      "to": "x-scheme-handler/tscircuit-desktop",
+      "why": "The link scheme again, where upstream writes it as a pattern, in upper case, or in a Linux MIME type. See the t3code:// rule."
+    },
+    {
+      "from": "T3CODE://",
+      "to": "TSCIRCUIT-DESKTOP://",
+      "why": "The link scheme again, where upstream writes it as a pattern, in upper case, or in a Linux MIME type. See the t3code:// rule."
+    },
+    {
+      "from": "(?:mcp[-_]{1,2})?t3[-_ ]?code(?:__|",
+      "to": "(?:mcp[-_]{1,2})?(?:t3[-_ ]?code|tscircuit[-_ ]?desktop)(?:__|",
+      "why": "Agents label the app's own tools with its name. The chat recognises those labels to show friendly tool names, so it has to accept the new name as well as the old."
+    },
+    {
+      "from": "|t3_code|t3code)(?:[.:/]",
+      "to": "|t3_code|t3code|tscircuit[-_ ]desktop)(?:[.:/]",
+      "why": "The same tool-label recognition, for labels written as \"name \u00b7 tool\"."
+    },
+    {
+      "pattern": "(?<![A-Za-z0-9_/.$@-])T3(?='s\\b| [a-z]| Server\\b)",
+      "to": "tscircuit desktop",
+      "why": "The short form of the product name in running text, such as \"T3 threads\" or \"T3's browser\". It leaves alone T3 Connect, T3 Chat and T3 Tools, which are T3's own services and company, and bare \"T3\" used as data."
+    },
+    {
+      "pattern": "(?<![A-Za-z0-9_.-])\\.t3(?![A-Za-z0-9_.-]|\\\\\\.)",
+      "to": ".tscircuit-desktop",
+      "why": "The data folder in the home directory (~/.t3). Sharing it with an installed T3 Code would mix two apps' databases, which may be on different versions."
+    }
+  ]
+}
