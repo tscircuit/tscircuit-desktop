@@ -11,6 +11,7 @@ import { toastManager } from "~/components/ui/toast";
 import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
 import { type ComposerThreadTarget, useComposerDraftStore } from "~/composerDraftStore";
+import { isElectron } from "~/env";
 import { getLocalStorageItem, setLocalStorageItem } from "~/hooks/useLocalStorage";
 import { cn } from "~/lib/utils";
 
@@ -25,7 +26,6 @@ import {
   countErrors,
   DEFAULT_CIRCUIT_VIEW,
   fixErrorPrompt,
-  guessViewsFromSource,
   initialCircuitPanelState,
   type RenderedViewId,
   unmutedViews,
@@ -34,14 +34,17 @@ import {
 } from "./circuitViews";
 import { type LoadedProject, loadProjectFsMap, pickEntryFile } from "./projectFsMap";
 import { parseViewerMessage, viewerFileProps, viewerTabProps } from "./runframeMessages";
+import { viewerFrame } from "./viewerFrame";
 
 /**
- * RunFrame's hosted embed: a bare viewer that takes files over postMessage. A
- * build can name another deployment, such as the preview of a RunFrame change.
+ * The app's own copy of RunFrame, a bare viewer that takes files over
+ * postMessage. `setup` bundles it with its eval worker (viewer.json).
  */
-const RUNFRAME_URL: string =
-  import.meta.env.VITE_TSCIRCUIT_RUNFRAME_URL || "https://runframe.tscircuit.com/iframe.html";
-const RUNFRAME_ORIGIN = new URL(RUNFRAME_URL).origin;
+const VIEWER_FRAME = viewerFrame({
+  desktop: isElectron,
+  protocol: window.location.protocol,
+  baseUrl: import.meta.env.BASE_URL,
+});
 const VIEWER_LOAD_TIMEOUT_MS = 30_000;
 const REFRESH_INTERVAL_MS = 3_000;
 /** Larger projects refresh on focus and after agent work, not on a timer. */
@@ -87,8 +90,6 @@ export default function CircuitPanel(props: {
     getLocalStorageItem(PREFERRED_VIEW_STORAGE_KEY, PreferredView) ?? DEFAULT_CIRCUIT_VIEW,
     initialCircuitPanelState,
   );
-  // False for a viewer deployment that draws its own header and reports only errors.
-  const [hostControlled, setHostControlled] = useState(true);
   const [helpFor, setHelpFor] = useState<RenderedViewId | null>(null);
   const [projectState, setProjectState] = useState<ProjectState>({ status: "loading" });
 
@@ -161,7 +162,7 @@ export default function CircuitPanel(props: {
 
   const view = viewStateForFile(panelState, entryFile);
   const source = entryFile === null ? null : (project?.fsMap[entryFile] ?? null);
-  const unmuted = unmutedViews(view, hostControlled ? null : guessViewsFromSource(source));
+  const unmuted = unmutedViews(view);
   const help =
     helpFor === null || entryFile === null ? null : helpForView(helpFor, view, entryFile);
 
@@ -200,8 +201,6 @@ export default function CircuitPanel(props: {
           mainComponentPath={entryFile}
           screen={view.screen}
           covered={notice !== null || view.screen === "source"}
-          hostControlled={hostControlled}
-          onHostControlledChange={setHostControlled}
           dispatch={dispatch}
           onRetry={() => setViewerAttempt((attempt) => attempt + 1)}
         />
@@ -309,27 +308,29 @@ function CircuitViewer(props: {
   readonly screen: CircuitScreen;
   /** True while the panel shows a notice or the source over the frame. */
   readonly covered: boolean;
-  readonly hostControlled: boolean;
-  readonly onHostControlledChange: (hostControlled: boolean) => void;
   readonly dispatch: Dispatch<PanelAction>;
   readonly onRetry: () => void;
 }) {
-  const { fsMap, mainComponentPath, screen, covered, hostControlled, dispatch, onRetry } = props;
-  const { onHostControlledChange } = props;
+  const { fsMap, mainComponentPath, screen, covered, dispatch, onRetry } = props;
   const frameRef = useRef<HTMLIFrameElement>(null);
-  const [state, setState] = useState<"loading" | "ready" | "unreachable">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
+  // Set by the frame's own script before RunFrame says it is ready.
+  const evalWebWorkerBlobUrlRef = useRef<string | null>(null);
   // The files the viewer last received. Its events are about the file named here.
   const sentRef = useRef<{ fsMap: Record<string, string>; mainComponentPath: string } | null>(null);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- subscribes to the viewer frame's messages and gives up waiting for it after a timeout
   useEffect(() => {
     const onMessage = (event: MessageEvent) => {
-      if (event.origin !== RUNFRAME_ORIGIN) return;
+      // In a browser the frame's origin is "null", so its window is what names it.
       if (event.source !== frameRef.current?.contentWindow) return;
       const message = parseViewerMessage(event.data);
       if (message === null) return;
+      if (message.kind === "assets_ready") {
+        evalWebWorkerBlobUrlRef.current = message.evalWebWorkerBlobUrl;
+        return;
+      }
       if (message.kind === "ready") {
-        onHostControlledChange(message.hostControlled);
         setState("ready");
         return;
       }
@@ -340,14 +341,14 @@ function CircuitViewer(props: {
     };
     window.addEventListener("message", onMessage);
     const timeout = window.setTimeout(
-      () => setState((current) => (current === "loading" ? "unreachable" : current)),
+      () => setState((current) => (current === "loading" ? "failed" : current)),
       VIEWER_LOAD_TIMEOUT_MS,
     );
     return () => {
       window.removeEventListener("message", onMessage);
       window.clearTimeout(timeout);
     };
-  }, [dispatch, onHostControlledChange]);
+  }, [dispatch]);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- sends the files and the tab to show to the viewer frame, an external system
   useEffect(() => {
@@ -359,24 +360,29 @@ function CircuitViewer(props: {
         runframe_type: "runframe_props_changed",
         // The files go once: resending them would run the circuit again for a change of tab.
         runframe_props: filesChanged
-          ? viewerFileProps({ fsMap, mainComponentPath, screen, hostControlled })
-          : viewerTabProps(screen, hostControlled),
+          ? viewerFileProps({
+              fsMap,
+              mainComponentPath,
+              screen,
+              evalWebWorkerBlobUrl: evalWebWorkerBlobUrlRef.current,
+            })
+          : viewerTabProps(screen),
       },
-      RUNFRAME_ORIGIN,
+      VIEWER_FRAME.targetOrigin,
     );
     if (!filesChanged) return;
     sentRef.current = { fsMap, mainComponentPath };
-    dispatch({ type: "files_sent", file: mainComponentPath, reportsRuns: hostControlled });
-  }, [state, fsMap, mainComponentPath, screen, hostControlled, dispatch]);
+    dispatch({ type: "files_sent", file: mainComponentPath });
+  }, [state, fsMap, mainComponentPath, screen, dispatch]);
 
   return (
     <>
       <iframe
         ref={frameRef}
-        src={RUNFRAME_URL}
+        src={VIEWER_FRAME.src}
         title="Circuit preview"
-        // oxlint-disable-next-line react/iframe-missing-sandbox -- the viewer is cross-origin and needs its own origin for workers and storage
-        sandbox="allow-scripts allow-same-origin allow-downloads"
+        // Never the app's origin, in either sandbox: see viewerFrame.
+        sandbox={VIEWER_FRAME.sandbox}
         className={cn(
           "min-h-0 w-full flex-1 border-0 bg-white",
           (covered || state !== "ready") && "invisible",
@@ -388,8 +394,8 @@ function CircuitViewer(props: {
             <Notice title="Loading the circuit viewer" busy />
           ) : (
             <Notice
-              title="Couldn't load the circuit viewer"
-              description={`The viewer is loaded from ${new URL(RUNFRAME_URL).host} and needs an internet connection.`}
+              title="The circuit viewer didn't start"
+              description="The viewer is part of the app, so this is a fault in the app and not in your project."
               action={
                 <Button size="sm" variant="outline" onClick={onRetry}>
                   Try again

@@ -13,6 +13,7 @@ T3 Code lands around 180 commits a day, so this repo does not carry a copy of it
 ```
 upstream.json   which T3 Code commit we build on
 skill.json      which agent skill to download and bundle into the app
+viewer.json     which RunFrame, tscircuit and manifold-3d to bundle as the circuit viewer
 renames.json    find-and-replace rules: T3 Code's name, IDs and folders become ours
 overlay/        files that exist only here, and icons that replace T3 Code's
 patches/        one patch per T3 Code file we change, each with a note saying why
@@ -105,15 +106,33 @@ The **Bump T3 Code** workflow does this daily and opens a pull request when ever
 | Download, release and bug-report links point at this repository | `renames.json` |
 | The [tscircuit skill](https://github.com/tscircuit/skill) is bundled and installed for agents when the app starts | `skill.json`, `overlay/apps/server/src/tscircuit/`, one patch |
 | A **Circuit** tab in the right panel that renders a tscircuit file with RunFrame | `overlay/apps/web/src/tscircuit/` |
+| RunFrame, its eval worker and manifold-3d are bundled into the app instead of loaded from the web, and served on a host of their own | `viewer.json`, `scripts/lib/viewer.ts`, `overlay/apps/web/public/tscircuit-viewer/frame.html`, `viewerFrame.ts`, `overlay/apps/desktop/src/tscircuit/`, one patch |
 | The Circuit tab's own row of views (Source, PCB, Schematic, 3D, System, Assembly) in place of RunFrame's header; views with nothing to show are greyed out and explain how to fill them | `circuitViews.ts`, `CircuitPanel.tsx`, `CircuitViewHelpDialog.tsx` in that folder |
 | Opening a `.tsx` file shows it in the Circuit tab | `circuitSurface.ts` in that folder, called from `patches/apps__web__src__rightPanelStore.ts.patch` |
 | Circuit appears in the panel's launcher and "+" menu, and can be reopened after closing | Four patches |
 
-How the Circuit tab works: it reads the project's source files through T3 Code's own file API, picks the file to render (the one you opened, else `mainEntrypoint` from `tscircuit.config.json`, else `index.tsx` and similar), and hands both to RunFrame's hosted viewer in a frame.
+How the Circuit tab works: it reads the project's source files through T3 Code's own file API, picks the file to render (the one you opened, else `mainEntrypoint` from `tscircuit.config.json`, else `index.tsx` and similar), and hands both to RunFrame, which runs in a frame from the app's own files.
 
 The row of views is the app's, not RunFrame's. The app tells RunFrame which view to draw and to hide its own header, and RunFrame reports back what the rendered circuit contains (how many elements of each type) and whether the run failed. From that the app greys out views with nothing in them, moves off an empty view when a file is first opened, and shows RunFrame's error list when a file does not run. Source is drawn by the app from the same file text, with T3 Code's read-only viewer.
 
-This needs a RunFrame that takes these instructions ([tscircuit/runframe#6289](https://github.com/tscircuit/runframe/pull/6289)). With an older one the app still switches views, by limiting RunFrame to one tab at a time, but RunFrame's own header stays visible and the greyed-out views are a guess from the file's text. The app tells the two apart from RunFrame's ready message. A build can load RunFrame from somewhere else by setting `VITE_TSCIRCUIT_RUNFRAME_URL`; pull request builds take it from `.github/pr-build.env`.
+### The bundled viewer
+
+`setup` reads `viewer.json` and puts three things into the app, beside `frame.html`:
+
+| | From | Used for |
+| --- | --- | --- |
+| RunFrame | `"runframe"`: a file pinned by its SHA-256, or `"tscircuit"` for the bundle the tscircuit package ships (`dist/browser.min.js`) | Drawing the views |
+| The eval worker | the `tscircuit` package on npm, at the version or tag in `"tscircuit"` (`dist/webworker.min.js`) | Running the project's circuit code |
+| manifold-3d | the `manifold-3d` package on npm, at `"manifold"` | The 3D view's geometry |
+
+They are generated, not committed, like the skill. Packages are checked against the hash npm lists for them, and a pinned file against the hash in `viewer.json`; a mismatch stops the build.
+
+**RunFrame is pinned to a pull request's build for now.** The app's row of views needs a RunFrame that a page around it can drive ([tscircuit/runframe#6289](https://github.com/tscircuit/runframe/pull/6289)), and no released tscircuit has one yet. Once one does, set `"runframe": "tscircuit"` and everything comes from the one package. `setup` refuses a RunFrame that is too old for this instead of building an app with a blank tab.
+
+RunFrame runs the project's code, so the frame never shares the app's origin. Otherwise opening a folder you do not trust could run code with the app's session, which can start agents and terminals.
+
+- **In the desktop app** the viewer is served on a host of its own, `tscircuit-desktop://viewer`, which is a different origin from the app's `tscircuit-desktop://app`. It cannot read the app's page, storage or files, and the local server does not accept its requests. That host answers the viewer's three files and nothing else, with a content security policy that allows the eval RunFrame needs and the app's own policy forbids (`circuitViewerHost.ts`).
+- **In a browser** (the app served by `tscircuit-desktop` from a terminal) there is only one origin, so the frame is sandboxed without `allow-same-origin` instead, which leaves it with no origin at all. `frame.html` works around what that takes away: the page cannot fetch files, so the worker and manifold-3d are packed as text into `viewer-assets.js` and turned into blob URLs; Chromium will not start a module worker from a blob there, so the worker is started as a classic worker that imports it; and storage throws, so RunFrame gets one in memory. The PCB view does not draw in this mode: see "Known gaps".
 
 To change the icon, edit `branding/app-icon.svg` and run `sh branding/make-icons.sh`, then `npm run export`.
 
@@ -166,7 +185,7 @@ This section is where the app's privacy link points. tscircuit desktop has no pr
 
 - **Usage analytics are off.** T3 Code sends anonymous usage data to its own analytics service. This build does not, unless you start it with `TSCIRCUIT_DESKTOP_TELEMETRY_ENABLED=true`, in which case the data goes to T3 Code's service, not to tscircuit.
 - **Your agent talks to its provider.** Prompts and code go to whichever agent you connect (Claude Code, Codex and others), under that provider's terms.
-- **The Circuit tab loads RunFrame from `runframe.tscircuit.com`** and gives it the project's source files to render. Rendering happens in the app; RunFrame may fetch packages your circuit imports.
+- **The Circuit tab renders with a copy of RunFrame inside the app.** Nothing is loaded from `runframe.tscircuit.com` or a CDN to draw a circuit, and RunFrame's own usage analytics are turned off. Rendering a circuit can still reach the network: tscircuit looks up parts for the components you use (`jlcsearch.tscircuit.com`, `easyeda.com`), fetches packages your circuit imports, and the 3D view fetches fonts and STEP-import code from a CDN when a board needs them.
 - **The list of available models is fetched from T3 Code's GitHub repository.**
 
 This list covers what was checked while building the rename. It is not a full audit of what T3 Code's code contacts.
@@ -179,9 +198,10 @@ This list covers what was checked while building the rename. It is not a full au
 - **"Report a problem" still files to T3 Code.** The built-in triage agent is written to search and open issues in T3 Code's repository. It needs rewriting for this repository before the app is given to users.
 - **The server's own updater still looks at T3 Code's releases.** It applies to servers started with `tscircuit-desktop` from a terminal, not to the desktop app.
 - **A few of T3 Code's own tests fail after the renames.** They use the old name as test data or check an upstream link. `npm run check:app` does not run them; see `docs/research.md` for the list.
-- **The viewer needs internet.** RunFrame is loaded from `runframe.tscircuit.com` (about 34 MB the first time) and is not bundled into the app. Bundling it was tried in an earlier prototype and clashed with the host app's dependencies and styles.
+- **The viewer is the app's copy, not the project's.** A project that installs its own `tscircuit` in `node_modules` is still rendered with the version the app was built with. The viewer adds about 57 MB to the app.
 - **The Source view is read-only.** `.tsx` files open in the Circuit tab, where Source shows the text but does not edit it. A link to a specific line still opens T3 Code's editor. `.tsx` files that are not circuits open on Source, with the other views greyed out or an error listed.
-- **RunFrame's own header shows until RunFrame is updated.** See "How the Circuit tab works".
+- **RunFrame comes from a pull request's build.** See "The bundled viewer".
+- **No PCB view when the app is used from a browser.** The PCB view draws with WebGPU in a worker, and a worker in a frame without an origin gets no WebGPU. The desktop app is not affected. Schematic, 3D, System and Assembly work in both.
 - **Imports from npm packages are untested.** The viewer gets the project's own source files, not `node_modules`, and resolves packages itself.
 - **Large projects are capped.** The tab reads up to 200 source files or 2 MB and says so when it leaves files out. Projects over 40 files refresh on agent edits and window focus only, not on every save.
 - **Not yet tried with a real agent turn.** Switching files and live refresh were tested by hand; no signed-in agent was available where this was built.

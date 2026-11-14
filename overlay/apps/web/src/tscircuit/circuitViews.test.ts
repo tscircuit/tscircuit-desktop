@@ -7,7 +7,6 @@ import {
   type CircuitViewAction,
   countErrors,
   fixErrorPrompt,
-  guessViewsFromSource,
   initialCircuitPanelState,
   unmutedViews,
   viewStateForFile,
@@ -45,17 +44,6 @@ describe("viewsWithContent", () => {
   });
 });
 
-describe("guessViewsFromSource", () => {
-  it("rules out System unless the file uses systemblock, and everything for a file without JSX", () => {
-    expect(guessViewsFromSource("export default () => <board />").has("system")).toBe(false);
-    expect(
-      guessViewsFromSource('export default () => <systemblock.page name="a" />').has("system"),
-    ).toBe(true);
-    expect(guessViewsFromSource("export const add = (a: number, b: number) => a + b").size).toBe(0);
-    expect(guessViewsFromSource(null).size).toBe(0);
-  });
-});
-
 describe("circuitPanelReducer", () => {
   it("moves off a view with nothing in it until the user picks one", () => {
     const picked = run([{ type: "circuit_rendered", counts: SYSTEM_ONLY }]);
@@ -73,19 +61,19 @@ describe("circuitPanelReducer", () => {
 
   it("shows the errors of a failed run and returns when a later run renders", () => {
     const failed = run([
-      { type: "files_sent", reportsRuns: true },
+      { type: "files_sent" },
       { type: "run_failed", message: "Unexpected token" },
     ]);
     expect(failed.view).toMatchObject({ screen: "errors", returnTo: "pcb", running: false });
-    expect(unmutedViews(failed.view, null).size).toBe(0);
+    expect(unmutedViews(failed.view).size).toBe(0);
 
-    // The error stays while the fix is running: this viewer says when it is gone.
-    const rerunning = circuitPanelReducer(failed, {
-      type: "files_sent",
-      file: "index.tsx",
-      reportsRuns: true,
+    // The error stays while the fix is running: the viewer says when it is gone.
+    const rerunning = circuitPanelReducer(failed, { type: "files_sent", file: "index.tsx" });
+    expect(rerunning.view).toMatchObject({
+      screen: "errors",
+      executionError: "Unexpected token",
+      running: true,
     });
-    expect(rerunning.view).toMatchObject({ screen: "errors", executionError: "Unexpected token" });
 
     const fixed = circuitPanelReducer(rerunning, {
       type: "circuit_rendered",
@@ -93,14 +81,6 @@ describe("circuitPanelReducer", () => {
       counts: BOARD,
     });
     expect(fixed.view).toMatchObject({ screen: "pcb", executionError: null, returnTo: null });
-  });
-
-  it("clears the error on new files for a viewer that reports no runs", () => {
-    const resent = run([
-      { type: "run_failed", message: "Unexpected token" },
-      { type: "files_sent", reportsRuns: false },
-    ]);
-    expect(resent.view).toMatchObject({ screen: "pcb", executionError: null });
   });
 
   it("leaves the source in place when the file fails", () => {
@@ -153,10 +133,10 @@ describe("circuitPanelReducer", () => {
 });
 
 describe("unmutedViews", () => {
-  it("mutes nothing before the first report unless a guess is given", () => {
+  it("mutes nothing before the first render, then only the views with nothing in them", () => {
     const { view } = initialCircuitPanelState("pcb");
-    expect(unmutedViews(view, null).size).toBe(5);
-    expect([...unmutedViews(view, new Set(["pcb"]))]).toEqual(["pcb"]);
+    expect(unmutedViews(view).size).toBe(5);
+    expect([...unmutedViews({ ...view, counts: SYSTEM_ONLY })]).toEqual(["system"]);
   });
 });
 

@@ -31,12 +31,12 @@ on:
       - upstream.json
       - renames.json
       - skill.json
+      - viewer.json
       - package.json
       - "overlay/**"
       - "patches/**"
       - "branding/**"
       - "scripts/**"
-      - .github/pr-build.env
   workflow_dispatch:
 
 permissions:
@@ -68,7 +68,8 @@ jobs:
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "Version $version"
 
-      # Builds .t3code/ from the pin, renames.json, overlay/ and patches/.
+      # Builds .t3code/ from the pin, renames.json, overlay/ and patches/, and
+      # downloads what skill.json and viewer.json name.
       - run: node scripts/setup.ts --no-install
 
       # From here on use the Node and pnpm versions T3 Code itself asks for.
@@ -79,12 +80,6 @@ jobs:
         with:
           package_json_file: .t3code/package.json
       - run: node scripts/setup.ts
-
-      # A pull request can try the app against something that is not released
-      # yet, such as a preview of RunFrame. Releases from main never read this.
-      - name: Use the pull request's build settings
-        if: github.event_name == 'pull_request' && hashFiles('.github/pr-build.env') != ''
-        run: grep -E '^[A-Z_][A-Z0-9_]*=' .github/pr-build.env | tee -a "$GITHUB_ENV"
 
       # GITHUB_REPOSITORY is hidden from the build so that it bakes in no update
       # feed. An unsigned app cannot apply an update it downloads.

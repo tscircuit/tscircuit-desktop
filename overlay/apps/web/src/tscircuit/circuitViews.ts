@@ -62,19 +62,6 @@ export function viewsWithContent(counts: ElementCounts): ReadonlySet<RenderedVie
   return views;
 }
 
-/**
- * A guess from the file's text, for a viewer that does not report what it
- * rendered. A file with JSX may be a circuit, so only System, which needs
- * elements of its own, is ruled out.
- */
-export function guessViewsFromSource(source: string | null): ReadonlySet<RenderedViewId> {
-  const views = new Set<RenderedViewId>();
-  if (source === null || !/<[A-Za-z]/.test(source)) return views;
-  views.add("pcb").add("schematic").add("cad").add("assembly");
-  if (/\bsystemblock\s*\./.test(source)) views.add("system");
-  return views;
-}
-
 /** Errors and warnings are element types of their own in a circuit's output. */
 export function countErrors(counts: ElementCounts | null): number {
   if (counts === null) return 0;
@@ -102,8 +89,8 @@ export type CircuitViewAction =
   | { readonly type: "user_picked"; readonly screen: CircuitScreen }
   /** The viewer asks for one of its tabs, as "view in schematic" on a PCB part does. */
   | { readonly type: "tab_requested"; readonly tab: string }
-  /** New file contents went to the viewer. `reportsRuns` is false for a viewer that sends no render events. */
-  | { readonly type: "files_sent"; readonly reportsRuns: boolean }
+  /** New file contents went to the viewer, which runs them and says how it went. */
+  | { readonly type: "files_sent" }
   | { readonly type: "run_started" }
   | { readonly type: "circuit_rendered"; readonly counts: ElementCounts }
   | { readonly type: "run_completed"; readonly failed: boolean }
@@ -149,11 +136,7 @@ function circuitViewReducer(state: CircuitViewState, action: CircuitViewAction):
         : state;
     }
     case "files_sent":
-      // A viewer that reports its runs says when the error is gone; another one is given the
-      // benefit of the doubt, and says so again if the new files fail too.
-      return action.reportsRuns
-        ? { ...state, running: true }
-        : withErrorCleared({ ...state, running: false });
+      return { ...state, running: true };
     case "run_started":
       return { ...state, running: true };
     case "circuit_rendered":
@@ -211,17 +194,12 @@ export function circuitPanelReducer(
 }
 
 /**
- * The rendered views that are not muted in the header. `guess` is used while
- * nothing has been reported: pass null for a viewer that will report, so no
- * view is muted on a guess that a render is about to replace.
+ * The rendered views that are not muted in the header. None is muted before
+ * the first render, which is about to say which ones have something to show.
  */
-export function unmutedViews(
-  state: CircuitViewState,
-  guess: ReadonlySet<RenderedViewId> | null,
-): ReadonlySet<RenderedViewId> {
+export function unmutedViews(state: CircuitViewState): ReadonlySet<RenderedViewId> {
   if (state.executionError !== null) return new Set();
-  if (state.counts !== null) return viewsWithContent(state.counts);
-  return guess ?? new Set(RENDERED_VIEWS);
+  return state.counts === null ? new Set(RENDERED_VIEWS) : viewsWithContent(state.counts);
 }
 
 export interface ViewHelp {

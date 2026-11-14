@@ -1,0 +1,59 @@
+Serves the circuit viewer on a host of its own (tscircuit-desktop://viewer), so the project code it runs is in another origin than the app. Requests to that host are answered with the viewer's files from the web build's tscircuit-viewer folder and with a content security policy that allows eval, which the app's own policy forbids. The app's policy is changed only to allow framing that host. The routing and the policy are in apps/desktop/src/tscircuit/circuitViewerHost.ts.
+
+diff --git a/apps/desktop/src/electron/ElectronProtocol.ts b/apps/desktop/src/electron/ElectronProtocol.ts
+index 34efaf583f55ddc584e7f22b4a595204744bdb33..d176290e464c2d9b33ba20ec37b7285588d073ca 100644
+--- a/apps/desktop/src/electron/ElectronProtocol.ts
++++ b/apps/desktop/src/electron/ElectronProtocol.ts
+@@ -12,6 +12,11 @@ import * as Scope from "effect/Scope";
+ 
+ import * as Electron from "electron";
+ 
++import {
++  makeViewerContentSecurityPolicy,
++  routeViewerRequest,
++} from "../tscircuit/circuitViewerHost.ts";
++
+ export const DESKTOP_HOST = "app";
+ const DESKTOP_PRODUCTION_SCHEME = "tscircuit-desktop";
+ const DESKTOP_DEVELOPMENT_SCHEME = "tscircuit-desktop-dev";
+@@ -91,7 +96,8 @@ function makeDesktopContentSecurityPolicy(input: DesktopProtocolRegistrationInpu
+     "style-src 'self' 'unsafe-inline'",
+     `font-src 'self' ${input.scheme}: data:`,
+     "worker-src 'self' blob:",
+-    "frame-src 'self' blob: http: https:",
++    // tscircuit desktop: the circuit viewer is framed from its own host on the app's scheme.
++    `frame-src 'self' ${input.scheme}: blob: http: https:`,
+     "object-src 'self' blob: http: https:",
+     "form-action 'self'",
+   ].join("; ");
+@@ -251,12 +257,28 @@ export const make = Effect.gen(function* () {
+     function* (input: DesktopProtocolRegistrationInput) {
+       if (yield* Ref.get(registered)) return;
+ 
+-      const contentSecurityPolicy = makeDesktopContentSecurityPolicy(input);
++      const appContentSecurityPolicy = makeDesktopContentSecurityPolicy(input);
++      const viewerContentSecurityPolicy = makeViewerContentSecurityPolicy(input.scheme);
+ 
+       yield* Effect.acquireRelease(
+         Effect.try({
+           try: () => {
+-            Electron.protocol.handle(input.scheme, async (request) => {
++            Electron.protocol.handle(input.scheme, async (incoming) => {
++              // tscircuit desktop: the circuit viewer's files are answered on a host, and so an
++              // origin, of their own, with a policy that lets the viewer evaluate circuit code.
++              const route = routeViewerRequest({
++                requestUrl: incoming.url,
++                method: incoming.method,
++                appHost: DESKTOP_HOST,
++              });
++              if (route.kind === "not_found") return new Response(null, { status: 404 });
++              const forViewer = route.kind === "viewer";
++              const request = forViewer
++                ? new Request(route.appUrl, { method: incoming.method, headers: incoming.headers })
++                : incoming;
++              const contentSecurityPolicy = forViewer
++                ? viewerContentSecurityPolicy
++                : appContentSecurityPolicy;
+               if ("assetDirectory" in input) {
+                 return withContentSecurityPolicy(
+                   await runPromise(serveDesktopAsset(request, input.assetDirectory)),
