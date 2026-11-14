@@ -1,0 +1,25 @@
+Offers /chip only at the start of a message.
+
+diff --git a/apps/web/src/components/chat/composerSlashCommandSearch.ts b/apps/web/src/components/chat/composerSlashCommandSearch.ts
+index ba1aacb83de31d171e6ba1dcb35752a3461bbc44..7834ef3dd5193496327a300d3f901f0379aa7dca 100644
+--- a/apps/web/src/components/chat/composerSlashCommandSearch.ts
++++ b/apps/web/src/components/chat/composerSlashCommandSearch.ts
+@@ -12,7 +12,7 @@ type SlashSearchItem = Extract<
+   { type: "slash-command" | "provider-slash-command" | "skill" }
+ >;
+ 
+-/** Provider commands, `/side`, `/btw` and `/clear` work only at the message start. */
++/** Provider commands, `/side`, `/btw`, `/clear` and `/chip` work only at the message start. */
+ export function slashCommandItemsForPromptPosition(
+   items: ReadonlyArray<SlashSearchItem>,
+   isAtPromptStart: boolean,
+@@ -26,7 +26,8 @@ export function slashCommandItemsForPromptPosition(
+       (item.type === "slash-command" &&
+         item.command !== "side" &&
+         item.command !== "btw" &&
+-        item.command !== "clear"),
++        item.command !== "clear" &&
++        item.command !== "chip"),
+   );
+ }
+ 

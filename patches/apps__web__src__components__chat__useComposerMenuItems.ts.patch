@@ -1,7 +1,7 @@
-Lists `/order` among the composer's built-in slash commands. The item comes from apps/web/src/tscircuit/orderCommands.tsx.
+Adds /order and, when a chip side chat can be opened, /chip to composer suggestions.
 
 diff --git a/apps/web/src/components/chat/useComposerMenuItems.ts b/apps/web/src/components/chat/useComposerMenuItems.ts
-index a6449a1b7194058dc8fc87637b73a7ccd4ffef40..648b633277cd7c933c284b4ff54d2b85ef3e8009 100644
+index a6449a1b7194058dc8fc87637b73a7ccd4ffef40..1d67cfb4e5e14038cfccb9d57346e615389ccac1 100644
 --- a/apps/web/src/components/chat/useComposerMenuItems.ts
 +++ b/apps/web/src/components/chat/useComposerMenuItems.ts
 @@ -51,6 +51,7 @@ import {
@@ -12,11 +12,48 @@ index a6449a1b7194058dc8fc87637b73a7ccd4ffef40..648b633277cd7c933c284b4ff54d2b85
  
  const COMPOSER_PULL_REQUEST_LIST_LIMIT = 99;
  const COMPOSER_PULL_REQUEST_RESULT_LIMIT = 12;
-@@ -238,6 +239,7 @@ export function useComposerMenuItems({
+@@ -67,6 +68,7 @@ export function useComposerMenuItems({
+   pullRequestProjectId,
+   pullRequestRepository,
+   threadPullRequests,
++  chipCommandAvailable,
+   sideChatAvailable,
+   sideChatDisabledReason,
+   freshSessionAvailable,
+@@ -87,6 +89,7 @@ export function useComposerMenuItems({
+   readonly pullRequestProjectId: ProjectId | null;
+   readonly pullRequestRepository: string | null;
+   readonly threadPullRequests: ReadonlyArray<ThreadPullRequestLink> | undefined;
++  readonly chipCommandAvailable: boolean;
+   readonly sideChatAvailable: boolean;
+   readonly sideChatDisabledReason: string | null;
+   readonly freshSessionAvailable: boolean;
+@@ -238,6 +241,18 @@ export function useComposerMenuItems({
            label: "/model",
            description: "Switch response model for this thread",
          },
 +        ORDER_SLASH_COMMAND_ITEM,
++        ...(chipCommandAvailable
++          ? ([
++              {
++                id: "slash:chip",
++                type: "slash-command",
++                command: "chip",
++                label: "/chip",
++                description: "Add a chip",
++              },
++            ] as const)
++          : []),
          ...(sideChatAvailable
            ? ([
                {
+@@ -299,7 +314,8 @@ export function useComposerMenuItems({
+       const visibleProviderSlashCommandItems = providerSlashCommandItems.filter(
+         (item) =>
+           (item.command.name !== "compact" || compactSlashCommandAvailable) &&
+-          (item.command.name !== "clear" || !freshSessionAvailable),
++          (item.command.name !== "clear" || !freshSessionAvailable) &&
++          (item.command.name !== "chip" || !chipCommandAvailable),
+       );
+       const slashCommandItems = slashCommandItemsForPromptPosition(
+         [...builtInSlashCommandItems, ...visibleProviderSlashCommandItems, ...skillItems],

@@ -122,6 +122,7 @@ export function viewerFileProps(input: {
     showRunButton: false,
     showFileMenu: false,
     showToggleFullScreen: false,
+    hideSchematicInAnalogSimulation: true,
     // Source has no tab in the viewer, so it waits on the board behind the source.
     ...viewerTabProps(input.screen === "source" ? "pcb" : input.screen),
   };

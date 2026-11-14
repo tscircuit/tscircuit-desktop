@@ -1,12 +1,21 @@
 import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
-import { ShoppingCart } from "lucide-react";
-import { type Dispatch, type RefObject, useEffect, useReducer, useRef, useState } from "react";
+import { CheckIcon, EllipsisIcon, ShoppingCart } from "lucide-react";
+import {
+  type Dispatch,
+  type RefObject,
+  useEffect,
+  useLayoutEffect,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 
 import { ReadOnlySourcePreview } from "~/components/files/AttachmentFilePreview";
 import { FILE_SURFACE_SUBHEADER_CLASS } from "~/components/files/fileSurfaceChrome";
 import { Button } from "~/components/ui/button";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "~/components/ui/empty";
+import { Menu, MenuItem, MenuPopup, MenuTrigger } from "~/components/ui/menu";
 import { Spinner } from "~/components/ui/spinner";
 import { toastManager } from "~/components/ui/toast";
 import { Toggle, ToggleGroup } from "~/components/ui/toggle-group";
@@ -14,6 +23,7 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
 import { type ComposerThreadTarget, useComposerDraftStore } from "~/composerDraftStore";
 import { isElectron } from "~/env";
 import { getLocalStorageItem, setLocalStorageItem } from "~/hooks/useLocalStorage";
+import { observeResize } from "~/lib/observeResize";
 import { cn } from "~/lib/utils";
 
 import { expectedBuild, isBuildOfSources } from "./builtCircuit";
@@ -474,46 +484,143 @@ function CircuitViewTabs(props: {
   readonly onPick: (screen: CircuitScreen) => void;
   readonly onOrder: () => void;
 }) {
+  const availableRow = useRef<HTMLDivElement>(null);
+  const measuringRow = useRef<HTMLDivElement>(null);
+  const [overflow, setOverflow] = useState<ReadonlySet<CircuitScreen>>(() => new Set());
+  const errorLabel = props.errorCount === 1 ? "1 error" : `${props.errorCount} errors`;
+  const tabs =
+    props.errorCount > 0
+      ? [...props.tabs, { id: "errors" as const, label: errorLabel }]
+      : props.tabs;
+  const visible = tabs.filter(({ id }) => !overflow.has(id));
+  const hidden = tabs.filter(({ id }) => overflow.has(id));
+
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- measures the actual controls against the available DOM width
+  useLayoutEffect(() => {
+    const row = availableRow.current;
+    const ruler = measuringRow.current;
+    const group = ruler?.firstElementChild;
+    const trigger = group?.nextElementSibling;
+    if (!row || !ruler || !group || !trigger) return;
+
+    const measure = () => {
+      const width = row.getBoundingClientRect().width;
+      if (width === 0) return;
+      const next = new Set<CircuitScreen>();
+      const groupWidth = group.getBoundingClientRect().width;
+      if (groupWidth > width) {
+        const tabGap = Number.parseFloat(getComputedStyle(group).columnGap);
+        const rowGap = Number.parseFloat(getComputedStyle(ruler).columnGap);
+        const measuredTabs = [
+          ...group.querySelectorAll<HTMLButtonElement>("button[data-circuit-tab]"),
+        ].map((button) => ({
+          id: button.dataset.circuitTab as CircuitScreen,
+          width: button.getBoundingClientRect().width + tabGap,
+        }));
+        const groupOverhead =
+          groupWidth - measuredTabs.reduce((total, tab) => total + tab.width, 0);
+        let remaining = width - trigger.getBoundingClientRect().width - rowGap - groupOverhead;
+        const pinned = new Set<CircuitScreen>();
+        for (const id of ["analog_simulation", props.screen] as const) {
+          if (pinned.has(id)) continue;
+          const tab = measuredTabs.find((tab) => tab.id === id);
+          if (tab && tab.width <= remaining) {
+            pinned.add(id);
+            remaining -= tab.width;
+          }
+        }
+        for (const tab of measuredTabs) {
+          if (pinned.has(tab.id)) continue;
+          if (tab.width <= remaining) {
+            remaining -= tab.width;
+          } else {
+            next.add(tab.id);
+          }
+        }
+      }
+      setOverflow((current) =>
+        current.size === next.size && [...next].every((id) => current.has(id)) ? current : next,
+      );
+    };
+
+    measure();
+    return observeResize([row, ruler, group], measure);
+  }, [props.screen]);
+
+  const isMuted = (id: CircuitScreen) =>
+    id !== "source" && id !== "errors" && !props.unmuted.has(id);
+
   return (
     <div className={cn(FILE_SURFACE_SUBHEADER_CLASS, "justify-between")}>
-      {/* A narrow panel scrolls the tabs sideways, so none is cut off for good. */}
-      <div className="min-w-0 overflow-x-auto [scrollbar-width:none]">
-        <ToggleGroup
-          aria-label="Circuit view"
-          variant="segmented"
-          value={[props.screen]}
-          onValueChange={(value) => {
-            const next = value[0] as CircuitScreen | undefined;
-            if (next !== undefined) props.onPick(next);
-          }}
+      <div ref={availableRow} className="relative flex min-w-0 flex-1 items-center gap-1">
+        {visible.length > 0 ? (
+          <ToggleGroup
+            aria-label="Circuit view"
+            value={[props.screen]}
+            onValueChange={(value) => {
+              const next = value[0] as CircuitScreen | undefined;
+              if (next !== undefined) props.onPick(next);
+            }}
+          >
+            {visible.map(({ id, label }) => {
+              const muted = isMuted(id);
+              const toggle = (
+                <Toggle value={id} aria-disabled={muted || undefined}>
+                  {label}
+                </Toggle>
+              );
+              return muted ? (
+                <Tooltip key={id}>
+                  <TooltipTrigger render={toggle} />
+                  <TooltipPopup side="bottom">
+                    Nothing to show yet. Click to see how to add it.
+                  </TooltipPopup>
+                </Tooltip>
+              ) : (
+                <Toggle key={id} value={id}>
+                  {label}
+                </Toggle>
+              );
+            })}
+          </ToggleGroup>
+        ) : null}
+        {hidden.length > 0 ? (
+          <Menu>
+            <MenuTrigger
+              render={
+                <Button variant="ghost-muted" size="icon-xs" aria-label="More circuit views" />
+              }
+            >
+              <EllipsisIcon aria-hidden />
+            </MenuTrigger>
+            <MenuPopup align="end" width="content">
+              {hidden.map(({ id, label }) => (
+                <MenuItem key={id} onClick={() => props.onPick(id)}>
+                  <span className={cn(isMuted(id) && "text-muted-foreground")}>{label}</span>
+                  {id === props.screen ? <CheckIcon aria-label="Current view" /> : null}
+                </MenuItem>
+              ))}
+            </MenuPopup>
+          </Menu>
+        ) : null}
+        <div
+          inert
+          aria-hidden
+          className="invisible pointer-events-none absolute size-0 overflow-hidden"
         >
-          {props.tabs.map((view) => {
-            const muted = view.id !== "source" && !props.unmuted.has(view.id);
-            return muted ? (
-              <Tooltip key={view.id}>
-                <TooltipTrigger
-                  render={
-                    <Toggle value={view.id} aria-disabled>
-                      {view.label}
-                    </Toggle>
-                  }
-                />
-                <TooltipPopup side="bottom">
-                  Nothing to show yet. Click to see how to add it.
-                </TooltipPopup>
-              </Tooltip>
-            ) : (
-              <Toggle key={view.id} value={view.id}>
-                {view.label}
-              </Toggle>
-            );
-          })}
-          {props.errorCount > 0 ? (
-            <Toggle value="errors">
-              {props.errorCount === 1 ? "1 error" : `${props.errorCount} errors`}
-            </Toggle>
-          ) : null}
-        </ToggleGroup>
+          <div ref={measuringRow} className="flex w-max items-center gap-1">
+            <ToggleGroup>
+              {tabs.map(({ id, label }) => (
+                <Toggle key={id} value={id} data-circuit-tab={id}>
+                  {label}
+                </Toggle>
+              ))}
+            </ToggleGroup>
+            <Button variant="ghost-muted" size="icon-xs">
+              <EllipsisIcon />
+            </Button>
+          </div>
+        </div>
       </div>
       <div className="flex shrink-0 items-center gap-2">
         {props.running ? <Spinner className="size-3.5" /> : null}

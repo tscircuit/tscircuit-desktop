@@ -134,6 +134,21 @@ function excludeFromCheckoutGit(path: string): void {
   appendFileSync(excludeFile, `${current.endsWith("\n") || current === "" ? "" : "\n"}/${path}\n`)
 }
 
+/** Older RunFrame runners omit the preview's plot-only option when forwarding props. */
+function forwardSimulationPlotOption(bundle: string, version: string): string {
+  if (/\bhideSchematicInAnalogSimulation:\s*[$\w]+\.hideSchematicInAnalogSimulation\b/.test(bundle)) {
+    return bundle
+  }
+
+  const previewOption = /\bschematicSvgOptions:\s*([$\w]+)\.schematicSvgOptions(?=,\s*showToggleFullScreen:)/g
+  if (!bundle.includes("hideSchematicInAnalogSimulation") || [...bundle.matchAll(previewOption)].length !== 1) {
+    fail(`Cannot forward the plot-only simulation option in the tscircuit ${version} viewer.`)
+  }
+  return bundle.replace(previewOption, (option, props: string) =>
+    `${option},hideSchematicInAnalogSimulation:${props}.hideSchematicInAnalogSimulation`,
+  )
+}
+
 /**
  * Writes the viewer's files into the checkout. Unlike the bundled skill, a
  * failure here stops `setup`: without these files the Circuit tab is empty.
@@ -147,7 +162,7 @@ export function bundleViewer(source: ViewerSource): void {
 
   const tscircuit = fetchPackage("tscircuit", source.tscircuit, resolved)
   const manifold = fetchPackage("manifold-3d", source.manifold, resolved)
-  const runframe = tscircuit.read("dist/browser.min.js")
+  const runframe = tscircuit.read("dist/browser.min.js").toString("utf8")
 
   // The app draws the header and tabs itself, which takes a RunFrame that a page around it can drive.
   if (!runframe.includes("runframe_capabilities")) {
@@ -185,7 +200,7 @@ export function bundleViewer(source: ViewerSource): void {
   }
   const target = join(checkoutDir, source.into)
   mkdirSync(target, { recursive: true })
-  writeFileSync(join(target, "runframe.min.js"), runframe)
+  writeFileSync(join(target, "runframe.min.js"), forwardSimulationPlotOption(runframe, tscircuit.version))
   writeFileSync(join(target, "viewer-assets.js"), `self.TSCIRCUIT_VIEWER_ASSETS = ${JSON.stringify(assets)};\n`)
   step(
     `Bundled the circuit viewer: tscircuit ${tscircuit.version}, manifold-3d ${manifold.version}` +

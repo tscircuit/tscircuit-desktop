@@ -1,7 +1,7 @@
-Runs the `/order` slash command: it opens the Order tab (apps/web/src/tscircuit/orderActions.ts) and leaves nothing in the prompt.
+Handles /order and /chip using the composer's normal slash-command selection.
 
 diff --git a/apps/web/src/components/chat/ChatComposer.tsx b/apps/web/src/components/chat/ChatComposer.tsx
-index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..19b3199284a93d46685f536fd373cb56ea71de85 100644
+index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..784ef2f314928ed6c807f6fe21877dc8d3ee60d0 100644
 --- a/apps/web/src/components/chat/ChatComposer.tsx
 +++ b/apps/web/src/components/chat/ChatComposer.tsx
 @@ -263,6 +263,7 @@ import { useStableCallback } from "../../hooks/useStableCallback";
@@ -12,7 +12,55 @@ index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..19b3199284a93d46685f536fd373cb56
  import { useComposerRestingTransition } from "./useComposerRestingTransition";
  import { ComposerCommandMenuLayer } from "./ComposerCommandMenuLayer";
  import { useRestingComposerControlsLayout } from "./useRestingComposerControlsLayout";
-@@ -1910,6 +1911,17 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+@@ -382,6 +383,7 @@ export interface ChatComposerProps {
+   keepFullHistory: boolean;
+   onToggleKeepFullHistory: () => void;
+   onUsageLimitsCommand?: (() => void) | undefined;
++  onAddChip?: (() => void) | undefined;
+   sideChatAvailable?: boolean;
+   sideChatDisabledReason?: string | null;
+   /** Arms a fresh session for the next message; absent where `/clear` is unavailable. */
+@@ -1118,6 +1120,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+     pullRequestProjectId,
+     pullRequestRepository,
+     threadPullRequests,
++    chipCommandAvailable:
++      props.onAddChip !== undefined && !isEditingQueuedMessage && pendingUserInputs.length === 0,
+     sideChatAvailable: props.sideChatAvailable === true,
+     sideChatDisabledReason: props.sideChatDisabledReason ?? null,
+     freshSessionAvailable: props.onFreshSession !== undefined,
+@@ -1873,6 +1877,19 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+     };
+   };
+ 
++  const invokeAddChip = (start: number, end: number, text: string) => {
++    if (!props.onAddChip || pendingUserInputs.length > 0 || isEditingQueuedMessage) return false;
++    const applied = applyPromptReplacement(start, end, "", {
++      expectedText: text.slice(start, end),
++      focusEditorAfterReplace: false,
++    });
++    if (applied) {
++      setComposerHighlightedItemId(null);
++      props.onAddChip();
++    }
++    return applied;
++  };
++
+   const { onUsageLimitsCommand } = props;
+   const onSelectComposerItem = (item: ComposerCommandItem) => {
+     if (composerSelectLockRef.current) return;
+@@ -1899,6 +1916,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+       return;
+     }
+     if (item.type === "slash-command") {
++      if (item.command === "chip") {
++        invokeAddChip(trigger.rangeStart, trigger.rangeEnd, snapshot.value);
++        return;
++      }
+       if (item.command === "model") {
+         const applied = applyPromptReplacement(trigger.rangeStart, trigger.rangeEnd, "", {
+           expectedText: snapshot.value.slice(trigger.rangeStart, trigger.rangeEnd),
+@@ -1910,6 +1931,17 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
          }
          return;
        }
@@ -30,3 +78,26 @@ index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..19b3199284a93d46685f536fd373cb56
        if (item.command === "clear") {
          const applied = applyPromptReplacement(trigger.rangeStart, trigger.rangeEnd, "", {
            expectedText: snapshot.value.slice(trigger.rangeStart, trigger.rangeEnd),
+@@ -2122,6 +2154,22 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+       event?.preventDefault();
+       return false;
+     }
++    if (
++      /^\/chip\s*$/i.test(promptRef.current.trim()) &&
++      pendingUserInputs.length === 0 &&
++      !isEditingQueuedMessage
++    ) {
++      event?.preventDefault();
++      const text = promptRef.current;
++      if (props.onAddChip) return invokeAddChip(0, text.length, text);
++      toastManager.add({
++        type: "warning",
++        title: "Could not open Add chip",
++        description:
++          props.sideChatDisabledReason ?? "Open a project thread with an available agent.",
++      });
++      return false;
++    }
+     // A send while a pasted image is still compressing would strand that image:
+     // the turn snapshot wouldn't include it, and it would surface in the *next*
+     // draft instead.

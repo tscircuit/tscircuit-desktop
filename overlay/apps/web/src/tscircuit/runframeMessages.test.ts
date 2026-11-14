@@ -101,11 +101,12 @@ describe("viewer props", () => {
     expect(viewerTabProps("source")).toEqual({});
   });
 
-  it("sends files with the header off and a tab, also while the source is on screen", () => {
+  it("sends the preview options and a tab even while the source is on screen", () => {
     const files = { fsMap: { "index.tsx": "x" }, mainComponentPath: "index.tsx" };
     expect(viewerFileProps({ ...files, screen: "source", rebuilds: 0 })).toMatchObject({
       ...files,
       showHeader: false,
+      hideSchematicInAnalogSimulation: true,
       // Source has no tab in the viewer, so the board waits behind it.
       activeTab: "pcb",
     });

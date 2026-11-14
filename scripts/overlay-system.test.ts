@@ -364,7 +364,11 @@ test("the viewer named in viewer.json is bundled from npm packages, and never ex
   const registry = join(repo, "..", "registry")
   publishToFakeRegistry(registry, "tscircuit", "1.2.3", {
     "package.json": JSON.stringify({ dependencies: { "@tscircuit/eval": "^0.0.7" } }),
-    "dist/browser.min.js": "/* RunFrame and its worker */ runframe_capabilities runFrameWorker",
+    "dist/browser.min.js": `/* RunFrame and its worker */
+      const runframe_capabilities = [];
+      let runFrameWorker;
+      const preview = ({ hideSchematicInAnalogSimulation = false }) => hideSchematicInAnalogSimulation;
+      self.run = props => preview({schematicSvgOptions:props.schematicSvgOptions,showToggleFullScreen:props.showToggleFullScreen});`,
   })
   publishToFakeRegistry(registry, "manifold-3d", "3.5.1", {
     "manifold.js": "export default () => ({})",
@@ -398,7 +402,11 @@ test("the viewer named in viewer.json is bundled from npm packages, and never ex
   configure("latest")
   const built = script("setup", "--no-install")
   assert.equal(built.status, 0, built.stderr)
-  assert.match(readFileSync(join(checkout, "public/viewer/runframe.min.js"), "utf8"), /RunFrame and its worker/)
+  const viewer = readFileSync(join(checkout, "public/viewer/runframe.min.js"), "utf8")
+  const frame: { run?: (options: { hideSchematicInAnalogSimulation?: boolean }) => boolean } = {}
+  new Function("self", viewer)(frame)
+  assert.equal(frame.run?.({ hideSchematicInAnalogSimulation: true }), true)
+  assert.equal(frame.run?.({}), false)
   assert.equal(assets().manifoldJs, "export default () => ({})")
   assert.deepEqual([...Buffer.from(assets().manifoldWasmBase64, "base64")], [0, 97, 115, 109])
   assert.deepEqual(assets().versions, { tscircuit: "1.2.3", eval: "0.0.7", manifold: "3.5.1", jlcpcbQuote: "0.0.9" })

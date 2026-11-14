@@ -1,0 +1,15 @@
+Tracks the measured context size for tscircuit desktop, including its branding and simulation output guidance.
+
+diff --git a/apps/server/src/provider/agentContextBudget.json b/apps/server/src/provider/agentContextBudget.json
+index 2ce96a5c4180c63124062387f156d18b4493ab84..b79d5dc6f94c068f22504bb0ad54424a9eb45c6b 100644
+--- a/apps/server/src/provider/agentContextBudget.json
++++ b/apps/server/src/provider/agentContextBudget.json
+@@ -1,5 +1,5 @@
+ {
+-  "claudeSystemAppendBytes": 5597,
+-  "codexAdditionalContextBytes": 7327,
+-  "mcpToolListJsonBytes": 48099
++  "claudeSystemAppendBytes": 6104,
++  "codexAdditionalContextBytes": 7854,
++  "mcpToolListJsonBytes": 48159
+ }

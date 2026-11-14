@@ -1,7 +1,7 @@
-Makes `order` one of the composer's own slash commands, for `/order`.
+Adds /order and /chip to the desktop composer's built-in commands.
 
 diff --git a/apps/web/src/composer-logic.ts b/apps/web/src/composer-logic.ts
-index 37fef411897fcb339148421be0e3504166aae1da..9cf064771428d86bb994fce76afe9e3bcde5c59b 100644
+index 37fef411897fcb339148421be0e3504166aae1da..a40817ef79d225944d4843bacedbb1d6579416b3 100644
 --- a/apps/web/src/composer-logic.ts
 +++ b/apps/web/src/composer-logic.ts
 @@ -18,7 +18,7 @@ import {
@@ -9,7 +9,7 @@ index 37fef411897fcb339148421be0e3504166aae1da..9cf064771428d86bb994fce76afe9e3b
  
  export type ComposerTriggerKind = "path" | "pull-request" | "slash-command" | "skill";
 -export type ComposerSlashCommand = "model" | "side" | "btw" | "clear";
-+export type ComposerSlashCommand = "model" | "side" | "btw" | "clear" | "order";
++export type ComposerSlashCommand = "model" | "side" | "btw" | "clear" | "order" | "chip";
  export type ComposerSubmissionIntent = "foreground" | "background" | "alternate";
  
  export interface ComposerTrigger {

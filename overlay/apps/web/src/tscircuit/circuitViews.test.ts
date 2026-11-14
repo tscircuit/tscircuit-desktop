@@ -44,12 +44,13 @@ describe("viewsWithContent", () => {
     // A file with no parts still has a PCB group, and nothing in it.
     ["an empty group", { pcb_group: 1, schematic_group: 1 }, []],
     ["only a PCB error", { pcb_group: 1, pcb_autorouting_error: 1 }, []],
-    // The viewer has no schematic for a panel of boards.
     [
-      "a panel",
-      { pcb_panel: 1, pcb_component: 4, schematic_component: 4 },
-      ["pcb", "cad", "bom"],
+      "a board with a simulation while results are pending",
+      { ...BOARD, simulation_experiment: 1 },
+      ["pcb", "cad", "bom", "schematic", "analog_simulation"],
     ],
+    // The viewer has no schematic for a panel of boards.
+    ["a panel", { pcb_panel: 1, pcb_component: 4, schematic_component: 4 }, ["pcb", "cad", "bom"]],
     ["nothing rendered", {}, []],
   ])("%s", (_name, counts, expected) => {
     expect([...viewsWithContent(counts)].toSorted()).toEqual(expected.toSorted());
@@ -159,6 +160,7 @@ describe("the Drawings tab", () => {
       "system",
       "bom",
       "drawing",
+      "analog_simulation",
     ]);
   });
 
@@ -195,8 +197,15 @@ it("opens on the saved view, unless it is one this version does not offer", () =
 describe("unmutedViews", () => {
   it("mutes nothing before the first render, then only the views with nothing in them", () => {
     const { view } = initialCircuitPanelState("pcb");
-    expect(unmutedViews(view).size).toBe(6);
+    expect(unmutedViews(view).size).toBe(7);
+    expect(unmutedViews(view).has("analog_simulation")).toBe(true);
     expect([...unmutedViews({ ...view, counts: SYSTEM_ONLY })]).toEqual(["system"]);
+  });
+
+  it("keeps Simulation in the header before an experiment exists", () => {
+    const { view } = run([{ type: "circuit_rendered", counts: BOARD }]);
+    expect(viewTabs(view).map(({ id }) => id)).toContain("analog_simulation");
+    expect(unmutedViews(view)).not.toContain("analog_simulation");
   });
 });
 

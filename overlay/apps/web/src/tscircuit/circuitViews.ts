@@ -4,22 +4,29 @@
  */
 
 /** A view the viewer draws from the circuit. */
-export type RenderedViewId = "pcb" | "schematic" | "cad" | "system" | "bom" | "drawing";
+export type RenderedViewId =
+  | "pcb"
+  | "schematic"
+  | "cad"
+  | "system"
+  | "bom"
+  | "drawing"
+  | "analog_simulation";
 /** A view with a tab of its own. Source is the file's text, drawn by the app. */
 export type CircuitViewId = "source" | RenderedViewId;
 /** What can be on screen: a view, or the viewer's list of errors. */
 export type CircuitScreen = CircuitViewId | "errors";
 
-const CIRCUIT_VIEWS: ReadonlyArray<{ readonly id: CircuitViewId; readonly label: string }> =
-  [
-    { id: "source", label: "Source" },
-    { id: "pcb", label: "PCB" },
-    { id: "schematic", label: "Schematic" },
-    { id: "cad", label: "3D" },
-    { id: "system", label: "System" },
-    { id: "bom", label: "BOM" },
-    { id: "drawing", label: "Drawings" },
-  ];
+const CIRCUIT_VIEWS: ReadonlyArray<{ readonly id: CircuitViewId; readonly label: string }> = [
+  { id: "source", label: "Source" },
+  { id: "pcb", label: "PCB" },
+  { id: "schematic", label: "Schematic" },
+  { id: "cad", label: "3D" },
+  { id: "system", label: "System" },
+  { id: "bom", label: "BOM" },
+  { id: "drawing", label: "Drawings" },
+  { id: "analog_simulation", label: "Simulation" },
+];
 
 const RENDERED_VIEWS: ReadonlyArray<RenderedViewId> = [
   "pcb",
@@ -28,6 +35,7 @@ const RENDERED_VIEWS: ReadonlyArray<RenderedViewId> = [
   "system",
   "bom",
   "drawing",
+  "analog_simulation",
 ];
 
 /** Few designs have drawings, so this view has a tab only in one that does. */
@@ -83,6 +91,7 @@ export function viewsWithContent(counts: ElementCounts): ReadonlySet<RenderedVie
   // The viewer cannot draw one schematic for a panel of boards.
   if (hasContent(counts, "schematic_") && !has(counts, "pcb_panel")) views.add("schematic");
   if (has(counts, "system_block_page")) views.add("system");
+  if (has(counts, "simulation_experiment")) views.add("analog_simulation");
   return views;
 }
 
@@ -235,8 +244,7 @@ export function unmutedViews(state: CircuitViewState): ReadonlySet<RenderedViewI
 
 /** The views with a tab in the header, in order. */
 export function viewTabs(state: CircuitViewState): typeof CIRCUIT_VIEWS {
-  const shown =
-    state.counts !== null && viewsWithContent(state.counts).has(TAB_ONLY_WITH_CONTENT);
+  const shown = state.counts !== null && viewsWithContent(state.counts).has(TAB_ONLY_WITH_CONTENT);
   return shown ? CIRCUIT_VIEWS : CIRCUIT_VIEWS.filter((view) => view.id !== TAB_ONLY_WITH_CONTENT);
 }
 
@@ -300,6 +308,22 @@ export default () => (
       "The BOM view lists the parts to buy: one row for each part that is placed, with its value and footprint. Add parts and give each one a footprint.",
     example: BOARD_EXAMPLE,
     prompt: "Add TSX parts with footprints to populate the BOM view",
+  },
+  analog_simulation: {
+    title: "This file has no analog simulation",
+    description: "Add an analog simulation, a source, and a probe to see the results here.",
+    example: `export default () => (
+  <board routingDisabled>
+    <voltagesource name="V1" voltage="5V" />
+    <resistor name="R1" resistance="1k" />
+    <trace from=".V1 > .pin1" to=".R1 > .pin1" />
+    <trace from=".V1 > .pin2" to=".R1 > .pin2" />
+    <voltageprobe name="VP1" connectsTo=".R1 > .pin1" />
+    <analogsimulation duration="10ms" timePerStep="100us" />
+  </board>
+)`,
+    prompt:
+      "Add SPICE sources, probes, and an analog simulation to this circuit so I can open it in the Simulation view",
   },
 };
 
