@@ -1,0 +1,24 @@
+Adds the command that sends a report to the context file the agent reads, so the agent uses this install's own launcher even when `tscircuit-desktop` is not on PATH.
+
+diff --git a/apps/server/src/triage/triageSession.ts b/apps/server/src/triage/triageSession.ts
+index c3f04f1b0be0a98962d7a3013c0c5af46cd5d74b..b67bb26aa29da4596e65bb6ddddb0fd3de0fa185 100644
+--- a/apps/server/src/triage/triageSession.ts
++++ b/apps/server/src/triage/triageSession.ts
+@@ -13,6 +13,7 @@ import * as BootService from "../cloud/bootService.ts";
+ import * as ManagedEndpointRuntime from "../cloud/ManagedEndpointRuntime.ts";
+ import type * as ServerConfig from "../config.ts";
+ import { isProcessAlive, readPersistedServerRuntimeState } from "../serverRuntimeState.ts";
++import { appendReportCommand } from "../tscircuit/reportCommand.ts";
+ import {
+   buildTriageContext,
+   buildTriageSeedPrompt,
+@@ -92,6 +93,9 @@ export const writeTriageSession = Effect.fn("triage.writeTriageSession")(functio
+     }),
+   );
+ 
++  // tscircuit desktop: the playbook sends its report with this install's own command.
++  yield* appendReportCommand(contextFilePath);
++
+   const promptFilePath = path.join(sessionDir, TRIAGE_PROMPT_FILE_NAME);
+   yield* fs.writeFileString(
+     promptFilePath,

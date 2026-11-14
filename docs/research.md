@@ -87,7 +87,7 @@ T3 Code has no single place that holds its name. "T3 Code" appears about 1,200 t
 | New text upstream adds | Missed | Missed | Covered |
 | Risk | Unmaintainable at this size | Most of the app still says T3 Code | A rule can change something it should not |
 
-The rules live in `renames.json`. To keep that last risk in check: each rule is as narrow as it can be (exact text where possible), each carries its reason, `setup` fails if a rule stops matching, and identifiers that only the app itself or an agent reads are left alone (the `t3-code` name agents use for the app's tools, storage keys, temporary file names).
+The rules live in `renames.json`. To keep that last risk in check: each rule is as narrow as it can be (exact text where possible), each carries its reason, `setup` fails if a rule stops matching, and identifiers that only the app itself reads are left alone (storage keys, temporary file names). The `t3-code` name agents see the app's tools under was left alone at first too. It is now `tscircuit-desktop`, and the code that reads tool labels accepts both names, so threads from earlier builds still show their tool calls properly.
 
 Beyond the name, the rules give the app its own identity so it can be installed beside T3 Code: app ID, link scheme, profile folder and `~/.tscircuit-desktop` in place of `~/.t3`. Sharing `~/.t3` would have pointed two apps, possibly on different versions, at one database.
 
@@ -127,7 +127,6 @@ The server suite was started too, but did not finish within 25 minutes in the bu
 ## Next steps
 
 1. Build installers and try them: the renamed app ID, link scheme and file names have only run in development mode.
-2. Point "Report a problem" at this repository.
-3. A "new tscircuit project" flow that scaffolds the project and installs the [tscircuit skill](https://github.com/tscircuit/skill) for the agent.
-4. Try a full agent turn with a signed-in provider and fix whatever that shows.
-5. Write a privacy policy for the app.
+2. A "new tscircuit project" flow that scaffolds the project and installs the [tscircuit skill](https://github.com/tscircuit/skill) for the agent.
+3. Try a full agent turn with a signed-in provider and fix whatever that shows.
+4. Write a privacy policy for the app.

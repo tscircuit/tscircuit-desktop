@@ -1,0 +1,18 @@
+Keeps recognising T3 Code's tool server name, `t3-code`, beside this app's. Threads written by earlier builds hold that name, and without it their tool calls show as raw names.
+
+diff --git a/packages/shared/src/t3McpToolPresentation.ts b/packages/shared/src/t3McpToolPresentation.ts
+index 932de5469bbe9e63860e20bdad16cab65d331262..afe363608517382551e1eb45c23474b601a5fd9b 100644
+--- a/packages/shared/src/t3McpToolPresentation.ts
++++ b/packages/shared/src/t3McpToolPresentation.ts
+@@ -93,6 +93,11 @@ const T3_MCP_SERVER_ALIASES = new Set([
+   "t3code",
+   "tscircuit-desktop-direct",
+   "tscircuit_desktop_direct",
++  // tscircuit desktop: threads from earlier builds carry the name T3 Code registers.
++  "t3-code",
++  "t3_code",
++  "t3-code-direct",
++  "t3_code_direct",
+ ]);
+ 
+ const T3_MCP_TOOLS: Readonly<Record<string, T3McpToolDefinition>> = {
