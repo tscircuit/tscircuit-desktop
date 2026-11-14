@@ -1,10 +1,10 @@
 Passes the "open the Circuit tab" action to the right panel's tab strip.
 
 diff --git a/apps/web/src/components/ChatView.tsx b/apps/web/src/components/ChatView.tsx
-index dc3fcfa8f48c95fa73cf42b97df5ae7be46f1599..ce6fee7253ba513055ca86da5003bfcebbbcb9a6 100644
+index 8c2f082081cd7c508a65969453e2c41094a297b9..1194a2fc744bcfa0eb5b4df8d2aa4f678e9b3d48 100644
 --- a/apps/web/src/components/ChatView.tsx
 +++ b/apps/web/src/components/ChatView.tsx
-@@ -3996,6 +3996,9 @@ export default function ChatView(props: ChatViewProps) {
+@@ -4032,6 +4032,9 @@ export default function ChatView(props: ChatViewProps) {
            onAddTerminal={addTerminalSurfaceStable}
            onAddDiff={addDiffSurfaceStable}
            onAddFiles={addFilesSurfaceStable}

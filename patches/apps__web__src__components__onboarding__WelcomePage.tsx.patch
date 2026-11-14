@@ -1,10 +1,10 @@
 The welcome screen said the app collects anonymous usage data. In this build that is off by default (see the AnalyticsService patch), so it says so.
 
 diff --git a/apps/web/src/components/onboarding/WelcomePage.tsx b/apps/web/src/components/onboarding/WelcomePage.tsx
-index 2785b100f319c1d56d51b71d64b45ec176c65f95..64fb7af347ec2585d90299c0704310e643b1e994 100644
+index 33cbcba00c0127c38f5236683138a5e9ad57c708..10ee8c072ed1b5e6f12609cca06f4cd7cfff4f29 100644
 --- a/apps/web/src/components/onboarding/WelcomePage.tsx
 +++ b/apps/web/src/components/onboarding/WelcomePage.tsx
-@@ -327,8 +327,8 @@ function TelemetryNotice({ environmentId }: { readonly environmentId: Environmen
+@@ -329,8 +329,8 @@ function TelemetryNotice({ environmentId }: { readonly environmentId: Environmen
    const telemetryOff = managedTelemetryOffMessage(useManagedPolicy(environmentId));
    return (
      <p className="mt-auto pt-12 text-2xs leading-relaxed text-muted-foreground/70">

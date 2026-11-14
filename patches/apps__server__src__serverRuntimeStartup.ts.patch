@@ -1,7 +1,7 @@
 Installs the tscircuit skill bundled with the app when the server starts (overlay/apps/server/src/tscircuit/bundledSkill.ts), so agents know tscircuit without the user installing anything.
 
 diff --git a/apps/server/src/serverRuntimeStartup.ts b/apps/server/src/serverRuntimeStartup.ts
-index 4e93266960b8c0ef88d7ed8b883894eef7ec6fda..da9281daedb8621c82ae74572c4031e886ab7582 100644
+index 623146c2201c54691c80b7c96d58cfd831d84487..24aa0215b3547f577df92f0f17678f20c14f0a4f 100644
 --- a/apps/server/src/serverRuntimeStartup.ts
 +++ b/apps/server/src/serverRuntimeStartup.ts
 @@ -38,6 +38,7 @@ import * as Orchestrator from "./orchestration-v2/Orchestrator.ts";
@@ -12,7 +12,7 @@ index 4e93266960b8c0ef88d7ed8b883894eef7ec6fda..da9281daedb8621c82ae74572c4031e8
  import * as ThreadManagement from "./orchestration-v2/ThreadManagementService.ts";
  import * as ProjectService from "./project/ProjectService.ts";
  import * as GitVcsDriver from "./vcs/GitVcsDriver.ts";
-@@ -484,6 +485,8 @@ const make = Effect.fn("serverRuntimeStartup.make")(function* (options?: Startup
+@@ -496,6 +497,8 @@ const make = Effect.fn("serverRuntimeStartup.make")(function* (options?: Startup
    );
  
    const startup = Effect.gen(function* () {

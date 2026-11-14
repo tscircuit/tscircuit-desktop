@@ -1,10 +1,10 @@
 Same correction as the welcome screen, for the privacy row in Settings: usage data is off by default in this build.
 
 diff --git a/apps/web/src/components/settings/SettingsPanels.tsx b/apps/web/src/components/settings/SettingsPanels.tsx
-index 4ab1569f6e3cf7c8f88373f657390a497e419121..4a000333e5d42e0a362aba5bb9288484d45c3c58 100644
+index ef61203fcddbe44c5ec69eb9384477717cbf1b68..51d3b8667a2d3adb0a2f15a093d816b1edc36ef9 100644
 --- a/apps/web/src/components/settings/SettingsPanels.tsx
 +++ b/apps/web/src/components/settings/SettingsPanels.tsx
-@@ -2325,7 +2325,7 @@ export function AboutSettingsPanel() {
+@@ -2344,7 +2344,7 @@ export function AboutSettingsPanel() {
            {...searchableSetting("privacy-policy")}
            description={
              telemetryOff === undefined
