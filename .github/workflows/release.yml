@@ -36,6 +36,7 @@ on:
       - "patches/**"
       - "branding/**"
       - "scripts/**"
+      - .github/pr-build.env
   workflow_dispatch:
 
 permissions:
@@ -78,6 +79,12 @@ jobs:
         with:
           package_json_file: .t3code/package.json
       - run: node scripts/setup.ts
+
+      # A pull request can try the app against something that is not released
+      # yet, such as a preview of RunFrame. Releases from main never read this.
+      - name: Use the pull request's build settings
+        if: github.event_name == 'pull_request' && hashFiles('.github/pr-build.env') != ''
+        run: grep -E '^[A-Z_][A-Z0-9_]*=' .github/pr-build.env | tee -a "$GITHUB_ENV"
 
       # GITHUB_REPOSITORY is hidden from the build so that it bakes in no update
       # feed. An unsigned app cannot apply an update it downloads.
