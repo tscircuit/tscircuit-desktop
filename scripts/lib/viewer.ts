@@ -10,9 +10,13 @@
  *   viewer-assets.js   the eval worker and manifold-3d, as text the page turns
  *                      into blob URLs (see overlay/.../tscircuit-viewer/frame.html)
  *
- * viewer.json names where each comes from. The files are generated, not
- * saved: they are listed in the checkout's .git/info/exclude, so `export`
- * never copies them into overlay/.
+ * viewer.json names where each comes from. "runframe" is either a file pinned
+ * by its SHA-256, or "tscircuit" for the bundle the tscircuit package ships
+ * (dist/browser.min.js), which is the one to use once a released tscircuit
+ * can be driven by the page around it (tscircuit/runframe#6289).
+ *
+ * The files are generated, not saved: they are listed in the checkout's
+ * .git/info/exclude, so `export` never copies them into overlay/.
  */
 import { createHash } from "node:crypto"
 import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs"
