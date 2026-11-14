@@ -30,6 +30,7 @@ import {
 import { readPin } from "./lib/pin.ts"
 import { applyRenames, readRenames } from "./lib/renames.ts"
 import { bundleSkill, readSkillSource } from "./lib/skill.ts"
+import { bundleViewer, readViewerSource } from "./lib/viewer.ts"
 
 const CONFLICT_EXIT_CODE = 3
 
@@ -115,6 +116,10 @@ git("tag", "--force", SAVED_TAG)
 // every setup and must not look like unsaved work.
 const skill = readSkillSource()
 if (skill) bundleSkill(skill)
+
+// The same goes for the circuit viewer's files.
+const viewer = readViewerSource()
+if (viewer) bundleViewer(viewer)
 
 if (flags.has("--no-install")) {
   console.log("\nCheckout built. Dependencies were not installed (--no-install).")

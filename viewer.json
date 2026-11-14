@@ -1,0 +1,5 @@
+{
+  "into": "apps/web/public/tscircuit-viewer",
+  "tscircuit": "latest",
+  "manifold": "3.5.1"
+}

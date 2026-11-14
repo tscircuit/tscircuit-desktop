@@ -1,7 +1,7 @@
-Renders the Circuit tab's content (apps/web/src/tscircuit/CircuitPanel.tsx, loaded lazily).
+Renders the Circuit tab's content (apps/web/src/tscircuit/CircuitPanel.tsx, loaded lazily). It gets the thread's composer target so the panel's "Add to prompt" can write to the prompt.
 
 diff --git a/apps/web/src/components/chat/RightPanelSurfaceContent.tsx b/apps/web/src/components/chat/RightPanelSurfaceContent.tsx
-index 358be56d994f24b11a0aea722830db5881877deb..fb297be1f9c50f53f3bd4d2c591bd9454f0b9e5c 100644
+index 358be56d994f24b11a0aea722830db5881877deb..ffaf6f6b0796523c5e7ef6c53dc6c1624c169a0c 100644
 --- a/apps/web/src/components/chat/RightPanelSurfaceContent.tsx
 +++ b/apps/web/src/components/chat/RightPanelSurfaceContent.tsx
 @@ -33,6 +33,7 @@ const DevicePanel = lazy(() =>
@@ -12,7 +12,7 @@ index 358be56d994f24b11a0aea722830db5881877deb..fb297be1f9c50f53f3bd4d2c591bd945
  
  type RightPanelTerminalProps = Omit<
    PersistentThreadTerminalPanelProps,
-@@ -200,6 +201,19 @@ export function RightPanelSurfaceContent(props: {
+@@ -200,6 +201,20 @@ export function RightPanelSurfaceContent(props: {
            />
          </Suspense>
        );
@@ -26,6 +26,7 @@ index 358be56d994f24b11a0aea722830db5881877deb..fb297be1f9c50f53f3bd4d2c591bd945
 +            relativePath={surface.relativePath ?? null}
 +            visible={visible}
 +            workspaceMutationId={props.workspaceMutationId}
++            composerDraftTarget={props.composerDraftTarget}
 +          />
 +        </Suspense>
 +      );

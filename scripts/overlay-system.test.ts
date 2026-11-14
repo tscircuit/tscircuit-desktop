@@ -4,7 +4,8 @@
  */
 import assert from "node:assert/strict"
 import { spawnSync } from "node:child_process"
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs"
+import { createHash } from "node:crypto"
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { test } from "node:test"
@@ -335,4 +336,81 @@ test("the skill named in skill.json is bundled on every setup and never exported
   const again = script("setup", "--no-install")
   assert.equal(again.status, 0, again.stderr)
   assert.equal(bundled().files[0]?.content, "second\n")
+})
+
+/** A folder that answers like the npm registry does for one version of a package. */
+function publishToFakeRegistry(registry: string, name: string, version: string, files: Record<string, string | Buffer>) {
+  const staging = mkdtempSync(join(tmpdir(), "tscircuit-desktop-pkg-"))
+  for (const [path, content] of Object.entries(files)) {
+    mkdirSync(join(staging, "package", path, ".."), { recursive: true })
+    writeFileSync(join(staging, "package", path), content)
+  }
+  mkdirSync(join(registry, name), { recursive: true })
+  const tarball = join(registry, name, `${version}.tgz`)
+  assert.equal(spawnSync("tar", ["-czf", tarball, "-C", staging, "package"]).status, 0)
+  const manifest = {
+    version,
+    dist: {
+      tarball: `file://${tarball}`,
+      integrity: `sha512-${createHash("sha512").update(readFileSync(tarball)).digest("base64")}`,
+    },
+  }
+  for (const tag of [version, "latest"]) writeFileSync(join(registry, name, tag), JSON.stringify(manifest))
+}
+
+test("the viewer named in viewer.json is bundled from npm packages, and never exported", () => {
+  const sandbox = createSandbox()
+  const { repo, checkout, script } = sandbox
+  const registry = join(repo, "..", "registry")
+  publishToFakeRegistry(registry, "tscircuit", "1.2.3", {
+    "package.json": JSON.stringify({ dependencies: { "@tscircuit/eval": "^0.0.7" } }),
+    "dist/browser.min.js": "/* RunFrame and its worker */ runframe_capabilities",
+  })
+  publishToFakeRegistry(registry, "manifold-3d", "3.5.1", {
+    "manifold.js": "export default () => ({})",
+    "manifold.wasm": Buffer.from([0, 97, 115, 109]),
+  })
+  const configure = (tscircuit: string) =>
+    writeFileSync(
+      join(repo, "viewer.json"),
+      JSON.stringify({ into: "public/viewer", registry: `file://${registry}`, tscircuit, manifold: "3.5.1" }),
+    )
+  const assets = () => {
+    const source = readFileSync(join(checkout, "public/viewer/viewer-assets.js"), "utf8")
+    // The file is a script; running it is the test that it parses.
+    const scope: { TSCIRCUIT_VIEWER_ASSETS?: Record<string, any> } = {}
+    new Function("self", source)(scope)
+    return scope.TSCIRCUIT_VIEWER_ASSETS!
+  }
+
+  configure("latest")
+  const built = script("setup", "--no-install")
+  assert.equal(built.status, 0, built.stderr)
+  assert.match(readFileSync(join(checkout, "public/viewer/runframe.min.js"), "utf8"), /RunFrame and its worker/)
+  assert.equal(assets().manifoldJs, "export default () => ({})")
+  assert.deepEqual([...Buffer.from(assets().manifoldWasmBase64, "base64")], [0, 97, 115, 109])
+  assert.deepEqual(assets().versions, { tscircuit: "1.2.3", eval: "0.0.7", manifold: "3.5.1" })
+
+  // Generated, so it is neither saved to overlay/ nor treated as unsaved work. The page around it is ours.
+  writeFileSync(join(checkout, "public/viewer/frame.html"), "<div id=root></div>")
+  assert.equal(script("export").status, 0)
+  assert.deepEqual(readdirSync(join(repo, "overlay", "public", "viewer")), ["frame.html"])
+
+  // A RunFrame from before the app could drive it would leave the Circuit tab blank, so it stops the build.
+  publishToFakeRegistry(registry, "tscircuit", "1.2.2", {
+    "package.json": "{}",
+    "dist/browser.min.js": "/* an older RunFrame bundle */",
+  })
+  configure("1.2.2")
+  const tooOld = script("setup", "--no-install")
+  assert.notEqual(tooOld.status, 0)
+  assert.match(tooOld.stderr, /cannot be used as the circuit viewer/)
+
+  // A package that is not what the registry says it is stops the build too.
+  writeFileSync(join(registry, "tscircuit", "1.2.3.tgz"), "not the tarball that was published")
+  rmSync(join(repo, ".cache"), { recursive: true, force: true })
+  configure("1.2.3")
+  const tampered = script("setup", "--no-install")
+  assert.notEqual(tampered.status, 0)
+  assert.match(tampered.stderr, /does not match the hash the registry lists/)
 })

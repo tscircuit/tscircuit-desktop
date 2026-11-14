@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>tscircuit viewer</title>
+    <style>
+      html,
+      body,
+      #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      tscircuit desktop: the page the Circuit tab frames. `setup` puts RunFrame
+      with its eval worker (runframe.min.js, from the tscircuit package) and
+      manifold-3d (viewer-assets.js) beside this file, as viewer.json names.
+
+      RunFrame evaluates the project's circuit code, so this page never runs in
+      the app's origin. The desktop app serves it on a host of its own. In a
+      browser the frame's sandbox takes its origin away, and then it cannot
+      fetch files, keep storage, or start a module worker: hence the blob URL
+      and the stand-ins below. See apps/web/src/tscircuit/viewerFrame.ts.
+    -->
+    <div id="root"></div>
+    <script src="./viewer-assets.js"></script>
+    <script>
+      (() => {
+        const assets = self.TSCIRCUIT_VIEWER_ASSETS ?? {};
+        delete self.TSCIRCUIT_VIEWER_ASSETS;
+
+        // RunFrame's bundle expects Node's `process` to exist.
+        globalThis.process ??= { env: {}, version: "" };
+
+        // A page without an origin may not touch storage: even reading `localStorage`
+        // throws. RunFrame only keeps conveniences there, so memory will do.
+        const memoryStorage = () => {
+          const items = new Map();
+          return {
+            get length() {
+              return items.size;
+            },
+            key: (index) => [...items.keys()][index] ?? null,
+            getItem: (key) => (items.has(key) ? items.get(key) : null),
+            setItem: (key, value) => void items.set(String(key), String(value)),
+            removeItem: (key) => void items.delete(key),
+            clear: () => items.clear(),
+          };
+        };
+        for (const name of ["localStorage", "sessionStorage"]) {
+          try {
+            void window[name];
+          } catch {
+            Object.defineProperty(window, name, { configurable: true, value: memoryStorage() });
+          }
+        }
+
+        // Take props from the app, as runframe.tscircuit.com/iframe.html does.
+        window.TSCIRCUIT_USE_RUNFRAME_PROPS_FROM_PARENT = true;
+        // The eval worker is the one inside RunFrame's bundle, so there is no version to choose or look up.
+        window.TSCIRCUIT_ALLOW_SELECTING_EVAL_VERSION = false;
+        if (assets.versions?.eval) window.TSCIRCUIT_LATEST_EVAL_VERSION = assets.versions.eval;
+        // The app's usage analytics are off, and RunFrame's own would report from inside it.
+        window.TSCIRCUIT_TELEMETRY_DISABLED = true;
+
+        const blobUrl = (content, type = "text/javascript") =>
+          URL.createObjectURL(new Blob([content], { type }));
+
+        // RunFrame starts the eval worker as a module, from a blob. Chromium refuses
+        // that in a page without an origin, but lets a classic worker import the same
+        // blob. The stand-in keeps the messages that arrive before the module listens.
+        const classicWorkerThatImports = (moduleUrl) =>
+          blobUrl(`
+            const early = [];
+            const keep = (event) => early.push(event);
+            self.addEventListener("message", keep);
+            import(${JSON.stringify(moduleUrl)}).then(
+              () => {
+                self.removeEventListener("message", keep);
+                for (const { data, ports } of early) {
+                  self.dispatchEvent(new MessageEvent("message", { data, ports: [...ports] }));
+                }
+              },
+              (error) => setTimeout(() => { throw error; }),
+            );
+          `);
+        if (self.origin === "null") {
+          const NativeWorker = window.Worker;
+          window.Worker = class Worker extends NativeWorker {
+            constructor(url, options) {
+              const fromBlob = options?.type === "module" && String(url).startsWith("blob:");
+              if (fromBlob) {
+                super(classicWorkerThatImports(String(url)), { ...options, type: "classic" });
+              } else super(url, options);
+            }
+          };
+        }
+
+        // RunFrame's 3D viewer uses this in place of the copy it would import from a CDN.
+        if (assets.manifoldJs && assets.manifoldWasmBase64) {
+          window.MANIFOLD_MODULE = async () => {
+            const wasmBinary = Uint8Array.from(atob(assets.manifoldWasmBase64), (c) => c.charCodeAt(0));
+            const { default: createManifold } = await import(blobUrl(assets.manifoldJs));
+            // locateFile keeps manifold from resolving its .wasm against a blob URL, which throws.
+            return createManifold({ wasmBinary, locateFile: (path) => path });
+          };
+        }
+      })();
+    </script>
+    <script src="./runframe.min.js"></script>
+  </body>
+</html>
