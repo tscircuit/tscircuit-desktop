@@ -1,0 +1,28 @@
+Moves an install from the old `t3` command to `tscircuit-desktop`. Builds up to 0.1.3 linked the command as `t3`, the name of T3 Code's own command. At startup the old link and launcher are removed when they are this app's (src/tscircuit/legacyT3Command.ts), and an install that had the command gets it back under the new name.
+
+diff --git a/apps/desktop/src/app/DesktopApp.ts b/apps/desktop/src/app/DesktopApp.ts
+index 0a8ba21498651617d658af99d39c0daa2275ba25..f672fe8881767415ddff1e49d56f994640e91af6 100644
+--- a/apps/desktop/src/app/DesktopApp.ts
++++ b/apps/desktop/src/app/DesktopApp.ts
+@@ -38,6 +38,7 @@ import * as DesktopRemoteUpdates from "../updates/DesktopRemoteUpdates.ts";
+ import * as DesktopUpdates from "../updates/DesktopUpdates.ts";
+ import * as DesktopSnapShot from "../snapShot/DesktopSnapShot.ts";
+ import * as DesktopWslBackend from "../wsl/DesktopWslBackend.ts";
++import * as LegacyT3Command from "../tscircuit/legacyT3Command.ts";
+ import * as DesktopRendererHistory from "../telemetry/DesktopRendererHistory.ts";
+ import * as HostProcess from "@t3tools/shared/HostProcess";
+ 
+@@ -196,7 +197,12 @@ const bootstrap = Effect.gen(function* () {
+   yield* snapShot.initialize;
+   // Only the user's own login shell PATH shows every t3 a new terminal runs; a fresh install has
+   // no cached one. Without it, the command is left to Settings.
+-  const installCli = (yield* DesktopCliCommand.DesktopCliCommand).installOnFirstLaunch;
++  const cliCommand = yield* DesktopCliCommand.DesktopCliCommand;
++  // tscircuit desktop: builds up to 0.1.3 linked the command as `t3`, T3 Code's name. That link
++  // is removed first, and an install that had it gets the command back under its new name.
++  const installCli = (yield* LegacyT3Command.remove(environment))
++    ? LegacyT3Command.reinstall(environment, cliCommand.install)
++    : cliCommand.installOnFirstLaunch;
+   yield* Effect.forkScoped(
+     (yield* DesktopShellEnvironment.DesktopShellEnvironment).awaitUserShellDiscovery.pipe(
+       Effect.flatMap((found) =>

@@ -5,8 +5,9 @@ name: Release
 #   - On every push to main it publishes a GitHub release, v<major>.<minor>.<run>.
 #     Major and minor come from "version" in package.json; the last number is
 #     this workflow's run number, so no commit is needed to bump it.
-#   - On a pull request that changes this file it only builds, and keeps the
-#     zip as a workflow artifact, so the workflow can be tried before merging.
+#   - On a pull request that changes the app or this file it only builds, and
+#     keeps the zip as a workflow artifact, so the build can be tried before
+#     merging.
 #
 # The builds are not signed with an Apple Developer ID yet:
 #   - macOS asks for confirmation the first time a downloaded copy is opened
@@ -27,6 +28,14 @@ on:
   pull_request:
     paths:
       - .github/workflows/release.yml
+      - upstream.json
+      - renames.json
+      - skill.json
+      - package.json
+      - "overlay/**"
+      - "patches/**"
+      - "branding/**"
+      - "scripts/**"
   workflow_dispatch:
 
 permissions:

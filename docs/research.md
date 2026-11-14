@@ -73,9 +73,18 @@ T3 Code has no single place that holds its name. "T3 Code" appears about 1,200 t
 | New text upstream adds | Missed | Missed | Covered |
 | Risk | Unmaintainable at this size | Most of the app still says T3 Code | A rule can change something it should not |
 
-The rules live in `renames.json`. To keep that last risk in check: each rule is as narrow as it can be (exact text where possible), each carries its reason, `setup` fails if a rule stops matching, and identifiers that other software reads are left alone (`T3CODE_` environment variables, the `t3` command, the `t3-code` name agents use for the app's tools, storage keys).
+The rules live in `renames.json`. To keep that last risk in check: each rule is as narrow as it can be (exact text where possible), each carries its reason, `setup` fails if a rule stops matching, and identifiers that only the app itself or an agent reads are left alone (the `t3-code` name agents use for the app's tools, storage keys, temporary file names).
 
 Beyond the name, the rules give the app its own identity so it can be installed beside T3 Code: app ID, link scheme, profile folder and `~/.tscircuit-desktop` in place of `~/.t3`. Sharing `~/.t3` would have pointed two apps, possibly on different versions, at one database.
+
+The first releases kept the `t3` command and the `T3CODE_` environment variables, on the reasoning that scripts might rely on them. That was wrong for a machine with both apps: the app links its command into `~/.local/bin` on first launch, so it took the name `t3` and T3 Code could no longer install its own, and a `T3CODE_HOME` set for T3 Code would have pointed this app at T3 Code's data. A second round of rules separates everything the two apps would otherwise share on a machine: the command (`tscircuit-desktop`), the variable prefix (`TSCIRCUIT_DESKTOP_`), the project file, the branch prefix, the hidden git refs, the compile cache folder and the background service names. The README's "Beside T3 Code" table lists them.
+
+Two details from that round:
+
+- **The branch prefix is `tscircuit`, without a hyphen.** The code that flattens a temporary branch name (`t3/1a2b3c4d` to `t3-1a2b3c4d`) finds the token after the first `-` or `/`, so a prefix with a hyphen in it would be cut in the wrong place.
+- **The command's name in running text is matched by a list of the words that follow it** (`t3 service`, `t3 connect`, "the t3 command"), not every bare `t3`. A looser rule also rewrote `t3` used as data, such as the example under the branch prefix setting.
+
+An install made by a build up to 0.1.3 already has a `t3` link. `apps/desktop/src/tscircuit/legacyT3Command.ts` removes it at startup, only when the link leads to this app's own old launcher, and the command is then installed under the new name.
 
 Things that needed a patch, not a rule, because they change behaviour:
 
@@ -97,6 +106,7 @@ T3 Code's own tests were the check. After the first set of rules, the desktop, w
   - `packages/shared`: two search tests and one speech test use "T3 Code" as sample data; one link test lists the old scheme.
   - `apps/web`: tests that check the star prompt and release links point at T3 Code's repository.
   - `apps/desktop`: the test for importing Windows credentials from T3 Code's profile, which is turned off here.
+  - `apps/desktop` and `apps/server`, after the command was renamed: tests of the command link and of the standalone installer create files named `t3` by hand (`path.join(home, ".local", "bin", "t3")`) and so no longer find what the code now calls `tscircuit-desktop`. With those names changed in a scratch copy of the desktop test, seven of its eight failures pass; the eighth matches `t3.cmd` in a regular expression of its own. The server's failures of this kind (the installer, the pinned runtime, the Windows service) were read but not re-run this way.
 
 The server suite was started too, but did not finish within 25 minutes in the build sandbox. The six failures in the part that ran all come from the sandbox (no `ssh-keygen`, no IPv6, a git setting that rewrites SSH URLs), not from the renames. The rest of that suite has not been checked.
 

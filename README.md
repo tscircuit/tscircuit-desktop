@@ -129,11 +129,36 @@ Turning automatic updates on needs:
 2. A change to T3 Code's packaging script, which today only signs when its own passkey sign-in is configured (a provisioning profile and a sign-in domain that tscircuit desktop does not use).
 3. Removing `env -u GITHUB_REPOSITORY` from the release workflow's build step. With the repository visible, the build bakes in this repository's releases as its update feed, and the workflow must then also upload the `latest-mac.yml` file the build produces.
 
+## Beside T3 Code
+
+tscircuit desktop is meant to be installed on a machine that also has T3 Code. Each of these is the app's own, so neither app reads, overwrites or removes the other's:
+
+| | tscircuit desktop | T3 Code |
+| --- | --- | --- |
+| Command | `tscircuit-desktop` | `t3` |
+| Data folder | `~/.tscircuit-desktop` | `~/.t3` |
+| Environment variables | `TSCIRCUIT_DESKTOP_…` | `T3CODE_…` |
+| App ID and link scheme | `com.tscircuit.desktop`, `tscircuit-desktop://` | `com.t3tools.t3code`, `t3code://` |
+| Project file | `tscircuit-desktop.json` | `t3.json` |
+| Branches it creates | `tscircuit/…` | `t3/…`, `t3code/…` |
+| Hidden git refs (checkpoints) | `refs/tscircuit-desktop/…` | `refs/t3/…`, `refs/t3code/…` |
+| Compile cache folder | `tscircuit-desktop` | `t3code` |
+| Background service | `com.tscircuit.desktop.service`, `tscircuit-desktop.service` | `t3code` |
+
+Builds up to 0.1.3 linked the command as `t3`. The first launch of a newer build removes that link if it is this app's, leaves T3 Code's `t3` alone, and links `tscircuit-desktop` in its place. Checkpoints that 0.1.3 made stay under `refs/t3/` in the project, so threads from that build cannot be rolled back to them.
+
+Still shared, or not yet separate:
+
+- **The agents' own data.** Claude Code, Codex and the others keep their sign-in and history in their own folders, whichever app starts them.
+- **Per-branch git settings.** Both apps record a branch's base and pull request under the same `branch.<name>.t3-…` keys in a repository's git config.
+- **Linux and Windows package names.** A Linux package would still install a binary named `t3code`. No such package is built yet; this has to change before one is.
+- **Remote machines.** Connecting to another computer over SSH installs T3's server there, which uses T3 Code's names on that machine.
+
 ## Privacy
 
 This section is where the app's privacy link points. tscircuit desktop has no privacy policy of its own yet, and T3 Code's does not cover this build.
 
-- **Usage analytics are off.** T3 Code sends anonymous usage data to its own analytics service. This build does not, unless you start it with `T3CODE_TELEMETRY_ENABLED=true`, in which case the data goes to T3 Code's service, not to tscircuit.
+- **Usage analytics are off.** T3 Code sends anonymous usage data to its own analytics service. This build does not, unless you start it with `TSCIRCUIT_DESKTOP_TELEMETRY_ENABLED=true`, in which case the data goes to T3 Code's service, not to tscircuit.
 - **Your agent talks to its provider.** Prompts and code go to whichever agent you connect (Claude Code, Codex and others), under that provider's terms.
 - **The Circuit tab loads RunFrame from `runframe.tscircuit.com`** and gives it the project's source files to render. Rendering happens in the app; RunFrame may fetch packages your circuit imports.
 - **The list of available models is fetched from T3 Code's GitHub repository.**
@@ -142,11 +167,11 @@ This list covers what was checked while building the rename. It is not a full au
 
 ## Known gaps
 
-- **Some T3 names remain on purpose.** The command-line tool is still `t3`, settings use `T3CODE_` environment variables, and T3 Connect and T3 Chat keep their names because they are T3's own services.
+- **Some T3 names remain on purpose.** T3 Connect and T3 Chat keep their names because they are T3's own services, agents still see the app's tools under the name `t3-code`, and `npx t3` in the app's text means T3's package on npm. See "Beside T3 Code" for what is separate.
 - **No automatic updates, and Apple Silicon only.** Releases are unsigned (see "Releases and automatic updates"). No Intel Mac, Windows or Linux package has been built.
 - **The bundled skill is only as new as the build.** It is refreshed when a release is built, not while the app runs.
 - **"Report a problem" still files to T3 Code.** The built-in triage agent is written to search and open issues in T3 Code's repository. It needs rewriting for this repository before the app is given to users.
-- **The server's own updater still looks at T3 Code's releases.** It applies to servers started with `t3` from a terminal, not to the desktop app.
+- **The server's own updater still looks at T3 Code's releases.** It applies to servers started with `tscircuit-desktop` from a terminal, not to the desktop app.
 - **A few of T3 Code's own tests fail after the renames.** They use the old name as test data or check an upstream link. `npm run check:app` does not run them; see `docs/research.md` for the list.
 - **The viewer needs internet.** RunFrame is loaded from `runframe.tscircuit.com` (about 34 MB the first time) and is not bundled into the app. Bundling it was tried in an earlier prototype and clashed with the host app's dependencies and styles.
 - **`.tsx` files open in the Circuit tab, not the source viewer.** That includes `.tsx` files that are not circuits. A link to a specific line still opens the source.
