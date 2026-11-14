@@ -157,7 +157,7 @@
     {
       "from": "|t3_code|t3code)(?:[.:/]",
       "to": "|t3_code|t3code|tscircuit[-_ ]desktop)(?:[.:/]",
-      "why": "The same tool-label recognition, for labels written as \"name \u00b7 tool\"."
+      "why": "The same tool-label recognition, for labels written as \"name · tool\"."
     },
     {
       "from": "author: \"T3 Tools\"",
@@ -168,6 +168,131 @@
       "from": "homepage: \"https://t3.codes\"",
       "to": "homepage: \"https://github.com/tscircuit/tscircuit-desktop\"",
       "why": "The homepage recorded inside the packaged app."
+    },
+    {
+      "from": "T3CODE_",
+      "to": "TSCIRCUIT_DESKTOP_",
+      "why": "The prefix of every environment variable the app reads, such as T3CODE_HOME and T3CODE_PORT. Someone who set these for T3 Code would otherwise point this app at T3 Code's data folder and ports."
+    },
+    {
+      "from": "Command.make(\"t3\"",
+      "to": "Command.make(\"tscircuit-desktop\"",
+      "why": "The name of the command-line tool, as its own help prints it."
+    },
+    {
+      "from": "commandPath: [\"t3\"",
+      "to": "commandPath: [\"tscircuit-desktop\"",
+      "why": "The command name in the help the tool shows for a mistyped command."
+    },
+    {
+      "from": "path.join(directory, \"t3\")",
+      "to": "path.join(directory, \"tscircuit-desktop\")",
+      "why": "The command the app links into ~/.local/bin. Named t3 it would take the place of T3 Code's own command, or be blocked by it."
+    },
+    {
+      "from": "[\"t3.cmd\", \"t3.exe\"] : [\"t3\"]",
+      "to": "[\"tscircuit-desktop.cmd\", \"tscircuit-desktop.exe\"] : [\"tscircuit-desktop\"]",
+      "why": "The names checked before linking the command, so the check looks for this app's command and not T3 Code's."
+    },
+    {
+      "from": "\"t3.cmd\" : \"t3\"",
+      "to": "\"tscircuit-desktop.cmd\" : \"tscircuit-desktop\"",
+      "why": "The launcher file in the data folder's bin directory and the link to it, on Windows and elsewhere."
+    },
+    {
+      "from": "path.join(directory, \"t3.cmd\")",
+      "to": "path.join(directory, \"tscircuit-desktop.cmd\")",
+      "why": "The Windows launcher the updater rewrites; it has to be the one the installer wrote."
+    },
+    {
+      "from": "path.join(installBinDir, \"t3\")",
+      "to": "path.join(installBinDir, \"tscircuit-desktop\")",
+      "why": "The link the background service moves to a new version; it has to be the one the installer wrote."
+    },
+    {
+      "from": "resolveCommandPath(\"t3\")",
+      "to": "resolveCommandPath(\"tscircuit-desktop\")",
+      "why": "How the tool finds its own command on PATH when it prints a command to run."
+    },
+    {
+      "pattern": "(?<![A-Za-z0-9_@/.$#-])(?<!npx )(?<!-g )t3(?=`| (?:service|connect|up|command|update|release|triage|launcher|pair|status|serve|doctor|install|uninstall|browser|CLI|app|thread|theme|project|auth|start|policy|trace|environment|is|at|to|earlier|was|--version|--help|\\$\\{)(?![A-Za-z]))",
+      "to": "tscircuit-desktop",
+      "why": "The command's name where text tells someone what to type, such as `t3 connect link` or \"the t3 command\". It leaves alone `npx t3`, which is T3's package on npm, and t3 used as data."
+    },
+    {
+      "from": "For example, t3 or t3/ produces t3/add-search.",
+      "to": "For example, tscircuit or tscircuit/ produces tscircuit/add-search.",
+      "why": "The example under the branch prefix setting, to match the new default prefix."
+    },
+    {
+      "from": "WORKTREE_BRANCH_PREFIX = \"t3\"",
+      "to": "WORKTREE_BRANCH_PREFIX = \"tscircuit\"",
+      "why": "The prefix of the temporary branches the app creates for worktrees (t3/1a2b3c4d). T3 Code treats branches with its prefix as its own temporary ones, so the two apps must not share it. The prefix cannot contain a hyphen: the code that flattens these names splits at the first one."
+    },
+    {
+      "from": "Effect.succeed(\"t3\")",
+      "to": "Effect.succeed(\"tscircuit\")",
+      "why": "The default prefix for branches named after a thread, a setting people can change."
+    },
+    {
+      "from": "t3code/pr-",
+      "to": "tscircuit/pr-",
+      "why": "The local branch a pull request is checked out to."
+    },
+    {
+      "from": "t3code-pr-",
+      "to": "tscircuit-pr-",
+      "why": "The flat form of that branch name, used when a branch named tscircuit blocks the nested form, and the temporary file for a pull request's text."
+    },
+    {
+      "from": "refs/t3/",
+      "to": "refs/tscircuit-desktop/",
+      "why": "The hidden git refs the app keeps in a project's repository for checkpoints and review guides. In their own namespace, neither app can list, move or prune the other's."
+    },
+    {
+      "from": "refs/t3code/",
+      "to": "refs/tscircuit-desktop/",
+      "why": "The hidden git ref that records where a branch was before a refresh."
+    },
+    {
+      "pattern": "(?<!schema/)t3\\.json",
+      "to": "tscircuit-desktop.json",
+      "why": "The project file the app reads and writes at the top of a repository (scripts and setup steps). Its own file keeps the two apps from rewriting each other's when they are on different versions. The address of T3's published schema is left alone."
+    },
+    {
+      "from": "\"t3code\", \"compile-cache\"",
+      "to": "\"tscircuit-desktop\", \"compile-cache\"",
+      "why": "The folder for Node's compile cache, in the system's temporary or cache directory, which T3 Code would otherwise share."
+    },
+    {
+      "from": "dataHome, \"t3code\"",
+      "to": "dataHome, \"tscircuit-desktop\"",
+      "why": "The Linux data folder for screen-capture helpers."
+    },
+    {
+      "from": "localAppData, \"t3code\"",
+      "to": "localAppData, \"tscircuit-desktop\"",
+      "why": "The Windows folder for the background service's task file."
+    },
+    {
+      "from": "BOOT_SERVICE_NAME = \"t3code\"",
+      "to": "BOOT_SERVICE_NAME = \"tscircuit-desktop\"",
+      "why": "The name of the background service (the systemd unit and the Windows task). Two apps with the same name would overwrite each other's service."
+    },
+    {
+      "from": "t3code.service",
+      "to": "tscircuit-desktop.service",
+      "why": "The systemd unit by name, where code and messages spell it out."
+    },
+    {
+      "from": "app-t3code-agents.slice",
+      "to": "app-tscircuit-desktop-agents.slice",
+      "why": "The systemd slice the service's agents run in."
+    },
+    {
+      "from": "90-t3code-protect.conf",
+      "to": "90-tscircuit-desktop-protect.conf",
+      "why": "The systemd drop-in that protects the service."
     },
     {
       "pattern": "(?<![A-Za-z0-9_/.$@-])T3(?='s\\b| [a-z]| Server\\b)",

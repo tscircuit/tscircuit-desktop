@@ -1,7 +1,7 @@
 The welcome screen said the app collects anonymous usage data. In this build that is off by default (see the AnalyticsService patch), so it says so.
 
 diff --git a/apps/web/src/components/onboarding/WelcomePage.tsx b/apps/web/src/components/onboarding/WelcomePage.tsx
-index faf7ef99ea3bd9167bafb1b85bb4ed0673c520e6..038fe49b4ac70b22565c61cae010b22285577d3b 100644
+index 2785b100f319c1d56d51b71d64b45ec176c65f95..64fb7af347ec2585d90299c0704310e643b1e994 100644
 --- a/apps/web/src/components/onboarding/WelcomePage.tsx
 +++ b/apps/web/src/components/onboarding/WelcomePage.tsx
 @@ -327,8 +327,8 @@ function TelemetryNotice({ environmentId }: { readonly environmentId: Environmen
