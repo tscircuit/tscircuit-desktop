@@ -180,7 +180,7 @@ This list covers what was checked while building the rename. It is not a full au
 
 ## Known gaps
 
-- **Some T3 names remain on purpose.** T3 Connect and T3 Chat keep their names because they are T3's own services, agents still see the app's tools under the name `t3-code`, and `npx t3` in the app's text means T3's package on npm. See "Beside T3 Code" for what is separate.
+- **Some T3 names remain on purpose.** T3 Connect and T3 Chat keep their names because they are T3's own services, and the text about installing or updating a server from a terminal still names T3's `t3` package on npm, because tscircuit desktop publishes none. See "Beside T3 Code" for what is separate.
 - **No automatic updates.** To update, install a newer release (see "Releases and automatic updates"). Releases support Apple Silicon and Windows x64. The Windows installer ships the native runtime without the optional WSL runtime archive.
 - **The bundled skill is only as new as the build.** It is refreshed when a release is built, not while the app runs.
 - **"Report a problem" still files to T3 Code.** The built-in triage agent is written to search and open issues in T3 Code's repository. It needs rewriting for this repository before the app is given to users.

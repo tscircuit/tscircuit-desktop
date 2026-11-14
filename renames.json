@@ -150,14 +150,19 @@
       "why": "The link scheme again, where upstream writes it as a pattern, in upper case, or in a Linux MIME type. See the t3code:// rule."
     },
     {
-      "from": "(?:mcp[-_]{1,2})?t3[-_ ]?code(?:__|",
-      "to": "(?:mcp[-_]{1,2})?(?:t3[-_ ]?code|tscircuit[-_ ]?desktop)(?:__|",
-      "why": "Agents label the app's own tools with its name. The chat recognises those labels to show friendly tool names, so it has to accept the new name as well as the old."
+      "from": "t3[-_ ]?code",
+      "to": "(?:t3[-_ ]?code|tscircuit[-_ ]?desktop)",
+      "why": "Agents label the app's own tools with the name the app registers them under. That name is now tscircuit-desktop (see the t3-code rule below), and threads from earlier builds carry T3 Code's, so the code that recognises those labels has to accept both."
     },
     {
-      "from": "|t3_code|t3code)(?:[.:/]",
-      "to": "|t3_code|t3code|tscircuit[-_ ]desktop)(?:[.:/]",
-      "why": "The same tool-label recognition, for labels written as \"name · tool\"."
+      "from": "t3[-_]code[-_]direct|t3-code|t3_code|t3code)",
+      "to": "(?:t3[-_]code|tscircuit[-_]desktop)(?:[-_]direct)?|t3code)",
+      "why": "The same tool-label recognition, for labels written as \"name · tool\" or \"name.tool\", with or without the -direct ending Codex adds."
+    },
+    {
+      "from": "editor_t3_?code_",
+      "to": "editor_(?:t3_?code|tscircuit_?desktop)_",
+      "why": "The same tool-label recognition, for agents that put the tool server's name inside one of their own."
     },
     {
       "from": "author: \"T3 Tools\"",
@@ -303,6 +308,36 @@
       "pattern": "(?<![A-Za-z0-9_.-])\\.t3(?![A-Za-z0-9_.-]|\\\\\\.)",
       "to": ".tscircuit-desktop",
       "why": "The data folder in the home directory (~/.t3). Sharing it with an installed T3 Code would mix two apps' databases, which may be on different versions."
+    },
+    {
+      "pattern": "(?<![A-Za-z0-9/-])t3-code",
+      "to": "tscircuit-desktop",
+      "why": "The name the app registers its own tools under with every agent, so an agent sees mcp__tscircuit-desktop__… and not T3 Code's name, and the name the app gives when it introduces itself to an agent or a provider. It leaves alone links to T3's App Store page and the anchors of T3 Connect's troubleshooting guide."
+    },
+    {
+      "pattern": "(?<![A-Za-z0-9])t3_code(?!page)",
+      "to": "tscircuit_desktop",
+      "why": "The same name where it is written with an underscore: the tool prefix some agents need, and the tags around the instructions the app gives an agent. It leaves alone a variable in the Windows launcher that only shares the letters."
+    },
+    {
+      "from": "`t3 ${",
+      "to": "`tscircuit-desktop ${",
+      "why": "The command the app prints for someone to run, such as the one for pairing or for browser setup, where the code builds it from the command's name and a subcommand."
+    },
+    {
+      "from": "\\`t3\\`",
+      "to": "\\`tscircuit-desktop\\`",
+      "why": "The command's name inside messages, where the code writes the backticks around it with a backslash."
+    },
+    {
+      "from": "\"t3 ./my-project\"",
+      "to": "\"tscircuit-desktop ./my-project\"",
+      "why": "The example in the message for a mistyped command."
+    },
+    {
+      "pattern": "npx t3(?= (?:triage|serve|browser setup)\\b)",
+      "to": "tscircuit-desktop",
+      "why": "Commands the app tells someone to run. `npx t3` runs T3 Code's package from npm, which works on T3 Code's data and reports to T3 Code. tscircuit desktop has no package on npm; its command is the one the app installs."
     }
   ]
 }
