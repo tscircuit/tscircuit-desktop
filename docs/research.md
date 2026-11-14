@@ -83,7 +83,9 @@ Things that needed a patch, not a rule, because they change behaviour:
 - **No import from T3 Code's old profile folders.** Upstream migrates settings from its earlier versions; here that would read another app's data.
 - **The logo.** The sidebar and full-page screens show "tscircuit desktop" as text, and the small T3 mark in chat rows is tscircuit's "ts" badge.
 
-Icons are generated from tscircuit's own `ts` logo by `branding/make-icons.sh` and stored in `overlay/` at the paths of the T3 Code icons they replace. All three release channels use the same icon.
+Icons are generated from tscircuit's `ts` logo by `branding/make-icons.sh` and stored in `overlay/` at the paths of the T3 Code icons they replace. All three release channels use the same icon.
+
+`branding/icon.svg` is a vector redrawing of the logo at <https://tscircuit.com/tscircuit-logo.png>, pin 1 dot included, and matches it to within a pixel. The first version was copied from `static/logo/ts.svg` in tscircuit/docs, which has no dot; do not use that file as the source until it is corrected.
 
 ### Finding what the rules broke
 

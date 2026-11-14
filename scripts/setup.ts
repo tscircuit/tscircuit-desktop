@@ -5,7 +5,8 @@
  *   2. apply the find-and-replace rules in renames.json
  *   3. copy overlay/ on top (files that only exist here, and replaced binaries)
  *   4. apply patches/ (our changes to upstream's own files)
- *   5. install dependencies
+ *   5. download the agent skill named in skill.json and bundle it
+ *   6. install dependencies
  *
  * Usage: node scripts/setup.ts [--force] [--no-install]
  *
@@ -28,6 +29,7 @@ import {
 } from "./lib/paths.ts"
 import { readPin } from "./lib/pin.ts"
 import { applyRenames, readRenames } from "./lib/renames.ts"
+import { bundleSkill, readSkillSource } from "./lib/skill.ts"
 
 const CONFLICT_EXIT_CODE = 3
 
@@ -108,6 +110,11 @@ if (conflicts.length > 0) {
 git("add", "--all")
 git("commit", "--quiet", "--allow-empty", "--no-verify", "-m", "tscircuit desktop: overlay and patches")
 git("tag", "--force", SAVED_TAG)
+
+// After the checkout is recorded as saved: the bundled skill is generated on
+// every setup and must not look like unsaved work.
+const skill = readSkillSource()
+if (skill) bundleSkill(skill)
 
 if (flags.has("--no-install")) {
   console.log("\nCheckout built. Dependencies were not installed (--no-install).")

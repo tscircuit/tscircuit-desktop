@@ -1,0 +1,16 @@
+Names the installed app plain "tscircuit desktop". Upstream appends a release label such as (Beta) or (Nightly); here only the development run keeps one, (Dev).
+
+diff --git a/apps/desktop/src/app/DesktopEnvironment.ts b/apps/desktop/src/app/DesktopEnvironment.ts
+index 16e9c15328683d12dcc0dea6c8b869aef903023f..24d4130dcece4bf967b08b2ef4f4a14d076fcec6 100644
+--- a/apps/desktop/src/app/DesktopEnvironment.ts
++++ b/apps/desktop/src/app/DesktopEnvironment.ts
+@@ -106,7 +106,8 @@ export function resolveDesktopAppBranding(input: {
+   return {
+     baseName: APP_BASE_NAME,
+     stageLabel,
+-    displayName: `${APP_BASE_NAME} (${stageLabel})`,
++    // tscircuit desktop: only the development run carries a label.
++    displayName: stageLabel === "Dev" ? `${APP_BASE_NAME} (Dev)` : APP_BASE_NAME,
+   };
+ }
+ 

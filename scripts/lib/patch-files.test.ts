@@ -26,3 +26,8 @@ test("the note above the diff is kept apart from the diff", () => {
 test("a new patch gets a placeholder note that asks to be replaced", () => {
   assert.equal(hasPlaceholderNote(composePatch("", DIFF)), true)
 })
+
+test("a hunk that ends with a blank context line keeps that line", () => {
+  const diff = ["diff --git a/a.txt b/a.txt", "@@ -1,3 +1,3 @@", " one", "-two", "+TWO", " "].join("\n")
+  assert.ok(composePatch("Why.", `${diff}\n`).endsWith("+TWO\n \n"))
+})

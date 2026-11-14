@@ -13,6 +13,9 @@ export const patchesDir = join(repoRoot, "patches")
 
 export const pinFile = join(repoRoot, "upstream.json")
 
+/** Names the agent skill that `setup` downloads and bundles into the app. */
+export const skillFile = join(repoRoot, "skill.json")
+
 /** Find-and-replace rules applied to upstream before the overlay and patches. */
 export const renamesFile = join(repoRoot, "renames.json")
 
