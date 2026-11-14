@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Electron's V8 needs writable, executable memory under the hardened runtime. -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+  <!-- Agents and terminals load native modules that do not share our Developer ID. -->
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+  <!-- Commands run in the app's terminals and by agents inherit the app's
+       privacy identity. Without these the hardened runtime denies them the
+       camera and microphone silently, with no prompt. -->
+  <key>com.apple.security.device.camera</key>
+  <true/>
+  <key>com.apple.security.device.audio-input</key>
+  <true/>
+</dict>
+</plist>

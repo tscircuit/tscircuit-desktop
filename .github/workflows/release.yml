@@ -9,15 +9,15 @@ name: Release
 #     keeps the zip as a workflow artifact, so the build can be tried before
 #     merging.
 #
-# The builds are not signed with an Apple Developer ID yet:
-#   - macOS asks for confirmation the first time a downloaded copy is opened
-#     (System Settings > Privacy & Security > Open Anyway).
-#   - The app cannot update itself, because macOS only applies an update that
-#     is signed by the same developer. So the build is made without an update
-#     feed, and the app says updates are unavailable instead of failing.
-# Once signing is set up, building with GITHUB_REPOSITORY set makes the app
-# look for updates in this repository's releases; see "Automatic updates" in
-# the README.
+# Each build is signed with tscircuit's Apple Developer ID and notarized by
+# Apple (scripts/sign-macos.sh), so macOS opens a downloaded copy without
+# complaint. The credentials are the secrets tscircuit-standalone signs with.
+# A pull request from a fork gets no secrets; its build is signed ad hoc, for
+# trying out only. A release is never published without a Developer ID.
+#
+# The app does not update itself yet: the build is made without an update feed,
+# and the app says updates are unavailable. See "Releases and automatic
+# updates" in the README.
 
 on:
   push:
@@ -50,7 +50,7 @@ jobs:
   mac:
     name: Apple Silicon
     runs-on: macos-15
-    timeout-minutes: 60
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -82,19 +82,25 @@ jobs:
       - run: node scripts/setup.ts
 
       # GITHUB_REPOSITORY is hidden from the build so that it bakes in no update
-      # feed. An unsigned app cannot apply an update it downloads.
+      # feed: no release publishes the latest-mac.yml the updater reads.
       - name: Build the app
         run: |
           env -u GITHUB_REPOSITORY node scripts/run.ts vp run dist:desktop:artifact \
             --platform mac --target zip --arch arm64 \
             --build-version "${{ steps.version.outputs.version }}" --verbose
 
-      # Without a Developer ID the build script leaves the app bundle unsigned:
-      # only the program file keeps the signature its linker gave it, and
-      # `codesign --verify` rejects the bundle. Sign the whole bundle ad hoc
-      # (no identity) so macOS sees one consistent app with our app ID, then
-      # package it again, since signing changed the files.
-      - name: Sign the app ad hoc and package it
+      # The build script signs only when T3 Code's own passkey sign-in is set
+      # up, so it leaves the app bundle unsigned: only the program file keeps
+      # the signature its linker gave it. Sign the finished app here instead,
+      # then package it, since signing changes the files.
+      - name: Sign, notarize and package the app
+        env:
+          MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+          MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+          APPLE_NOTARY_KEY_P8_BASE64: ${{ secrets.APPLE_NOTARY_KEY_P8_BASE64 }}
+          APPLE_NOTARY_KEY_ID: ${{ secrets.APPLE_NOTARY_KEY_ID }}
+          APPLE_NOTARY_ISSUER_ID: ${{ secrets.APPLE_NOTARY_ISSUER_ID }}
+          APPLE_TEAM_ID: WUQ9WUY75Z
         run: |
           work="$RUNNER_TEMP/app"
           mkdir -p "$work" out
@@ -103,15 +109,20 @@ jobs:
           ditto -x -k "$zip" "$work"
           app="$(find "$work" -maxdepth 1 -name '*.app' | head -1)"
           echo "App: $app"
-          codesign --force --deep --sign - "$app"
-          codesign --verify --deep --strict --verbose=2 "$app"
-          codesign --display --verbose=2 "$app"
-          ditto -c -k --keepParent "$app" "out/$name.zip"
 
-          # A disk image with the usual "drag to Applications" layout.
-          ln -s /Applications "$work/Applications"
-          hdiutil create -volname "tscircuit desktop" -srcfolder "$work" \
-            -ov -format UDZO "out/$name.dmg"
+          if [ -n "$MACOS_CERTIFICATE_P12_BASE64" ]; then
+            bash scripts/sign-macos.sh "$app" out "$name"
+          elif [ "$GITHUB_EVENT_NAME" = "pull_request" ]; then
+            # Ad hoc (no identity): macOS sees one consistent app with our app
+            # ID, but asks for confirmation before opening a downloaded copy.
+            echo "::warning::No signing secrets here (a pull request from a fork?). This build is signed ad hoc and is not notarized."
+            codesign --force --deep --sign - "$app"
+            codesign --verify --deep --strict --verbose=2 "$app"
+            ditto -c -k --keepParent "$app" "out/$name.zip"
+          else
+            echo "::error::The signing secrets are missing; refusing to release an app without a Developer ID signature."
+            exit 1
+          fi
           ls -la out
 
       - uses: actions/upload-artifact@v4
@@ -131,7 +142,7 @@ jobs:
           cat > "$RUNNER_TEMP/notes.md" <<'NOTES'
           **Install on an Apple Silicon Mac:** download the `.dmg`, open it, and drag tscircuit desktop to Applications.
 
-          This build is not signed with an Apple Developer ID. The first time you open it, macOS will refuse; go to System Settings > Privacy & Security and choose **Open Anyway**. It also does not update itself: download a newer release to update.
+          This build is signed with tscircuit's Apple Developer ID and notarized by Apple. It does not update itself: download a newer release to update.
           NOTES
           gh release create "v$VERSION" out/*.dmg out/*.zip \
             --target "$GITHUB_SHA" \

@@ -53,7 +53,7 @@ The Circuit tab reads the project's files directly, so there is no dev server to
 
 Download the newest `.dmg` from [Releases](https://github.com/tscircuit/tscircuit-desktop/releases), open it, and drag tscircuit desktop to Applications. Builds are for Apple Silicon.
 
-The builds are not signed with an Apple Developer ID yet. The first time you open a downloaded copy macOS refuses; go to System Settings → Privacy & Security and choose **Open Anyway**.
+The builds are signed with tscircuit's Apple Developer ID and notarized by Apple.
 
 ## Change the app
 
@@ -127,13 +127,14 @@ When the app starts it copies the skill to `~/.agents/skills/tscircuit` (read by
 
 Every push to `main` builds the app and publishes a GitHub release, `v<major>.<minor>.<run>`. Major and minor come from `"version"` in `package.json`; the last number is the release workflow's run number. Changes that only touch documentation do not release.
 
-**The app does not update itself yet.** macOS only lets an app replace itself with a build signed by the same developer, and these builds are not signed with an Apple Developer ID. So releases are built without an update feed, and the app says updates are unavailable instead of downloading something it cannot install. To update, install a newer release.
+Each release is signed with tscircuit's Apple Developer ID and notarized by Apple. T3 Code's packaging script only signs when its own passkey sign-in is configured (a provisioning profile and a sign-in domain that tscircuit desktop does not use), so the release workflow signs the finished app itself, with `scripts/sign-macos.sh`.
+
+**The app does not update itself yet.** Releases are built without an update feed, and the app says updates are unavailable. To update, install a newer release.
 
 Turning automatic updates on needs:
 
-1. An Apple Developer ID certificate, and an App Store Connect API key for notarization, added as repository secrets.
-2. A change to T3 Code's packaging script, which today only signs when its own passkey sign-in is configured (a provisioning profile and a sign-in domain that tscircuit desktop does not use).
-3. Removing `env -u GITHUB_REPOSITORY` from the release workflow's build step. With the repository visible, the build bakes in this repository's releases as its update feed, and the workflow must then also upload the `latest-mac.yml` file the build produces.
+1. Removing `env -u GITHUB_REPOSITORY` from the release workflow's build step. With the repository visible, the build bakes in this repository's releases as its update feed.
+2. Uploading a `latest-mac.yml` with each release. The one the build produces describes the zip from before signing, so it has to be written again for the signed zip.
 
 ## Beside T3 Code
 
@@ -174,7 +175,7 @@ This list covers what was checked while building the rename. It is not a full au
 ## Known gaps
 
 - **Some T3 names remain on purpose.** T3 Connect and T3 Chat keep their names because they are T3's own services, agents still see the app's tools under the name `t3-code`, and `npx t3` in the app's text means T3's package on npm. See "Beside T3 Code" for what is separate.
-- **No automatic updates, and Apple Silicon only.** Releases are unsigned (see "Releases and automatic updates"). No Intel Mac, Windows or Linux package has been built.
+- **No automatic updates, and Apple Silicon only.** To update, install a newer release (see "Releases and automatic updates"). No Intel Mac, Windows or Linux package has been built.
 - **The bundled skill is only as new as the build.** It is refreshed when a release is built, not while the app runs.
 - **"Report a problem" still files to T3 Code.** The built-in triage agent is written to search and open issues in T3 Code's repository. It needs rewriting for this repository before the app is given to users.
 - **The server's own updater still looks at T3 Code's releases.** It applies to servers started with `tscircuit-desktop` from a terminal, not to the desktop app.
