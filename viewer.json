@@ -1,9 +1,5 @@
 {
   "into": "apps/web/public/tscircuit-viewer",
-  "runframe": {
-    "url": "https://runframe-na2nwhb0a-tscircuit.vercel.app/iframe.min.js",
-    "sha256": "2e4edc82431ccfd2a2f4296a56473ce28a49d5fc87b6dcc647f3a1727873508e"
-  },
   "tscircuit": "latest",
   "manifold": "3.5.1"
 }

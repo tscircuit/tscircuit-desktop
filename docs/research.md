@@ -31,7 +31,7 @@ The first version of the preview was a project action that ran `tsci dev` and op
 
 Importing RunFrame into T3 Code's web app as a dependency was ruled out. In the earlier prototype it brought undeclared dependencies, a zod version clash, and global styles that broke the host's.
 
-The hosted viewer was then replaced by a copy inside the app, still in a frame: RunFrame's prebuilt standalone bundle, the eval worker from the `tscircuit` package, and manifold-3d, all downloaded by `setup` (`viewer.json`). A frame keeps RunFrame's dependencies and styles apart from the host's, which is what importing it could not do. What was found on the way:
+The hosted viewer was then replaced by a copy inside the app, still in a frame: the `tscircuit` package's `dist/browser.min.js` (RunFrame with its eval worker inside), and manifold-3d, both downloaded by `setup` (`viewer.json`). A frame keeps RunFrame's dependencies and styles apart from the host's, which is what importing it could not do. What was found on the way:
 
 - **A frame served by the app shares the app's origin**, unlike `runframe.tscircuit.com`. RunFrame runs the project's code, and the app's origin can start agents and terminals through the local server, so the frame must be kept out of it.
 - **The first attempt was a sandbox without `allow-same-origin`**, which makes the frame's origin opaque. It cannot fetch the app's files (so assets are packed into a script and turned into blob URLs), its storage throws (so it gets an in-memory one), and it posts messages with origin `"null"` (so the app checks the sender's window instead).
@@ -41,7 +41,8 @@ The hosted viewer was then replaced by a copy inside the app, still in a frame: 
 - **The desktop app's content security policy has no `'unsafe-eval'`**, and it is applied to every response of the app's scheme. Responses on the viewer's host get a looser one. The app's policy also had to allow framing that host (`frame-src`).
 - **RunFrame's 3D viewer imports manifold-3d from jsDelivr unless `window.MANIFOLD_MODULE` is set.** Given a function, it calls it and uses the result. manifold's loader resolves `manifold.wasm` against `import.meta.url`, which fails on a blob URL, so it is given the bytes and a `locateFile`.
 - **RunFrame asks jsDelivr for the newest eval version** unless `window.TSCIRCUIT_LATEST_EVAL_VERSION` or the `evalVersion` prop is set, and **reports to PostHog** unless `window.TSCIRCUIT_TELEMETRY_DISABLED` is set or the page is on localhost.
-- **tscircuit's released `dist/browser.min.js` cannot be driven by a page around it** (as of 0.0.3174). tscircuit/runframe#6289 adds that, behind `window.TSCIRCUIT_USE_RUNFRAME_PROPS_FROM_PARENT`.
+- **tscircuit's `dist/browser.min.js` could not be driven by a page around it** until 0.0.3179. tscircuit/runframe#6289 added that, behind `window.TSCIRCUIT_USE_RUNFRAME_PROPS_FROM_PARENT`. Before that release the app bundled that pull request's own build, and a separate copy of the eval worker.
+- **`dist/browser.min.js` carries the eval worker inside it**, as base64 that it turns into a blob URL, so RunFrame and its worker always match and nothing else has to be packed.
 - Still fetched from a CDN by the 3D viewer when a board needs them: three.js fonts, the unicode font index for text, and `occt-import-js` for STEP models. They go through `window.TSCIRCUIT_JSCDN_BASE_URL` if that is set, which would be the way to bundle them too.
 
 ## Why an overlay and not a fork

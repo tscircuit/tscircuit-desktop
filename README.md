@@ -13,7 +13,7 @@ T3 Code lands around 180 commits a day, so this repo does not carry a copy of it
 ```
 upstream.json   which T3 Code commit we build on
 skill.json      which agent skill to download and bundle into the app
-viewer.json     which RunFrame, tscircuit and manifold-3d to bundle as the circuit viewer
+viewer.json     which tscircuit and manifold-3d to bundle as the circuit viewer
 renames.json    find-and-replace rules: T3 Code's name, IDs and folders become ours
 overlay/        files that exist only here, and icons that replace T3 Code's
 patches/        one patch per T3 Code file we change, each with a note saying why
@@ -179,9 +179,8 @@ This list covers what was checked while building the rename. It is not a full au
 - **"Report a problem" still files to T3 Code.** The built-in triage agent is written to search and open issues in T3 Code's repository. It needs rewriting for this repository before the app is given to users.
 - **The server's own updater still looks at T3 Code's releases.** It applies to servers started with `tscircuit-desktop` from a terminal, not to the desktop app.
 - **A few of T3 Code's own tests fail after the renames.** They use the old name as test data or check an upstream link. `npm run check:app` does not run them; see `docs/research.md` for the list.
-- **The viewer is the app's copy, not the project's.** A project that installs its own `tscircuit` in `node_modules` is still rendered with the version the app was built with. The viewer adds about 57 MB to the app.
+- **The viewer is the app's copy, not the project's.** A project that installs its own `tscircuit` in `node_modules` is still rendered with the version the app was built with. The viewer adds about 64 MB to the app.
 - **The Source view is read-only.** `.tsx` files open in the Circuit tab, where Source shows the text but does not edit it. A link to a specific line still opens T3 Code's editor. `.tsx` files that are not circuits open on Source, with the other views greyed out or an error listed.
-- **RunFrame comes from a pull request's build** ([tscircuit/runframe#6289](https://github.com/tscircuit/runframe/pull/6289)), pinned in `viewer.json`, until a released tscircuit includes it.
 - **No PCB view when the app is used from a browser.** The PCB view draws with WebGPU in a worker, and a worker in a frame without an origin gets no WebGPU. The desktop app is not affected. Schematic, 3D, System and Assembly work in both.
 - **Imports from npm packages are untested.** The viewer gets the project's own source files, not `node_modules`, and resolves packages itself.
 - **Large projects are capped.** The tab reads up to 200 source files or 2 MB and says so when it leaves files out. Projects over 40 files refresh on agent edits and window focus only, not on every save.

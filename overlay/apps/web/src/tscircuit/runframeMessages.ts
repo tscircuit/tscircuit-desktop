@@ -2,8 +2,6 @@ import type { CircuitScreen, ElementCounts } from "./circuitViews";
 
 /** What the viewer frame tells the app. Null for a message that is not one of these. */
 export type ViewerMessage =
-  /** The frame's own script, before RunFrame starts: where the bundled eval worker is. */
-  | { readonly kind: "assets_ready"; readonly evalWebWorkerBlobUrl: string | null }
   | { readonly kind: "ready" }
   | { readonly kind: "run_started" }
   | { readonly kind: "circuit_rendered"; readonly counts: ElementCounts }
@@ -28,13 +26,6 @@ function readCounts(value: unknown): ElementCounts {
 
 export function parseViewerMessage(data: unknown): ViewerMessage | null {
   if (!isRecord(data)) return null;
-  if (data.tscircuit_viewer_type === "assets_ready") {
-    const url = data.evalWebWorkerBlobUrl;
-    return {
-      kind: "assets_ready",
-      evalWebWorkerBlobUrl: typeof url === "string" && url.startsWith("blob:") ? url : null,
-    };
-  }
   if (data.runframe_type === "runframe_ready_to_receive") {
     const capabilities = Array.isArray(data.runframe_capabilities)
       ? data.runframe_capabilities
@@ -80,15 +71,10 @@ export function viewerFileProps(input: {
   readonly fsMap: Record<string, string>;
   readonly mainComponentPath: string;
   readonly screen: CircuitScreen;
-  /** The bundled eval worker. Without it RunFrame downloads one from a CDN. */
-  readonly evalWebWorkerBlobUrl: string | null;
 }): Record<string, unknown> {
   return {
     fsMap: input.fsMap,
     mainComponentPath: input.mainComponentPath,
-    ...(input.evalWebWorkerBlobUrl === null
-      ? {}
-      : { evalWebWorkerBlobUrl: input.evalWebWorkerBlobUrl }),
     showHeader: false,
     showRunButton: false,
     showFileMenu: false,

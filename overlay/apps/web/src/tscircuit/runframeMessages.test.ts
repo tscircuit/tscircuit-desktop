@@ -19,20 +19,6 @@ describe("parseViewerMessage", () => {
     ).toBeNull();
   });
 
-  it("takes the bundled eval worker's address, and only a blob's", () => {
-    expect(
-      parseViewerMessage({
-        tscircuit_viewer_type: "assets_ready",
-        evalWebWorkerBlobUrl: "blob:null/1b9d6bcd",
-      }),
-    ).toEqual({ kind: "assets_ready", evalWebWorkerBlobUrl: "blob:null/1b9d6bcd" });
-    for (const evalWebWorkerBlobUrl of [null, 7, "https://example.com/worker.js"]) {
-      expect(
-        parseViewerMessage({ tscircuit_viewer_type: "assets_ready", evalWebWorkerBlobUrl }),
-      ).toEqual({ kind: "assets_ready", evalWebWorkerBlobUrl: null });
-    }
-  });
-
   it("reads the viewer's events", () => {
     expect(
       parseViewerMessage({
@@ -78,22 +64,13 @@ describe("viewer props", () => {
     expect(viewerTabProps("source")).toEqual({});
   });
 
-  it("sends files with the header off, a tab, and the bundled worker when there is one", () => {
+  it("sends files with the header off and a tab, also while the source is on screen", () => {
     const files = { fsMap: { "index.tsx": "x" }, mainComponentPath: "index.tsx" };
-    const props = viewerFileProps({
-      ...files,
-      screen: "source",
-      evalWebWorkerBlobUrl: "blob:null/1b9d6bcd",
-    });
-    expect(props).toMatchObject({
+    expect(viewerFileProps({ ...files, screen: "source" })).toMatchObject({
       ...files,
       showHeader: false,
       // Source has no tab in the viewer, so the board waits behind it.
       activeTab: "pcb",
-      evalWebWorkerBlobUrl: "blob:null/1b9d6bcd",
     });
-    expect(
-      viewerFileProps({ ...files, screen: "cad", evalWebWorkerBlobUrl: null }),
-    ).not.toHaveProperty("evalWebWorkerBlobUrl");
   });
 });

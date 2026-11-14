@@ -38,7 +38,7 @@ import { viewerFrame } from "./viewerFrame";
 
 /**
  * The app's own copy of RunFrame, a bare viewer that takes files over
- * postMessage. `setup` bundles it with its eval worker (viewer.json).
+ * postMessage. `setup` bundles it from the tscircuit package (viewer.json).
  */
 const VIEWER_FRAME = viewerFrame({
   desktop: isElectron,
@@ -314,8 +314,6 @@ function CircuitViewer(props: {
   const { fsMap, mainComponentPath, screen, covered, dispatch, onRetry } = props;
   const frameRef = useRef<HTMLIFrameElement>(null);
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
-  // Set by the frame's own script before RunFrame says it is ready.
-  const evalWebWorkerBlobUrlRef = useRef<string | null>(null);
   // The files the viewer last received. Its events are about the file named here.
   const sentRef = useRef<{ fsMap: Record<string, string>; mainComponentPath: string } | null>(null);
 
@@ -326,10 +324,6 @@ function CircuitViewer(props: {
       if (event.source !== frameRef.current?.contentWindow) return;
       const message = parseViewerMessage(event.data);
       if (message === null) return;
-      if (message.kind === "assets_ready") {
-        evalWebWorkerBlobUrlRef.current = message.evalWebWorkerBlobUrl;
-        return;
-      }
       if (message.kind === "ready") {
         setState("ready");
         return;
@@ -360,12 +354,7 @@ function CircuitViewer(props: {
         runframe_type: "runframe_props_changed",
         // The files go once: resending them would run the circuit again for a change of tab.
         runframe_props: filesChanged
-          ? viewerFileProps({
-              fsMap,
-              mainComponentPath,
-              screen,
-              evalWebWorkerBlobUrl: evalWebWorkerBlobUrlRef.current,
-            })
+          ? viewerFileProps({ fsMap, mainComponentPath, screen })
           : viewerTabProps(screen),
       },
       VIEWER_FRAME.targetOrigin,

@@ -18,13 +18,13 @@
   <body>
     <!--
       tscircuit desktop: the page the Circuit tab frames. `setup` puts RunFrame
-      (runframe.min.js) and its eval worker and manifold-3d (viewer-assets.js)
-      beside this file, from what viewer.json names.
+      with its eval worker (runframe.min.js, from the tscircuit package) and
+      manifold-3d (viewer-assets.js) beside this file, as viewer.json names.
 
       RunFrame evaluates the project's circuit code, so this page never runs in
       the app's origin. The desktop app serves it on a host of its own. In a
       browser the frame's sandbox takes its origin away, and then it cannot
-      fetch files, keep storage, or start a module worker: hence the blob URLs
+      fetch files, keep storage, or start a module worker: hence the blob URL
       and the stand-ins below. See apps/web/src/tscircuit/viewerFrame.ts.
     -->
     <div id="root"></div>
@@ -62,7 +62,7 @@
 
         // Take props from the app, as runframe.tscircuit.com/iframe.html does.
         window.TSCIRCUIT_USE_RUNFRAME_PROPS_FROM_PARENT = true;
-        // The eval worker is the bundled one, so there is no version to choose or to look up.
+        // The eval worker is the one inside RunFrame's bundle, so there is no version to choose or look up.
         window.TSCIRCUIT_ALLOW_SELECTING_EVAL_VERSION = false;
         if (assets.versions?.eval) window.TSCIRCUIT_LATEST_EVAL_VERSION = assets.versions.eval;
         // The app's usage analytics are off, and RunFrame's own would report from inside it.
@@ -110,17 +110,6 @@
             return createManifold({ wasmBinary, locateFile: (path) => path });
           };
         }
-
-        // The app passes this back to RunFrame as `evalWebWorkerBlobUrl`. Without it
-        // RunFrame downloads the worker from a CDN.
-        window.parent.postMessage(
-          {
-            tscircuit_viewer_type: "assets_ready",
-            evalWebWorkerBlobUrl: assets.webworker ? blobUrl(assets.webworker) : null,
-            versions: assets.versions ?? null,
-          },
-          "*",
-        );
       })();
     </script>
     <script src="./runframe.min.js"></script>
