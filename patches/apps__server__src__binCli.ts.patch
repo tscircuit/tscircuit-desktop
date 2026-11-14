@@ -1,0 +1,22 @@
+Adds the `report` command (overlay/apps/server/src/tscircuit/reportCommand.ts), which sends a written problem report to tscircuit.
+
+diff --git a/apps/server/src/binCli.ts b/apps/server/src/binCli.ts
+index 87f39f0c0139413bc74ae2df34b842ec35fc8677..336a50cf01943222c273b2a14eaf8f533cd4f2da 100644
+--- a/apps/server/src/binCli.ts
++++ b/apps/server/src/binCli.ts
+@@ -39,6 +39,7 @@ import { servicePreflightCommand } from "./cli/servicePreflight.ts";
+ import { themeCommand } from "./cli/theme.ts";
+ import { traceCommand } from "./cli/trace.ts";
+ import { triageCommand } from "./cli/triage.ts";
++import { reportCommand } from "./tscircuit/reportCommand.ts";
+ import { connectCommand, statusCommand, upCommand } from "./cli/up.ts";
+ 
+ const layerCliRuntime = Layer.mergeAll(NodeServices.layer, NodeCrypto.layer, NetService.layer);
+@@ -113,6 +114,7 @@ export const makeCli = ({ cloudEnabled = hasCloudPublicConfig } = {}) =>
+       doctorCommand,
+       policyCommand,
+       triageCommand,
++      reportCommand,
+       cloudEnabled ? connectCommand : connectUnavailableCommand,
+     ]),
+   );

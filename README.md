@@ -175,6 +175,7 @@ This section is where the app's privacy link points. tscircuit desktop has no pr
 - **Your agent talks to its provider.** Prompts and code go to whichever agent you connect (Claude Code, Codex and others), under that provider's terms.
 - **The Circuit tab renders with a copy of RunFrame inside the app.** Nothing is loaded from `runframe.tscircuit.com` or a CDN to draw a circuit, and RunFrame's own usage analytics are turned off. Rendering a circuit can still reach the network: tscircuit looks up parts for the components you use (`jlcsearch.tscircuit.com`, `easyeda.com`), fetches packages your circuit imports, and the 3D view fetches fonts and STEP-import code from a CDN when a board needs them.
 - **The list of available models is fetched from T3 Code's GitHub repository.**
+- **"Report a problem" sends tscircuit a report only after you approve it.** The agent shows you the full text first. It goes to `desktop-api.tscircuit.com`, which posts it to the tscircuit team's chat.
 
 This list covers what was checked while building the rename. It is not a full audit of what T3 Code's code contacts.
 
@@ -183,7 +184,6 @@ This list covers what was checked while building the rename. It is not a full au
 - **Some T3 names remain on purpose.** T3 Connect and T3 Chat keep their names because they are T3's own services, and the text about installing or updating a server from a terminal still names T3's `t3` package on npm, because tscircuit desktop publishes none. See "Beside T3 Code" for what is separate.
 - **No automatic updates.** To update, install a newer release (see "Releases and automatic updates"). Releases support Apple Silicon and Windows x64. The Windows installer ships the native runtime without the optional WSL runtime archive.
 - **The bundled skill is only as new as the build.** It is refreshed when a release is built, not while the app runs.
-- **"Report a problem" still files to T3 Code.** The built-in triage agent is written to search and open issues in T3 Code's repository. It needs rewriting for this repository before the app is given to users.
 - **The server's own updater still looks at T3 Code's releases.** It applies to servers started with `tscircuit-desktop` from a terminal, not to the desktop app.
 - **A few of T3 Code's own tests fail after the renames.** They use the old name as test data or check an upstream link. `npm run check:app` does not run them; see `docs/research.md` for the list.
 - **The viewer is the app's copy, not the project's.** A project that installs its own `tscircuit` in `node_modules` is still rendered with the version the app was built with. The viewer adds about 64 MB to the app.

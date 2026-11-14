@@ -1,0 +1,23 @@
+"Report a problem" follows tscircuit's playbook (overlay/apps/server/src/tscircuit/reportPlaybook.ts) in place of T3 Code's, which files issues in T3 Code's repository.
+
+diff --git a/apps/server/src/triage/triagePrompt.ts b/apps/server/src/triage/triagePrompt.ts
+index 615bbae1f915b711ac1ce724f98e21212a897315..daa6b8ef395d778483439acc208998f93caa75c0 100644
+--- a/apps/server/src/triage/triagePrompt.ts
++++ b/apps/server/src/triage/triagePrompt.ts
+@@ -1,5 +1,7 @@
+ import { serializeComposerFileLink } from "@t3tools/shared/composerTrigger";
+ 
++import { REPORT_PLAYBOOK } from "../tscircuit/reportPlaybook.ts";
++
+ /** Keep TRIAGE_PLAYBOOK byte-identical to .github/triage/PLAYBOOK.md after unescaping backticks and backslashes. */
+ 
+ export const TRIAGE_PLAYBOOK = `# tscircuit desktop triage playbook
+@@ -190,7 +192,7 @@ ${
+ 
+ ---
+ 
+-${TRIAGE_PLAYBOOK}`;
++${REPORT_PLAYBOOK}`;
+ 
+ /** A clone the server made before the session started, or why it could not. */
+ export type TriageSourceClone =

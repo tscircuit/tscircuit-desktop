@@ -338,6 +338,41 @@
       "pattern": "npx t3(?= (?:triage|serve|browser setup)\\b)",
       "to": "tscircuit-desktop",
       "why": "Commands the app tells someone to run. `npx t3` runs T3 Code's package from npm, which works on T3 Code's data and reports to T3 Code. tscircuit desktop has no package on npm; its command is the one the app installs."
+    },
+    {
+      "from": "_REPOSITORY_URL = \"https://github.com/pingdotgg/t3code\"",
+      "to": "_REPOSITORY_URL = \"https://github.com/tscircuit/tscircuit-desktop\"",
+      "why": "The repository \"Report a problem\" clones so the agent can read the source of the build it runs on. This repository's release tags match the app's versions; T3 Code's do not."
+    },
+    {
+      "from": "- Repo: https://github.com/pingdotgg/t3code",
+      "to": "- Repo: https://github.com/tscircuit/tscircuit-desktop",
+      "why": "The repository named in the facts \"Report a problem\" gives the agent."
+    },
+    {
+      "from": "title: \"Triage an issue\"",
+      "to": "title: \"Report a problem\"",
+      "why": "The command palette entry. It sends a report to tscircuit; it does not file an issue."
+    },
+    {
+      "from": "problem and helps file an issue",
+      "to": "problem and helps send a report to tscircuit",
+      "why": "The line under that command palette entry."
+    },
+    {
+      "from": "and help file a good issue.",
+      "to": "and help send tscircuit a good report.",
+      "why": "The description of the `triage` command in the command-line help."
+    },
+    {
+      "from": "title: \"Could not start triage\"",
+      "to": "title: \"Could not start the report\"",
+      "why": "The error shown when \"Report a problem\" cannot start, in the words of its command palette entry."
+    },
+    {
+      "from": "title: \"Starting triage…\"",
+      "to": "title: \"Starting the report…\"",
+      "why": "The notice shown while \"Report a problem\" starts, in the words of its command palette entry."
     }
   ]
 }

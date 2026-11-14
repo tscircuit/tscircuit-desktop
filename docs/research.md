@@ -127,7 +127,6 @@ The server suite was started too, but did not finish within 25 minutes in the bu
 ## Next steps
 
 1. Build installers and try them: the renamed app ID, link scheme and file names have only run in development mode.
-2. Point "Report a problem" at this repository.
-3. A "new tscircuit project" flow that scaffolds the project and installs the [tscircuit skill](https://github.com/tscircuit/skill) for the agent.
-4. Try a full agent turn with a signed-in provider and fix whatever that shows.
-5. Write a privacy policy for the app.
+2. A "new tscircuit project" flow that scaffolds the project and installs the [tscircuit skill](https://github.com/tscircuit/skill) for the agent.
+3. Try a full agent turn with a signed-in provider and fix whatever that shows.
+4. Write a privacy policy for the app.
