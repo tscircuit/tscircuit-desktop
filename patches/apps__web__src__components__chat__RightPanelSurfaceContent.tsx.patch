@@ -1,10 +1,23 @@
-Renders the content of the Circuit and Order tabs (CircuitPanel.tsx and OrderPanel.tsx in apps/web/src/tscircuit/, loaded lazily). The Circuit tab gets the thread's composer target so its "Add to prompt" can write to the prompt. Both get the thread: the Circuit tab opens the Order tab in its panel, and the Order tab keeps its choice of file there.
+Renders the Circuit and Order tabs. The Circuit tab uses the thread's composer target for "Add to prompt" and the panel's close action for Cmd+W inside the viewer. Both tabs get the thread so Circuit can open Order in the same panel and Order can keep its file choice there.
 
 diff --git a/apps/web/src/components/chat/RightPanelSurfaceContent.tsx b/apps/web/src/components/chat/RightPanelSurfaceContent.tsx
-index 358be56d994f24b11a0aea722830db5881877deb..acbb3d54e18a831e9e701607bc88a25abebf6de2 100644
+index 358be56d994f24b11a0aea722830db5881877deb..f7a8bee8e39fab3ec50e474a2db50080464c6f8a 100644
 --- a/apps/web/src/components/chat/RightPanelSurfaceContent.tsx
 +++ b/apps/web/src/components/chat/RightPanelSurfaceContent.tsx
-@@ -33,6 +33,8 @@ const DevicePanel = lazy(() =>
+@@ -9,10 +9,11 @@ import type {
+   ThreadPullRequestLink,
+ } from "@t3tools/contracts";
+ import { scopedThreadKey } from "@t3tools/client-runtime/environment";
++import { isMacPlatform } from "@t3tools/shared/keybindings";
+ import { lazy, Suspense } from "react";
+ import SideChatPane from "./SideChatPane";
+ import type { ComposerImageAttachment, DraftId } from "../../composerDraftStore";
+-import type { ShortcutMatchContext } from "../../keybindings";
++import { resolveShortcutCommand, type ShortcutMatchContext } from "../../keybindings";
+ import type { SideChatParentPanel } from "../../lib/sideChatPane";
+ import { type RightPanelSurface, useRightPanelStore } from "../../rightPanelStore";
+ import {
+@@ -33,6 +34,8 @@ const DevicePanel = lazy(() =>
    import("../device/DevicePanel").then((module) => ({ default: module.DevicePanel })),
  );
  const FilePreviewPanel = lazy(() => import("../files/FilePreviewPanel"));
@@ -13,7 +26,7 @@ index 358be56d994f24b11a0aea722830db5881877deb..acbb3d54e18a831e9e701607bc88a25a
  
  type RightPanelTerminalProps = Omit<
    PersistentThreadTerminalPanelProps,
-@@ -200,6 +202,34 @@ export function RightPanelSurfaceContent(props: {
+@@ -200,6 +203,44 @@ export function RightPanelSurfaceContent(props: {
            />
          </Suspense>
        );
@@ -26,6 +39,16 @@ index 358be56d994f24b11a0aea722830db5881877deb..acbb3d54e18a831e9e701607bc88a25a
 +            cwd={props.files.workspaceRoot}
 +            relativePath={surface.relativePath ?? null}
 +            visible={visible}
++            onClose={() => {
++              if (!visible || props.activeSurfaceId !== surface.id) return;
++              const metaKey = isMacPlatform(navigator.platform);
++              const command = resolveShortcutCommand(
++                { key: "w", metaKey, ctrlKey: !metaKey, altKey: false, shiftKey: false },
++                props.keybindings,
++                { context: props.getShortcutContext() },
++              );
++              if (command === "rightPanel.close") onCloseSurface(surface);
++            }}
 +            workspaceMutationId={props.workspaceMutationId}
 +            composerDraftTarget={props.composerDraftTarget}
 +            threadRef={threadRef}

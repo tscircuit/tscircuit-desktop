@@ -1,7 +1,15 @@
 import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
 import { ShoppingCart } from "lucide-react";
-import { type Dispatch, type RefObject, useEffect, useReducer, useRef, useState } from "react";
+import {
+  type Dispatch,
+  type RefObject,
+  useEffect,
+  useEffectEvent,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 
 import { ReadOnlySourcePreview } from "~/components/files/AttachmentFilePreview";
 import { FILE_SURFACE_SUBHEADER_CLASS } from "~/components/files/fileSurfaceChrome";
@@ -49,6 +57,7 @@ import {
   readBuiltCircuitJson,
 } from "./projectFsMap";
 import {
+  isViewerCloseRequest,
   parseViewerMessage,
   phaseInputRequest,
   viewerFileProps,
@@ -225,6 +234,7 @@ export default function CircuitPanel(props: {
   /** The file the user opened, or null to render the project's entry file. */
   readonly relativePath: string | null;
   readonly visible: boolean;
+  readonly onClose: () => void;
   readonly workspaceMutationId: string | null;
   /** The composer that "Add to prompt" writes to. */
   readonly composerDraftTarget: ComposerThreadTarget;
@@ -384,6 +394,7 @@ export default function CircuitPanel(props: {
           covered={notice !== null || view.screen === "source"}
           rebuilds={rebuilds}
           dispatch={dispatch}
+          onClose={props.onClose}
           onPhases={setFilePhases}
           onStartFailed={setViewerFailed}
           onRetry={() => {
@@ -547,6 +558,7 @@ function CircuitViewer(props: {
   /** Raised to run the same files again. */
   readonly rebuilds: number;
   readonly dispatch: Dispatch<PanelAction>;
+  readonly onClose: () => void;
   /** The phases of the run in the viewer. Null once it is sent files it has not run yet. */
   readonly onPhases: (phases: FilePhases | null) => void;
   readonly onStartFailed: (failed: boolean) => void;
@@ -558,6 +570,7 @@ function CircuitViewer(props: {
   const fsMap = props.files?.fsMap ?? null;
   const mainComponentPath = props.files?.mainComponentPath ?? null;
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
+  const closePreviewTab = useEffectEvent(props.onClose);
   // What the viewer last received. Its events are about the file named here.
   const sentRef = useRef<
     ({ readonly file: string; readonly rebuilds: number } & ViewerFiles) | null
@@ -567,8 +580,14 @@ function CircuitViewer(props: {
   useEffect(() => {
     let ready = false;
     const onMessage = (event: MessageEvent) => {
-      // In a browser the frame's origin is "null", so its window is what names it.
-      if (event.source !== frameRef.current?.contentWindow) return;
+      const frame = frameRef.current;
+      if (!frame || event.source !== frame.contentWindow) return;
+      if (isViewerCloseRequest(event.data)) {
+        // The web sandbox has an opaque origin; Electron serves the viewer on its own host.
+        const viewerOrigin = isElectron ? VIEWER_FRAME.targetOrigin : "null";
+        if (event.origin === viewerOrigin && document.activeElement === frame) closePreviewTab();
+        return;
+      }
       const message = parseViewerMessage(event.data);
       if (message === null) return;
       if (message.kind === "ready") {

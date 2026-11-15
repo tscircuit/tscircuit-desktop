@@ -149,6 +149,21 @@
         let phases = [];
         const phaseInputs = new Map();
         const tellApp = (message) => window.parent?.postMessage(message, "*");
+        // Key events inside the viewer do not reach the app's shortcut listener.
+        const isMac = /mac|iphone|ipad|ipod/i.test(navigator.platform);
+        window.addEventListener(
+          "keydown",
+          (event) => {
+            if (!event.isTrusted || event.isComposing || event.altKey || event.shiftKey) return;
+            const { metaKey, ctrlKey } = event;
+            const closeModifier = (isMac && metaKey) || (!isMac && ctrlKey);
+            if (event.key.toLowerCase() !== "w" || !closeModifier || (metaKey && ctrlKey)) return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (!event.repeat) tellApp({ tscircuit_desktop_type: "close_preview_tab" });
+          },
+          true,
+        );
         const tellPhases = () =>
           tellApp({ tscircuit_desktop_type: "autorouter_phases", phases });
         const sameUnlessMissing = (a, b) => a === undefined || b === undefined || a === b;
