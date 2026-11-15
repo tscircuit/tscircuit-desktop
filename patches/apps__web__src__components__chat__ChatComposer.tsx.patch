@@ -1,7 +1,7 @@
 Handles /order and /chip and adds an Add chip button and first-message hint to the composer.
 
 diff --git a/apps/web/src/components/chat/ChatComposer.tsx b/apps/web/src/components/chat/ChatComposer.tsx
-index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..25cadb01f9dd6004994372bb026d0968cdf10486 100644
+index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..454daa9856e808b3003394efd8deb49403691c39 100644
 --- a/apps/web/src/components/chat/ChatComposer.tsx
 +++ b/apps/web/src/components/chat/ChatComposer.tsx
 @@ -235,7 +235,7 @@ import { observeResize } from "~/lib/observeResize";
@@ -159,7 +159,7 @@ index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..25cadb01f9dd6004994372bb026d0968
 +                        onPointerDown={(event) => event.preventDefault()}
 +                        onClick={addChipAction}
 +                      >
-+                        <CpuIcon />
++                        <CpuIcon className="translate-y-px" />
 +                      </Button>
 +                    ) : null}
 +                  </div>
