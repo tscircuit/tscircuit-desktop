@@ -1,5 +1,5 @@
 import { execFile, spawn } from "node:child_process"
-import { randomBytes } from "node:crypto"
+import { createHash, randomBytes } from "node:crypto"
 import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { once } from "node:events"
 import { tmpdir } from "node:os"
@@ -60,6 +60,11 @@ function cli(...args: string[]) {
 try {
   await cp(join(import.meta.dirname, "fixtures", "review-preview"), project, { recursive: true })
   await mkdir(join(appHome, "userdata"), { recursive: true })
+  if (hosted) {
+    // The browser compares the environment returned over HTTP with its WebSocket.
+    const environmentId = createHash("sha256").update(process.env.VERCEL_URL ?? origin).digest("hex")
+    await writeFile(join(appHome, "userdata", "environment-id"), `preview-${environmentId}\n`)
+  }
   // Match the upstream scenario launcher: even generated titles cannot reach a paid provider.
   const providers = ["codex", "claudeAgent", "cursor", "grok", "muse", "pi", "opencode", "antigravity"]
   await writeFile(
