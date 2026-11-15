@@ -44,9 +44,9 @@ if (reviewToken && hostedOrigins) {
   delete env.TSCIRCUIT_DESKTOP_DEV_AUTH_TOKEN
 }
 const exec = promisify(execFile)
-const ready = Promise.withResolvers<string>()
+const ready = Promise.withResolvers<void>()
 const gateway = hosted && reviewToken
-  ? hosted.serveHostedReview({ target: `http://127.0.0.1:${backendPort}`, pairingUrl: ready.promise, reviewToken })
+  ? hosted.serveHostedReview({ target: `http://127.0.0.1:${backendPort}`, ready: ready.promise, reviewToken })
   : undefined
 
 function cli(...args: string[]) {
@@ -108,7 +108,7 @@ try {
       "thread", "start", project, "Show me how Replay works.", "--title", threadTitle,
       "--provider", replayModel.instanceId, "--model", replayModel.model, "--wait",
     )
-    ready.resolve(url)
+    ready.resolve()
 
     if (screenshots) {
       await mkdir(screenshots, { recursive: true })

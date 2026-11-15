@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto"
 import { createServer } from "node:http"
+import type { IncomingMessage } from "node:http"
 import { createProxyServer } from "../../.cache/preview-tools/node_modules/httpxy/dist/index.mjs"
 
 export function getHostedOrigins() {
@@ -15,25 +16,25 @@ export function getHostedOrigins() {
 
 export function serveHostedReview({
   target,
-  pairingUrl,
+  ready,
   reviewToken,
 }: {
   target: string
-  pairingUrl: Promise<string>
+  ready: Promise<void>
   reviewToken: string
 }) {
   const proxy = createProxyServer({ target })
-  // The app uses a different cookie name when the preview instance restarts.
-  const sessionCookie = `t3_dev_session_${createHash("sha256").update(reviewToken).digest("hex")}`
+  // Vercel Deployment Protection authenticates the reviewer before the request
+  // arrives here. Authenticate with the local app so requests can land on any
+  // preview instance without sharing its credentials with the browser.
+  const sessionId = createHash("sha256").update(reviewToken).digest("hex")
+  const sessionCookie = `t3_dev_session_${sessionId}=${reviewToken}`
+  const authenticate = (request: IncomingMessage) => {
+    request.headers.cookie = [sessionCookie, request.headers.cookie].filter(Boolean).join("; ")
+  }
   const gateway = createServer((request, response) => {
-    void pairingUrl.then(async (url) => {
-      const isSignedIn = request.headers.cookie?.split("; ").some((cookie) => cookie.startsWith(`${sessionCookie}=`))
-      if (request.method === "GET" && request.url === "/" && !isSignedIn) {
-        const pair = new URL(url)
-        response.writeHead(302, { Location: pair.pathname + pair.search + pair.hash, "Cache-Control": "no-store" })
-        response.end()
-        return
-      }
+    void ready.then(async () => {
+      authenticate(request)
       await proxy.web(request, response)
     }).catch(() => {
       if (!response.headersSent) response.writeHead(503, { "Cache-Control": "no-store" })
@@ -41,7 +42,10 @@ export function serveHostedReview({
     })
   })
   gateway.on("upgrade", (request, socket, head) => {
-    void pairingUrl.then(() => proxy.ws(request, socket, head)).catch(() => socket.destroy())
+    void ready.then(() => {
+      authenticate(request)
+      return proxy.ws(request, socket, head)
+    }).catch(() => socket.destroy())
   })
   gateway.listen(Number(process.env.PORT ?? 80), "0.0.0.0")
   return gateway
