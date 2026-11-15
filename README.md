@@ -59,6 +59,14 @@ The builds are signed with tscircuit's Apple Developer ID and notarized by Apple
 
 Download and run the Windows x64 `.exe` installer from [Releases](https://github.com/tscircuit/tscircuit-desktop/releases). The installer, app, and uninstaller are signed by tscircuit Inc.
 
+## Review a pull request
+
+Open the **Preview** link on the dedicated preview PR to try the app in a browser. Each browser gets an isolated Vercel Sandbox with a voltage divider project and tscircuit simulation tools. Replay is ready to use. For a live model, go to **Settings → Providers → Add provider → Codex → Continue with ChatGPT**. If the sign-in tab stops at localhost, paste its address into the sign-in form in the preview and click **Connect**.
+
+The **Check** workflow also attaches full app screenshots of the sample circuit and Add chip flow as `ui-preview` in the run summary. To run the browser preview locally after setup, use `npm run preview`.
+
+Use a dedicated Vercel project with Vercel OIDC enabled. Set its Ignored Build Step to `test "$VERCEL_GIT_COMMIT_REF" != "ci/live-pr-previews"` so Vercel also skips branches without `vercel.json`.
+
 ## Change the app
 
 ```sh
