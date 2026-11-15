@@ -3,8 +3,7 @@
   "framework": "container",
   "git": {
     "deploymentEnabled": {
-      "**": false,
-      "ci/live-pr-previews": true
+      "main": false
     }
   }
 }
