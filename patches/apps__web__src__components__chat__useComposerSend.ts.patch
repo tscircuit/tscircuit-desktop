@@ -1,0 +1,144 @@
+Sends chip requests through the composer without consuming the current draft.
+
+diff --git a/apps/web/src/components/chat/useComposerSend.ts b/apps/web/src/components/chat/useComposerSend.ts
+index 7257dee5ced9eca4eef8d42c10e9b5f1a4201db8..30d813fec430dbca87c7d982e39edcf7124f1926 100644
+--- a/apps/web/src/components/chat/useComposerSend.ts
++++ b/apps/web/src/components/chat/useComposerSend.ts
+@@ -380,19 +380,21 @@ export function useComposerSend(input: ComposerSendInput) {
+     e?: { preventDefault: () => void },
+     dispatchMode: ComposerDispatchMode = "auto",
+     submissionIntent: ComposerSubmissionIntent = "foreground",
+-    directAnnotation?: {
+-      annotation: PreviewAnnotationPayload;
+-      image: ComposerImageAttachment | null;
+-    },
++    direct?:
++      | { annotation: PreviewAnnotationPayload; image: ComposerImageAttachment | null }
++      | { prompt: string; files: ComposerFileAttachment[] },
+   ) => {
+     e?.preventDefault();
++    const directAnnotation = direct && "annotation" in direct ? direct : undefined;
++    const directMessage = direct && "prompt" in direct ? direct : undefined;
++    if (directMessage && (activePendingProgress || queuedRunEdit.isEditing)) return;
+     // What the user pressed send on; uploads below can take a while, and a redirect must not
+     // decline approvals for a draft that changed meanwhile.
+     const promptAtSend = promptRef.current;
+     if (
+       usageLimitsOffered &&
+       usageLimitsKey !== null &&
+-      !directAnnotation &&
++      !direct &&
+       !draftHasNonPromptContent(composerDraftTarget) &&
+       isUsageLimitsCommand(promptRef.current)
+     ) {
+@@ -404,12 +406,25 @@ export function useComposerSend(input: ComposerSendInput) {
+       return;
+     }
+ 
+-    const sendCtx = composerRef.current?.getSendContext();
++    const composerContext = composerRef.current?.getSendContext();
++    const sendCtx =
++      composerContext && directMessage
++        ? {
++            ...composerContext,
++            images: [],
++            files: directMessage.files,
++            terminalContexts: [],
++            previewAnnotations: [],
++            reviewComments: [],
++            threadContexts: [],
++            environmentContexts: [],
++            multipleModelSelections: null,
++            shownPendingApprovalIds: [],
++          }
++        : composerContext;
+     // `/side` beats an open question and a plan follow-up, which would send the text to main.
+     const sideChatCommand =
+-      sendCtx && !directAnnotation && !queuedRunEdit.isEditing
+-        ? parseSideChatCommand(promptAtSend)
+-        : null;
++      sendCtx && !direct && !queuedRunEdit.isEditing ? parseSideChatCommand(promptAtSend) : null;
+     const answeringQuestion =
+       Boolean(activePendingProgress) && sendCtx?.answeringPendingUserInput !== false;
+     const startsSideChat =
+@@ -602,9 +617,10 @@ export function useComposerSend(input: ComposerSendInput) {
+       ? ensureInlineContextReferences(promptRef.current, [
+           previewAnnotationContextReference(directAnnotation.annotation),
+         ])
+-      : promptRef.current;
+-    const replyTo =
+-      useComposerDraftStore.getState().getComposerDraft(composerDraftTarget)?.replyTo ?? null;
++      : (directMessage?.prompt ?? promptRef.current);
++    const replyTo = directMessage
++      ? null
++      : (useComposerDraftStore.getState().getComposerDraft(composerDraftTarget)?.replyTo ?? null);
+     // The reply leads the message, so its card sits above the text it is about. Text that
+     // already points at that response, from a pasted card, keeps its one reference.
+     const promptForSend =
+@@ -895,7 +911,7 @@ export function useComposerSend(input: ComposerSendInput) {
+         upload({
+           environmentId,
+           image: attachment,
+-          draftTarget: composerDraftTarget,
++          ...(directMessage ? {} : { draftTarget: composerDraftTarget }),
+         });
+       }
+     }
+@@ -1179,9 +1195,11 @@ export function useComposerSend(input: ComposerSendInput) {
+       : null;
+     // Keep new-thread flows from reusing this draft while attachments and worktree setup settle.
+     if (sentDraftThreadRef) markPromotedDraftThreadByRef(sentDraftThreadRef);
+-    promptRef.current = "";
+-    clearComposerDraftContent(composerDraftTarget);
+-    composerRef.current?.resetCursorState();
++    if (!directMessage) {
++      promptRef.current = "";
++      clearComposerDraftContent(composerDraftTarget);
++      composerRef.current?.resetCursorState();
++    }
+ 
+     const title = deriveThreadTitleSeed({
+       text: messageTextForSend,
+@@ -1351,7 +1369,7 @@ export function useComposerSend(input: ComposerSendInput) {
+         setKeepFullHistory(routeThreadKey, false);
+         if (freshArm !== undefined) disarmFreshSession(routeThreadKey, freshArm);
+         clearUsageLimitsFor(routeThreadKey);
+-        if (turnUsesAttachmentUploads) {
++        if (turnUsesAttachmentUploads && !directMessage) {
+           releaseDraftAttachments(composerAttachmentsSnapshot);
+         }
+         acknowledgeActiveThreadWoke();
+@@ -1409,6 +1427,7 @@ export function useComposerSend(input: ComposerSendInput) {
+       // A restored draft clones its images, so the sent copies are no longer used.
+       optimisticBlobPreviews.release(optimisticMessage);
+       if (
++        !directMessage &&
+         composerDraftHasUserContent(
+           useComposerDraftStore.getState().getComposerDraft(composerDraftTarget),
+         )
+@@ -1435,7 +1454,7 @@ export function useComposerSend(input: ComposerSendInput) {
+             }),
+           );
+         }
+-      } else {
++      } else if (!directMessage) {
+         const retryComposerImages = restoreComposerDraft(composerDraftTarget, sendSnapshot);
+         if (currentRouteThreadKeyRef.current === routeThreadKey) {
+           promptRef.current = sendSnapshot.draftText;
+@@ -1489,13 +1508,15 @@ export function useComposerSend(input: ComposerSendInput) {
+       );
+       if (!sendQueuesBehindSetup) resetLocalDispatch();
+     }
++    return turnStartSucceeded;
+   };
+ 
+   const onSendLatest = useStableCallback(onSend);
+   const onSendWithRouting = async (...args: Parameters<typeof onSend>) => {
+     args[0]?.preventDefault();
++    const directAnnotation = args[3] && "annotation" in args[3];
+     const refresh =
+-      args[3] || sendInFlightRef.current || readPendingEnvironmentChange() !== null
++      directAnnotation || sendInFlightRef.current || readPendingEnvironmentChange() !== null
+         ? null
+         : refreshBeforeSend();
+     if (refresh === null) return onSend(...args);

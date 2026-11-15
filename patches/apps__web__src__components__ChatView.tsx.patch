@@ -1,38 +1,39 @@
-Connects the Circuit and Order panels, including the circuit split control, and opens a scoped Add chip side chat.
+Connects the Circuit and Order panels, including the circuit split control, and sends Add chip requests in the main chat.
 
 diff --git a/apps/web/src/components/ChatView.tsx b/apps/web/src/components/ChatView.tsx
-index dc3fcfa8f48c95fa73cf42b97df5ae7be46f1599..563b920d5be10f2120e476be74cc2d132c12c842 100644
+index dc3fcfa8f48c95fa73cf42b97df5ae7be46f1599..b6b51d7a883e8f7179177d3f5e258992de36442b 100644
 --- a/apps/web/src/components/ChatView.tsx
 +++ b/apps/web/src/components/ChatView.tsx
-@@ -1,3 +1,7 @@
+@@ -1,3 +1,6 @@
 +import { CircuitSplitControl } from "~/tscircuit/CircuitSplitControl";
 +import { AddChipDialog, buildAddChipPrompt, type AddChipRequest } from "~/tscircuit/AddChipDialog";
-+import { sendChipDatasheet } from "~/tscircuit/uploadChipDatasheet";
-+import { usePrepareChipThread } from "~/tscircuit/usePrepareChipThread";
++import { releaseDraftAttachments } from "~/lib/attachmentUploadQueue";
  import { ChildThreadApprovals } from "./chat/ChildThreadApprovals";
  import { workspaceAreaProps } from "../lib/workspaceFocus";
  import { sourceControlClients } from "@t3tools/client-runtime/source-control-clients";
-@@ -62,6 +66,7 @@ import {
-   AuthPreviewOperateScope,
-   AuthTerminalOperateScope,
-   type AssistantCitation,
-+  type ChatAttachment,
-   type ResponseContextRecord,
-   type ChatFileAttachment,
-   isProviderNativeSubagentThread,
-@@ -2820,6 +2825,64 @@ export default function ChatView(props: ChatViewProps) {
+@@ -199,7 +202,7 @@ import { isModelPickerOpen } from "../modelPickerVisibility";
+ import { COLLAPSED_SIDEBAR_TITLEBAR_INSET_CLASS } from "~/workspaceTitlebar";
+ import { toastManager } from "./ui/toast";
+ import { projectScriptIdFromCommand } from "~/projectScripts";
+-import { newMessageId } from "~/lib/utils";
++import { newMessageId, randomUUID } from "~/lib/utils";
+ import { isInSideChatPane, type SideChatParentPanel } from "~/lib/sideChatPane";
+ import {
+   NO_PROVIDER_MODEL_SELECTION,
+@@ -2820,6 +2823,23 @@ export default function ChatView(props: ChatViewProps) {
                    )
                  ? "Available once the thread's worktree is set up."
                  : null;
-+  const prepareChipThread = usePrepareChipThread();
 +  const [addChipThreadKey, setAddChipThreadKey] = useState<string | null>(null);
 +  const addChipAvailable =
-+    sideChatsOffered &&
++    !embedded &&
++    canOperateThread &&
++    activeThread?.lineage.sideChat !== true &&
++    !isSubagentThread &&
 +    activeThreadRef !== null &&
 +    activeProject !== null &&
 +    selectedProviderEntry !== undefined &&
-+    activeEnvironmentUnavailableState === null &&
-+    (isLocalDraftThread || sideChatDisabledReason === null);
++    activeEnvironmentUnavailableState === null;
 +  const openAddChip = useStableCallback(() => {
 +    if (addChipAvailable) setAddChipThreadKey(routeThreadKey);
 +  });
@@ -40,52 +41,41 @@ index dc3fcfa8f48c95fa73cf42b97df5ae7be46f1599..563b920d5be10f2120e476be74cc2d13
 +    setAddChipThreadKey(null);
 +    scheduleComposerFocus();
 +  });
-+  const submitAddChip = useStableCallback(async (request: AddChipRequest) => {
-+    if (addChipThreadKey !== routeThreadKey || !activeProject || !activeThreadRef) {
-+      return "The project thread is no longer available.";
-+    }
-+    const needsWorktree = sendEnvMode === "worktree" && activeWorktreePath === null;
-+    if (!sideChat.available || (routeKind === "draft" && needsWorktree)) {
-+      const modelSelection = composerRef.current?.getSendContext().selectedModelSelection;
-+      if (!modelSelection) return "Choose a model before adding a chip.";
-+      if (needsWorktree && activeThreadBranch === null) {
-+        return "Select a base branch for the new worktree before adding a chip.";
-+      }
-+      const error = await prepareChipThread({
-+        threadRef: activeThreadRef,
-+        projectId: activeProject.id,
-+        modelSelection,
-+        runtimeMode,
-+        workspaceStrategy:
-+          activeWorktreePath !== null
-+            ? { type: "existing_worktree", worktreePath: activeWorktreePath }
-+            : needsWorktree && activeThreadBranch !== null
-+              ? { type: "worktree", baseRef: activeThreadBranch, startFromOrigin }
-+              : { type: "root" },
-+      });
-+      if (error !== null) return error;
-+    }
-+    const prompt = buildAddChipPrompt(request);
-+    const send = async (attachments: ChatAttachment[] = []) => {
-+      if (currentRouteThreadKeyRef.current !== routeThreadKey) return false;
-+      return (
-+        (await sideChat.openThread(prompt, { threadRef: activeThreadRef, attachments })) !== null
-+      );
-+    };
-+    const error =
-+      request.datasheet === null
-+        ? (await send())
-+          ? null
-+          : "Could not send the chip request. Try again."
-+        : await sendChipDatasheet(environmentId, request.datasheet, send);
-+    if (error === null && currentRouteThreadKeyRef.current === routeThreadKey)
-+      setAddChipThreadKey(null);
-+    return error;
-+  });
    const openSideChatStable = useStableCallback(() => void sideChat.open());
    const sendSideChatStable = useStableCallback((prompt: string) => sideChat.open(prompt));
    const { onConfirmRevertStable, onForkFromRunStable, onRevertTimelineTurnStable } =
-@@ -3278,6 +3341,12 @@ export default function ChatView(props: ChatViewProps) {
+@@ -2980,6 +3000,30 @@ export default function ChatView(props: ChatViewProps) {
+   };
+   const onWorktreeSetupWorkLocallyStable = useStableCallback(onWorktreeSetupWorkLocally);
+   const onComposerSendStable = useStableCallback(onSend);
++  const submitAddChip = useStableCallback(async (request: AddChipRequest) => {
++    if (!addChipAvailable || addChipThreadKey !== routeThreadKey) {
++      return "The project thread is no longer available.";
++    }
++    const files: ComposerFileAttachment[] = request.datasheet
++      ? [
++          {
++            id: randomUUID(),
++            type: "file",
++            name: request.datasheet.name,
++            mimeType: "application/pdf",
++            sizeBytes: request.datasheet.size,
++            file: request.datasheet,
++          },
++        ]
++      : [];
++    const sent = await onSend(undefined, "queue", "foreground", {
++      prompt: buildAddChipPrompt(request),
++      files,
++    }).finally(() => releaseDraftAttachments(files));
++    if (!sent) return "Could not send the chip request. Try again.";
++    if (currentRouteThreadKeyRef.current === routeThreadKey) setAddChipThreadKey(null);
++    return null;
++  });
+   const sendPreviewAnnotation = (
+     annotation: PreviewAnnotationPayload,
+     image: ComposerImageAttachment | null,
+@@ -3278,6 +3322,12 @@ export default function ChatView(props: ChatViewProps) {
        maximized={rightPanelMaximized}
        onToggleMaximized={toggleRightPanelMaximizedStable}
      >
@@ -98,7 +88,7 @@ index dc3fcfa8f48c95fa73cf42b97df5ae7be46f1599..563b920d5be10f2120e476be74cc2d13
        {panelToggleControls}
      </WorkspaceTitlebarControls>
    );
-@@ -3651,6 +3720,8 @@ export default function ChatView(props: ChatViewProps) {
+@@ -3651,6 +3701,8 @@ export default function ChatView(props: ChatViewProps) {
                                  resumeCompactionTokens={resumeCompactionTokens}
                                  keepFullHistory={keepFullHistory}
                                  onToggleKeepFullHistory={toggleKeepFullHistoryStable}
@@ -107,7 +97,7 @@ index dc3fcfa8f48c95fa73cf42b97df5ae7be46f1599..563b920d5be10f2120e476be74cc2d13
                                  sideChatAvailable={sideChat.available}
                                  sideChatDisabledReason={sideChatDisabledReason}
                                  onFreshSession={
-@@ -3964,6 +4035,14 @@ export default function ChatView(props: ChatViewProps) {
+@@ -3964,6 +4016,14 @@ export default function ChatView(props: ChatViewProps) {
            layoutControls={
              rightPanelOpen ? (
                <div className="mr-px flex items-center gap-1">
@@ -122,7 +112,7 @@ index dc3fcfa8f48c95fa73cf42b97df5ae7be46f1599..563b920d5be10f2120e476be74cc2d13
                  <RightPanelMaximizeControl
                    maximized={rightPanelMaximized}
                    onToggle={toggleRightPanelMaximizedStable}
-@@ -3996,6 +4075,9 @@ export default function ChatView(props: ChatViewProps) {
+@@ -3996,6 +4056,9 @@ export default function ChatView(props: ChatViewProps) {
            onAddTerminal={addTerminalSurfaceStable}
            onAddDiff={addDiffSurfaceStable}
            onAddFiles={addFilesSurfaceStable}
@@ -132,7 +122,7 @@ index dc3fcfa8f48c95fa73cf42b97df5ae7be46f1599..563b920d5be10f2120e476be74cc2d13
            onAddPullRequest={addPullRequestSurfaceStable}
            onAddPullRequests={addPullRequestsSurfaceStable}
            onAddDevice={addDeviceSurfaceStable}
-@@ -4022,6 +4104,14 @@ export default function ChatView(props: ChatViewProps) {
+@@ -4022,6 +4085,14 @@ export default function ChatView(props: ChatViewProps) {
        {embedded ? null : <LinkPullRequestDialogHost />}
        <ThreadVisitWatermark threadRef={routeThreadRef} />
        <ExpandedImageDialogHost threadKey={routeThreadKey} />
