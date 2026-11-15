@@ -10,6 +10,7 @@ RUN node scripts/setup.ts --no-install \
     && export PATH="/app/.cache/preview-tools/node_modules/.bin:$PATH" \
     && pnpm --dir .t3code install --frozen-lockfile --filter 't3...' --filter '@t3tools/web...' \
     && pnpm --dir .t3code --filter '@t3tools/web' run build \
+    && TMPDIR=/tmp node scripts/review-preview.ts --seed-hosted \
     && rm -rf .t3code/.git .t3code/.repos
 
 FROM node:24-bookworm-slim
@@ -19,7 +20,9 @@ WORKDIR /app
 COPY package.json /app/package.json
 COPY --from=build --chown=node:node /app/scripts /app/scripts
 COPY --from=build --chown=node:node /app/.t3code /app/.t3code
+COPY --from=build --chown=node:node /app/.cache/preview-state.sqlite /app/.cache/preview-state.sqlite
 COPY --from=build --chown=node:node /app/.cache/preview-tools/node_modules /app/.cache/preview-tools/node_modules
 ENV PATH="/app/.cache/preview-tools/node_modules/.bin:$PATH"
+ENV TMPDIR=/tmp
 USER node
 CMD ["node", "scripts/review-preview.ts", "--hosted"]

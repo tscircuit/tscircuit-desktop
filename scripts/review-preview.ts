@@ -1,17 +1,23 @@
 import { execFile, spawn } from "node:child_process"
 import { createHash, randomBytes } from "node:crypto"
-import { cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
+import { copyFile, cp, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises"
 import { once } from "node:events"
 import { tmpdir } from "node:os"
-import { delimiter, join, resolve } from "node:path"
+import { delimiter, dirname, join, resolve } from "node:path"
 import { createInterface } from "node:readline"
+import { setTimeout as delay } from "node:timers/promises"
 import { parseArgs, promisify } from "node:util"
 import { checkoutDir } from "./lib/paths.ts"
 
 const { values } = parseArgs({
-  options: { screenshots: { type: "string" }, hosted: { type: "boolean" } },
+  options: {
+    screenshots: { type: "string" },
+    hosted: { type: "boolean" },
+    "seed-hosted": { type: "boolean" },
+  },
 })
 const screenshots = values.screenshots && resolve(values.screenshots)
+const seedHosted = values["seed-hosted"]
 // Keep the preview on its own port so it can run beside normal web development.
 const portOffset = 100
 const port = 5733 + portOffset
@@ -20,25 +26,33 @@ const localOrigin = `http://localhost:${port}`
 const hosted = values.hosted ? await import("./lib/hosted-review.ts") : undefined
 const hostedOrigins = hosted?.getHostedOrigins()
 const origin = hostedOrigins?.[0] ?? localOrigin
-const reviewToken = hostedOrigins ? randomBytes(32).toString("hex") : undefined
+const reviewToken = hosted || seedHosted ? randomBytes(32).toString("hex") : undefined
 const projectTitle = "Voltage divider"
 const threadTitle = "Circuit review"
 const replayModel = { instanceId: "devReplay", model: "showcase" }
 
-const previewDirectory = await mkdtemp(join(tmpdir(), "tscircuit-review-"))
+// The snapshot stores the project's absolute path. Build and runtime use the
+// same path inside their isolated containers.
+const previewDirectory = hosted || seedHosted
+  ? join(tmpdir(), "tscircuit-hosted-review")
+  : await mkdtemp(join(tmpdir(), "tscircuit-review-"))
+if (hosted || seedHosted) await mkdir(previewDirectory)
 const appHome = join(previewDirectory, "app-home")
+const stateDirectory = join(appHome, "userdata")
+const database = join(stateDirectory, "statev2.sqlite")
+const snapshot = resolve(import.meta.dirname, "../.cache/preview-state.sqlite")
 const project = join(previewDirectory, projectTitle)
 const env: NodeJS.ProcessEnv = {
-  ...(hosted ? {} : process.env),
+  ...(hosted || seedHosted ? {} : process.env),
   HOME: previewDirectory,
   USERPROFILE: previewDirectory,
   PATH: [join(checkoutDir, "node_modules", ".bin"), process.env.PATH].join(delimiter),
   TSCIRCUIT_DESKTOP_PORT_OFFSET: String(portOffset),
   TSCIRCUIT_DESKTOP_DEV_ALLOWED_ORIGINS: hostedOrigins?.join(",") ?? origin,
   TSCIRCUIT_DESKTOP_TELEMETRY_ENABLED: "false",
-  ...(hosted ? { TSCIRCUIT_DESKTOP_LOG_LEVEL: "Warn" } : {}),
+  ...(hosted || seedHosted ? { TSCIRCUIT_DESKTOP_LOG_LEVEL: "Warn" } : {}),
 }
-if (reviewToken && hostedOrigins) {
+if (reviewToken) {
   env.TSCIRCUIT_DESKTOP_DEV_AUTH_TOKEN = reviewToken
 } else {
   delete env.TSCIRCUIT_DESKTOP_DEV_AUTH_TOKEN
@@ -57,18 +71,35 @@ function cli(...args: string[]) {
   })
 }
 
+async function seedThread() {
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await cli(
+        "thread", "start", project, "Show me how Replay works.", "--title", threadTitle,
+        "--provider", replayModel.instanceId, "--model", replayModel.model, "--wait",
+      )
+      return
+    } catch (error) {
+      // The server can announce pairing before the Replay model catalog is ready.
+      if (attempt >= 4 || !String(error).includes("is not advertised by provider devReplay")) throw error
+      await delay(1000)
+    }
+  }
+}
+
 try {
   await cp(join(import.meta.dirname, "fixtures", "review-preview"), project, { recursive: true })
-  await mkdir(join(appHome, "userdata"), { recursive: true })
+  await mkdir(stateDirectory, { recursive: true })
   if (hosted) {
+    await copyFile(snapshot, database)
     // The browser compares the environment returned over HTTP with its WebSocket.
     const environmentId = createHash("sha256").update(process.env.VERCEL_URL ?? origin).digest("hex")
-    await writeFile(join(appHome, "userdata", "environment-id"), `preview-${environmentId}\n`)
+    await writeFile(join(stateDirectory, "environment-id"), `preview-${environmentId}\n`)
   }
   // Match the upstream scenario launcher: even generated titles cannot reach a paid provider.
   const providers = ["codex", "claudeAgent", "cursor", "grok", "muse", "pi", "opencode", "antigravity"]
   await writeFile(
-    join(appHome, "userdata", "settings.json"),
+    join(stateDirectory, "settings.json"),
     JSON.stringify({
       defaultModelSelection: replayModel,
       providerInstances: Object.fromEntries(
@@ -83,9 +114,9 @@ try {
       ),
     }),
   )
-  await cli("project", "add", project, "--title", projectTitle)
+  if (!hosted) await cli("project", "add", project, "--title", projectTitle)
 
-  const serverArgs = hosted
+  const serverArgs = hosted || seedHosted
     ? ["apps/server/src/bin.ts", "--base-dir", appHome, "--host", "127.0.0.1", "--no-browser"]
     : ["scripts/dev-runner.ts", "dev", "--home-dir", appHome, "--no-seed"]
   const server = spawn(process.execPath, [
@@ -109,13 +140,15 @@ try {
       pairing.promise,
       stopped.then(([code]) => { throw new Error(`Preview exited before pairing (code ${code}).`) }),
     ])
-    await cli(
-      "thread", "start", project, "Show me how Replay works.", "--title", threadTitle,
-      "--provider", replayModel.instanceId, "--model", replayModel.model, "--wait",
-    )
+    if (!hosted) await seedThread()
     ready.resolve()
 
-    if (screenshots) {
+    if (seedHosted) {
+      stop()
+      await stopped
+      await mkdir(dirname(snapshot), { recursive: true })
+      await copyFile(database, snapshot)
+    } else if (screenshots) {
       await mkdir(screenshots, { recursive: true })
       const { captureReviewPreview } = await import("./capture-review-preview.ts")
       await captureReviewPreview({ url, screenshots, threadTitle })
