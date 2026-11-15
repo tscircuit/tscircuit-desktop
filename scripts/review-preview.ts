@@ -36,18 +36,17 @@ const env: NodeJS.ProcessEnv = {
   TSCIRCUIT_DESKTOP_PORT_OFFSET: String(portOffset),
   TSCIRCUIT_DESKTOP_DEV_ALLOWED_ORIGINS: hostedOrigins?.join(",") ?? origin,
   TSCIRCUIT_DESKTOP_TELEMETRY_ENABLED: "false",
+  ...(hosted ? { TSCIRCUIT_DESKTOP_LOG_LEVEL: "Warn" } : {}),
 }
 if (reviewToken && hostedOrigins) {
   env.TSCIRCUIT_DESKTOP_DEV_AUTH_TOKEN = reviewToken
-  env.TSCIRCUIT_DESKTOP_BUNDLED_DEV = "1"
-  env.TSCIRCUIT_DESKTOP_DEV_ALLOWED_HOSTS = hostedOrigins.map((url) => new URL(url).hostname).join(",")
 } else {
   delete env.TSCIRCUIT_DESKTOP_DEV_AUTH_TOKEN
 }
 const exec = promisify(execFile)
 const ready = Promise.withResolvers<string>()
 const gateway = hosted && reviewToken
-  ? hosted.serveHostedReview({ target: localOrigin, pairingUrl: ready.promise, reviewToken })
+  ? hosted.serveHostedReview({ target: `http://127.0.0.1:${backendPort}`, pairingUrl: ready.promise, reviewToken })
   : undefined
 
 function cli(...args: string[]) {
@@ -81,15 +80,13 @@ try {
   )
   await cli("project", "add", project, "--title", projectTitle)
 
-  const server = spawn(
-    process.execPath,
-    [
-      "scripts/dev-runner.ts", "dev", "--home-dir", appHome, "--dev-url", origin,
-      "--port", String(backendPort),
-      "--no-seed", "--no-auto-bootstrap-project-from-cwd",
-    ],
-    { cwd: checkoutDir, env, stdio: ["ignore", "pipe", "inherit"] },
-  )
+  const serverArgs = hosted
+    ? ["apps/server/src/bin.ts", "--base-dir", appHome, "--host", "127.0.0.1", "--no-browser"]
+    : ["scripts/dev-runner.ts", "dev", "--home-dir", appHome, "--no-seed"]
+  const server = spawn(process.execPath, [
+    ...serverArgs, "--dev-url", origin, "--port", String(backendPort),
+    "--no-auto-bootstrap-project-from-cwd",
+  ], { cwd: checkoutDir, env, stdio: ["ignore", "pipe", "inherit"] })
   const stopped = once(server, "exit")
   const stop = () => server.kill("SIGTERM")
   process.on("SIGINT", stop)

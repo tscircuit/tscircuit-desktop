@@ -65,7 +65,7 @@ Open the **Check** workflow from the PR's checks and download **ui-preview** fro
 
 Open **Preview** on the preview PR to try the app in a browser. The preview starts with a sample circuit and the Replay provider. Its workspace resets when the preview instance restarts.
 
-Use a Vercel project with deployment protection for the preview branch. `Dockerfile.vercel` builds the app and `vercel.json` enables automatic deploys for `ci/pr-review-previews`.
+Use a dedicated Vercel project with deployment protection. Set its Ignored Build Step to `test "$VERCEL_GIT_COMMIT_REF" != "ci/pr-review-previews"` so branches without `vercel.json` are also skipped.
 
 For a native Apple Silicon check, download the **tscircuit-desktop-mac-arm64-dmg** artifact from the PR's **Release** workflow. Fork PRs without signing credentials offer the ZIP artifact.
 

@@ -7,7 +7,9 @@ RUN node scripts/setup.ts --no-install \
     && node_version=$(node -p "require('./.t3code/package.json').engines.node") \
     && pnpm_package=$(node -p "require('./.t3code/package.json').packageManager") \
     && npm install --prefix .cache/preview-tools --no-package-lock "node@$node_version" "${pnpm_package%%+*}" httpxy@0.5.6 \
-    && PATH="/app/.cache/preview-tools/node_modules/.bin:$PATH" pnpm --dir .t3code install --frozen-lockfile --filter 't3...' --filter '@t3tools/web...' \
+    && export PATH="/app/.cache/preview-tools/node_modules/.bin:$PATH" \
+    && pnpm --dir .t3code install --frozen-lockfile --filter 't3...' --filter '@t3tools/web...' \
+    && pnpm --dir .t3code --filter '@t3tools/web' run build \
     && rm -rf .t3code/.git .t3code/.repos
 
 FROM node:24-bookworm-slim
