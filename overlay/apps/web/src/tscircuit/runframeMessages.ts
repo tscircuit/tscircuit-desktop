@@ -51,6 +51,10 @@ function parseFrameMessage(data: Record<string, unknown>): ViewerMessage | null 
   }
 }
 
+/** The focused frame can ask to close its own tab. */
+export const isViewerCloseRequest = (message: unknown): boolean =>
+  isRecord(message) && message.tscircuit_desktop_type === "close_preview_tab";
+
 /** Asks the frame for the Simple Route JSON a phase of the last run started from. */
 export const phaseInputRequest = (requestId: string, phaseId: string) => ({
   tscircuit_desktop_type: "get_autorouter_phase_input",
