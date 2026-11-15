@@ -1,0 +1,5 @@
+.git
+.t3code
+.cache
+.vercel
+node_modules

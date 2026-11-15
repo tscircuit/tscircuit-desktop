@@ -63,9 +63,9 @@ Download and run the Windows x64 `.exe` installer from [Releases](https://github
 
 Open the **Check** workflow from the PR's checks and download **ui-preview** from the run summary. It contains full app screenshots from a sample project and the Add chip flow.
 
-For interactive UI fixtures, open **Preview** in the Vercel deployment comment on the PR. The Add chip fixture uses the app's dialog and displays the generated request. The full app flow runs in **Check** against a local Replay provider.
+Open **Preview** on the preview PR to try the app in a browser. The preview starts with a sample circuit and the Replay provider. Its workspace resets when the preview instance restarts.
 
-To enable those deployment comments, import this repository into the tscircuit Vercel team. Keep the repository root as the project root. `vercel.json` sets the build command and output directory.
+Use a Vercel project with deployment protection for the preview branch. `Dockerfile.vercel` builds the app and `vercel.json` enables automatic deploys for `ci/pr-review-previews`.
 
 For a native Apple Silicon check, download the **tscircuit-desktop-mac-arm64-dmg** artifact from the PR's **Release** workflow. Fork PRs without signing credentials offer the ZIP artifact.
 

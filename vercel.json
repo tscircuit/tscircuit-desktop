@@ -1,12 +1,10 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
-  "installCommand": "true",
-  "buildCommand": "npm run build:preview -- --setup",
-  "outputDirectory": ".cache/review-site",
+  "framework": "container",
   "git": {
     "deploymentEnabled": {
-      "main": false
+      "**": false,
+      "ci/pr-review-previews": true
     }
   }
 }
