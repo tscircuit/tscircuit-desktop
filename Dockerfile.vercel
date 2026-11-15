@@ -10,6 +10,7 @@ RUN node scripts/setup.ts --no-install \
     && export PATH="/app/.cache/preview-tools/node_modules/.bin:$PATH" \
     && pnpm --dir .t3code install --frozen-lockfile --filter 't3...' --filter '@t3tools/web...' \
     && pnpm --dir .t3code --filter '@t3tools/web' run build \
+    && node scripts/inline-review-viewer.ts \
     && TMPDIR=/tmp node scripts/review-preview.ts --seed-hosted \
     && rm -rf .t3code/.git .t3code/.repos
 

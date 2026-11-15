@@ -1,7 +1,14 @@
 import { createHash } from "node:crypto"
+import { createReadStream } from "node:fs"
 import { createServer } from "node:http"
 import type { IncomingMessage } from "node:http"
+import { join } from "node:path"
+import { pipeline } from "node:stream/promises"
 import { createProxyServer } from "../../.cache/preview-tools/node_modules/httpxy/dist/index.mjs"
+import { checkoutDir } from "./paths.ts"
+
+const viewerFramePath = "/tscircuit-viewer/frame.html"
+const viewerFrame = join(checkoutDir, "apps", "web", "dist", viewerFramePath)
 
 export function getHostedOrigins() {
   const { PREVIEW_ORIGIN, VERCEL_BRANCH_URL, VERCEL_URL, VERCEL_ENV } = process.env
@@ -34,6 +41,17 @@ export function serveHostedReview({
   }
   const gateway = createServer((request, response) => {
     void ready.then(async () => {
+      if (request.method === "GET" && request.url?.split("?")[0] === viewerFramePath) {
+        const compressed = request.headers["accept-encoding"]?.split(",").some((value) => value.trim() === "gzip")
+        response.writeHead(200, {
+          "Content-Type": "text/html; charset=utf-8",
+          "Cache-Control": "private, max-age=600",
+          Vary: "Accept-Encoding",
+          ...(compressed ? { "Content-Encoding": "gzip" } : {}),
+        })
+        await pipeline(createReadStream(compressed ? `${viewerFrame}.gz` : viewerFrame), response)
+        return
+      }
       authenticate(request)
       await proxy.web(request, response)
     }).catch(() => {
