@@ -6,7 +6,6 @@ import { Checkbox } from "~/components/ui/checkbox";
 import {
   Dialog,
   DialogClose,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogPanel,
@@ -32,8 +31,8 @@ export function buildAddChipPrompt({
 }: AddChipRequest): string {
   return [
     name
-      ? `Add the chip ${name} as a reusable tscircuit component in this project.`
-      : "Add the chip described in the supplied datasheet as a reusable tscircuit component in this project.",
+      ? `Generate a reusable tscircuit component for ${name} in this project.`
+      : "Generate a reusable tscircuit component for the chip described in the supplied datasheet.",
     ...(datasheet ? ["Use the attached datasheet to verify the part and package."] : []),
     ...(datasheetUrl ? [`Use this datasheet to verify the part and package: ${datasheetUrl}`] : []),
     ...(!datasheet && !datasheetUrl
@@ -41,7 +40,7 @@ export function buildAddChipPrompt({
           "Find the manufacturer's datasheet for this part and use it to verify the part and package.",
         ]
       : []),
-    "Create the schematic symbol, PCB footprint, and pin mapping. Follow the project's component conventions and verify the result against the datasheet. Limit project edits to the reusable component and its support files.",
+    "Use `tsci import <part number>` to import the exact chip. If the part number was omitted, identify it from the datasheet first. Verify the symbol, footprint, and pin mapping against the datasheet. If no exact match is available, create the component from the datasheet and report that the import was unavailable. Limit edits to the component and its support files.",
     ...(spice
       ? [
           "Include a SPICE model. Prefer a manufacturer model when one is available. Use a documented reference circuit to check the model where practical. Keep any validation harness temporary and report its results in chat.",
@@ -129,7 +128,6 @@ export function AddChipDialog({
         >
           <DialogHeader>
             <DialogTitle>Add chip</DialogTitle>
-            <DialogDescription>Provide a chip name, a datasheet URL, or a PDF.</DialogDescription>
           </DialogHeader>
           <DialogPanel>
             <div className="space-y-1.5">
@@ -267,7 +265,7 @@ export function AddChipDialog({
               Cancel
             </DialogClose>
             <Button type="submit" disabled={!canAdd || submitting}>
-              {submitting ? "Sending…" : "Add chip"}
+              {submitting ? "Sending…" : "Generate"}
             </Button>
           </DialogFooter>
         </form>
