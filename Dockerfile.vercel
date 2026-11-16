@@ -1,0 +1,29 @@
+FROM node:24-bookworm-slim AS build
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl git python3 make g++ \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY . .
+RUN node scripts/setup.ts --no-install \
+    && node_version=$(node -p "require('./.t3code/package.json').engines.node") \
+    && pnpm_package=$(node -p "require('./.t3code/package.json').packageManager") \
+    && npm install --prefix .cache/preview-tools --no-package-lock "node@$node_version" "${pnpm_package%%+*}" httpxy@0.5.6 \
+    && export PATH="/app/.cache/preview-tools/node_modules/.bin:$PATH" \
+    && pnpm --dir .t3code install --frozen-lockfile --filter 't3...' --filter '@t3tools/web...' \
+    && pnpm --dir .t3code --filter '@t3tools/web' run build \
+    && node scripts/inline-review-viewer.ts \
+    && TMPDIR=/tmp node scripts/review-preview.ts --seed-hosted \
+    && rm -rf .t3code/.git .t3code/.repos
+
+FROM node:24-bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates git libatomic1 \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY package.json /app/package.json
+COPY --from=build --chown=node:node /app/scripts /app/scripts
+COPY --from=build --chown=node:node /app/.t3code /app/.t3code
+COPY --from=build --chown=node:node /app/.cache/preview-state.sqlite /app/.cache/preview-state.sqlite
+COPY --from=build --chown=node:node /app/.cache/preview-tools/node_modules /app/.cache/preview-tools/node_modules
+ENV PATH="/app/.cache/preview-tools/node_modules/.bin:$PATH"
+ENV TMPDIR=/tmp
+USER node
+CMD ["node", "scripts/review-preview.ts", "--hosted"]

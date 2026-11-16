@@ -184,12 +184,31 @@ jobs:
           ls -la out
 
       - uses: actions/upload-artifact@v4
+        if: github.event_name != 'pull_request'
         with:
           name: tscircuit-desktop-mac-arm64
           path: |
             out/*.dmg
             out/*.zip
             out/*.yml
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request' && hashFiles('out/*.dmg') != ''
+        with:
+          name: tscircuit-desktop-mac-arm64-dmg
+          path: out/*.dmg
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - uses: actions/upload-artifact@v4
+        if: github.event_name == 'pull_request'
+        with:
+          name: tscircuit-desktop-mac-arm64-zip
+          path: out/*.zip
           if-no-files-found: error
           retention-days: 14
           compression-level: 0

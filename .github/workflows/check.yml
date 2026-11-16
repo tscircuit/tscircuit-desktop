@@ -40,4 +40,40 @@ jobs:
         with:
           package_json_file: .t3code/package.json
       - run: node scripts/setup.ts
+
+      - name: Capture the PR preview
+        id: preview
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          node .t3code/apps/web/node_modules/playwright/cli.js install --with-deps --only-shell chromium
+          node scripts/review-preview.ts --screenshots "$RUNNER_TEMP/ui-preview"
+
+      - uses: actions/upload-artifact@v4
+        id: upload-preview
+        if: steps.preview.outcome == 'success'
+        continue-on-error: true
+        with:
+          name: ui-preview
+          path: ${{ runner.temp }}/ui-preview/*.png
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Link to the UI screenshots
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        env:
+          SCREENSHOTS: ${{ steps.upload-preview.outputs.artifact-url }}
+        run: |
+          {
+            echo "### UI screenshots"
+            echo
+            if [ -n "$SCREENSHOTS" ]; then
+              echo "[Download screenshots]($SCREENSHOTS) of the sample project and Add chip flow."
+            else
+              echo "Screenshots are unavailable for this run. See the preview steps for details."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - run: npm run check:app
