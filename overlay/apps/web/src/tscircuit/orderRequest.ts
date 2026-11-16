@@ -8,6 +8,7 @@ const REQUEST_TYPE = "get_order_output";
 const RESPONSE_TYPE = "order_output";
 
 export type OrderRequestKind =
+  | "circuit_json"
   | "gerbers"
   | "bom"
   | "pick_and_place"

@@ -310,6 +310,7 @@
          * made with the options of RunFrame's "Fabrication Files".
          */
         const makers = {
+          circuit_json: async (circuitJson) => ({ circuit_json_text: JSON.stringify(circuitJson) }),
           gerbers: async (circuitJson) => {
             const { convertCircuitJsonToGerberFiles } =
               await loadConverter("circuit-json-to-gerber");
