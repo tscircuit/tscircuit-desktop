@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+import { useStableCallback } from "~/hooks/useStableCallback";
 
 import type { CircuitBuildVersion } from "./circuitBuildHistory";
 import type { CircuitScreen } from "./circuitViews";
@@ -20,11 +22,11 @@ export function CompletedCircuitPreview(props: {
 }) {
   const [shown, setShown] = useState<CircuitBuildVersion | null>(null);
   const [failed, setFailed] = useState<number | null>(null);
-  const loaded = useCallback((version: CircuitBuildVersion) => {
+  const loaded = useStableCallback((version: CircuitBuildVersion) => {
     setShown(version);
     setFailed(null);
-  }, []);
-  const failedLoad = useCallback((version: CircuitBuildVersion) => setFailed(version.id), []);
+  });
+  const failedLoad = useStableCallback((version: CircuitBuildVersion) => setFailed(version.id));
   const pending = shown?.id === props.version.id ? null : props.version;
   return (
     <div className="absolute inset-0 bg-white">
@@ -43,10 +45,14 @@ export function CompletedCircuitPreview(props: {
       )}
       {failed === props.version.id ? (
         <p role="status" className="absolute inset-x-0 top-0 bg-background p-3 text-sm">
-          Could not load this version.{shown ? " The previous version is still visible." : " Reopen Viewers to try again."}
+          Could not load this version.
+          {shown ? " The previous version is still visible." : " Reopen Viewers to try again."}
         </p>
       ) : shown === null ? (
-        <div role="status" className="absolute inset-0 flex items-center justify-center bg-background text-sm text-muted-foreground">
+        <div
+          role="status"
+          className="absolute inset-0 flex items-center justify-center bg-background text-sm text-muted-foreground"
+        >
           Loading completed board…
         </div>
       ) : null}
@@ -73,14 +79,20 @@ function SnapshotFrame(props: {
       const message = parseViewerMessage(event.data);
       if (message?.kind === "ready") {
         setReady(true);
-        frameRef.current?.contentWindow?.postMessage({
-          runframe_type: "runframe_props_changed",
-          runframe_props: viewerFileProps({ ...version.files, screen: "pcb", rebuilds: 0 }),
-        }, FRAME.targetOrigin);
+        frameRef.current?.contentWindow?.postMessage(
+          {
+            runframe_type: "runframe_props_changed",
+            runframe_props: viewerFileProps({ ...version.files, screen: "pcb", rebuilds: 0 }),
+          },
+          FRAME.targetOrigin,
+        );
       } else if (message?.kind === "run_completed" && !message.failed) {
         finished = true;
         onLoaded(version);
-      } else if (message?.kind === "run_failed" || (message?.kind === "run_completed" && message.failed)) {
+      } else if (
+        message?.kind === "run_failed" ||
+        (message?.kind === "run_completed" && message.failed)
+      ) {
         finished = true;
         onFailed(version);
       } else if (message?.kind === "tab_requested") {
@@ -100,10 +112,13 @@ function SnapshotFrame(props: {
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- changes only the displayed tab in the external viewer; completed JSON is sent once
   useEffect(() => {
     if (!ready) return;
-    frameRef.current?.contentWindow?.postMessage({
-      runframe_type: "runframe_props_changed",
-      runframe_props: viewerTabProps(props.screen),
-    }, FRAME.targetOrigin);
+    frameRef.current?.contentWindow?.postMessage(
+      {
+        runframe_type: "runframe_props_changed",
+        runframe_props: viewerTabProps(props.screen),
+      },
+      FRAME.targetOrigin,
+    );
   }, [ready, props.screen]);
 
   return (

@@ -3,7 +3,6 @@ import * as Schema from "effect/Schema";
 import { CheckIcon, EllipsisIcon, ShoppingCart } from "lucide-react";
 import {
   type Dispatch,
-  useCallback,
   type RefObject,
   useEffect,
   useLayoutEffect,
@@ -24,12 +23,17 @@ import { Tooltip, TooltipPopup, TooltipTrigger } from "~/components/ui/tooltip";
 import { type ComposerThreadTarget, useComposerDraftStore } from "~/composerDraftStore";
 import { isElectron } from "~/env";
 import { getLocalStorageItem, setLocalStorageItem } from "~/hooks/useLocalStorage";
+import { useStableCallback } from "~/hooks/useStableCallback";
 import { observeResize } from "~/lib/observeResize";
 import { cn } from "~/lib/utils";
 
 import { expectedBuild, isBuildOfSources } from "./builtCircuit";
 import { circuitBuildKey, completedCircuit } from "./circuitBuildHistory";
-import { EMPTY_CIRCUIT_BUILDS, rememberCircuitBuild, useCircuitBuildStore } from "./circuitBuildStore";
+import {
+  EMPTY_CIRCUIT_BUILDS,
+  rememberCircuitBuild,
+  useCircuitBuildStore,
+} from "./circuitBuildStore";
 import { CompletedCircuitPreview } from "./CompletedCircuitPreview";
 import { requestFromViewer } from "./orderRequest";
 import type { AutorouterPhase } from "./autorouterPhases";
@@ -334,22 +338,33 @@ export default function CircuitPanel(props: {
         : { fsMap: project.fsMap, mainComponentPath: entryFile };
 
   const buildKey = circuitBuildKey(environmentId, cwd ?? "", entryFile ?? "");
-  const versions = useCircuitBuildStore((state) => state.byCircuit[buildKey] ?? EMPTY_CIRCUIT_BUILDS);
-  const [selectedVersion, setSelectedVersion] = useState<{ readonly key: string; readonly id: number } | null>(null);
-  const version = (selectedVersion?.key === buildKey
-    ? versions.find((candidate) => candidate.id === selectedVersion.id)
-    : null) ?? versions.at(-1) ?? null;
-  const rememberBuild = useCallback((text: string) => rememberCircuitBuild(buildKey, text), [buildKey]);
-  const requestTab = useCallback((tab: string) => {
+  const versions = useCircuitBuildStore(
+    (state) => state.byCircuit[buildKey] ?? EMPTY_CIRCUIT_BUILDS,
+  );
+  const [selectedVersion, setSelectedVersion] = useState<{
+    readonly key: string;
+    readonly id: number;
+  } | null>(null);
+  const version =
+    (selectedVersion?.key === buildKey
+      ? versions.find((candidate) => candidate.id === selectedVersion.id)
+      : null) ??
+    versions.at(-1) ??
+    null;
+  const rememberBuild = useStableCallback((text: string) => rememberCircuitBuild(buildKey, text));
+  const requestTab = useStableCallback((tab: string) => {
     if (entryFile !== null) dispatch({ type: "tab_requested", file: entryFile, tab });
-  }, [entryFile]);
+  });
   const liveView = viewStateForFile(panelState, entryFile);
-  const view = version === null ? liveView : {
-    ...liveView,
-    counts: version.counts,
-    executionError: null,
-    screen: liveView.screen === "errors" ? panelState.preferred : liveView.screen,
-  };
+  const view =
+    version === null
+      ? liveView
+      : {
+          ...liveView,
+          counts: version.counts,
+          executionError: null,
+          screen: liveView.screen === "errors" ? panelState.preferred : liveView.screen,
+        };
   const notice = !cwd ? (
     <Notice title="No project folder" description="Open a project to see its circuit here." />
   ) : projectState.status === "failed" ? (
@@ -415,14 +430,28 @@ export default function CircuitPanel(props: {
             id={`circuit-version-${buildKey}`}
             aria-label="Board version"
             value={selectedVersion?.key === buildKey ? String(version?.id ?? "latest") : "latest"}
-            onChange={(event) => setSelectedVersion(event.target.value === "latest" ? null : { key: buildKey, id: Number(event.target.value) })}
+            onChange={(event) =>
+              setSelectedVersion(
+                event.target.value === "latest"
+                  ? null
+                  : { key: buildKey, id: Number(event.target.value) },
+              )
+            }
             className="min-w-0 rounded border bg-background px-2 py-1"
           >
             <option value="latest">Latest successful build (v{versions.at(-1)?.id})</option>
-            {versions.map((candidate) => <option key={candidate.id} value={candidate.id}>Version {candidate.id}</option>)}
+            {versions.map((candidate) => (
+              <option key={candidate.id} value={candidate.id}>
+                Version {candidate.id}
+              </option>
+            ))}
           </select>
           <span role="status" className="text-muted-foreground">
-            {liveView.running ? "Building… showing completed board" : liveView.executionError !== null ? "Latest build failed. Showing completed board." : null}
+            {liveView.running
+              ? "Building… showing completed board"
+              : liveView.executionError !== null
+                ? "Latest build failed. Showing completed board."
+                : null}
           </span>
         </div>
       ) : null}
@@ -444,15 +473,27 @@ export default function CircuitPanel(props: {
           }}
           frameRef={frameRef}
         />
-        {notice === null && version !== null && view.screen !== "source" && view.screen !== "errors" ? (
+        {notice === null &&
+        version !== null &&
+        view.screen !== "source" &&
+        view.screen !== "errors" ? (
           <CompletedCircuitPreview
             key={buildKey}
             version={version}
             screen={view.screen}
             onTabRequested={requestTab}
           />
-        ) : notice === null && version === null && view.screen !== "source" && view.screen !== "errors" ? (
-          <Cover><Notice title="Waiting for a successful build" description="The board will appear when routing and loading have finished." busy={liveView.running} /></Cover>
+        ) : notice === null &&
+          version === null &&
+          view.screen !== "source" &&
+          view.screen !== "errors" ? (
+          <Cover>
+            <Notice
+              title="Waiting for a successful build"
+              description="The board will appear when routing and loading have finished."
+              busy={liveView.running}
+            />
+          </Cover>
         ) : null}
         {notice !== null ? (
           <Cover>{notice}</Cover>
@@ -768,23 +809,36 @@ function CircuitViewer(props: {
           request: {
             kind: "circuit_json",
             projectName: "circuit",
-            circuitJsonText: sent.mainComponentPath.endsWith(".json") ? sent.fsMap[sent.mainComponentPath] ?? null : null,
+            circuitJsonText: sent.mainComponentPath.endsWith(".json")
+              ? (sent.fsMap[sent.mainComponentPath] ?? null)
+              : null,
           },
           timeoutMs: PHASE_INPUT_TIMEOUT_MS,
-        }).then((result) => {
-          if (!active || sentRef.current !== sent || typeof result.circuit_json_text !== "string") return;
-          const completed = completedCircuit(result.circuit_json_text);
-          if (completed === null) {
-            dispatch({ type: "run_failed", file: sentFile, message: "The build did not produce a complete circuit without errors." });
-            return;
-          }
-          onCompletedCircuit(completed.circuitJsonText);
-          dispatch({ type: "circuit_rendered", file: sentFile, counts: completed.counts });
-          dispatch({ type: "run_completed", file: sentFile, failed: false });
-        }).catch(() => {
-          if (!active || sentRef.current !== sent) return;
-          dispatch({ type: "run_failed", file: sentFile, message: "Could not load the completed circuit. Try building it again." });
-        });
+        })
+          .then((result) => {
+            if (!active || sentRef.current !== sent || typeof result.circuit_json_text !== "string")
+              return;
+            const completed = completedCircuit(result.circuit_json_text);
+            if (completed === null) {
+              dispatch({
+                type: "run_failed",
+                file: sentFile,
+                message: "The build did not produce a complete circuit without errors.",
+              });
+              return;
+            }
+            onCompletedCircuit(completed.circuitJsonText);
+            dispatch({ type: "circuit_rendered", file: sentFile, counts: completed.counts });
+            dispatch({ type: "run_completed", file: sentFile, failed: false });
+          })
+          .catch(() => {
+            if (!active || sentRef.current !== sent) return;
+            dispatch({
+              type: "run_failed",
+              file: sentFile,
+              message: "Could not load the completed circuit. Try building it again.",
+            });
+          });
         return;
       }
       const { kind, ...detail } = message;

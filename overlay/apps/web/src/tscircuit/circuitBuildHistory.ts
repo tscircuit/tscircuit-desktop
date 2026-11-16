@@ -18,15 +18,29 @@ export function completedCircuit(text: string): Omit<CircuitBuildVersion, "id"> 
   if (!Array.isArray(elements) || elements.length === 0) return null;
   const counts: Record<string, number> = {};
   for (const element of elements) {
-    if (typeof element !== "object" || element === null || typeof element.type !== "string") return null;
+    if (typeof element !== "object" || element === null || typeof element.type !== "string")
+      return null;
     if (element.type.includes("error")) return null;
     counts[element.type] = (counts[element.type] ?? 0) + 1;
   }
   // Metadata alone is not a built circuit.
-  if (!Object.keys(counts).some((type) => type.startsWith("pcb_") || type.startsWith("schematic_") || type === "system_block_page" || type === "simulation_experiment")) return null;
+  if (
+    !Object.keys(counts).some(
+      (type) =>
+        type.startsWith("pcb_") ||
+        type.startsWith("schematic_") ||
+        type === "system_block_page" ||
+        type === "simulation_experiment",
+    )
+  )
+    return null;
   const circuitJsonText = JSON.stringify(elements);
   const path = "completed.circuit.json";
-  return { circuitJsonText, counts, files: { fsMap: { [path]: circuitJsonText }, mainComponentPath: path } };
+  return {
+    circuitJsonText,
+    counts,
+    files: { fsMap: { [path]: circuitJsonText }, mainComponentPath: path },
+  };
 }
 
 export function appendCircuitBuild(
@@ -34,7 +48,8 @@ export function appendCircuitBuild(
   text: string,
 ): ReadonlyArray<CircuitBuildVersion> {
   const completed = completedCircuit(text);
-  if (completed === null || versions.at(-1)?.circuitJsonText === completed.circuitJsonText) return versions;
+  if (completed === null || versions.at(-1)?.circuitJsonText === completed.circuitJsonText)
+    return versions;
   return [...versions, { ...completed, id: (versions.at(-1)?.id ?? 0) + 1 }].slice(-10);
 }
 

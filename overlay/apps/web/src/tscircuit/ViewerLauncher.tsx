@@ -8,7 +8,11 @@ import { useRightPanelStore } from "~/rightPanelStore";
 import { useBuiltCircuit } from "./CircuitPanel";
 import { expectedBuild } from "./builtCircuit";
 import { circuitBuildKey } from "./circuitBuildHistory";
-import { EMPTY_CIRCUIT_BUILDS, rememberCircuitBuild, useCircuitBuildStore } from "./circuitBuildStore";
+import {
+  EMPTY_CIRCUIT_BUILDS,
+  rememberCircuitBuild,
+  useCircuitBuildStore,
+} from "./circuitBuildStore";
 import { pickEntryFile } from "./projectFsMap";
 import { useProjectFiles } from "./useProjectFiles";
 
@@ -26,7 +30,8 @@ export function ViewerLauncher(props: {
   const built = useBuiltCircuit({
     ...props,
     visible: true,
-    build: entry === null || !project?.hashedFiles ? null : expectedBuild(entry, project.hashedFiles),
+    build:
+      entry === null || !project?.hashedFiles ? null : expectedBuild(entry, project.hashedFiles),
   });
   const builtFiles = built.status === "current" ? built.files : null;
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- imports a completed build read from the workspace into the session's viewer history
@@ -39,14 +44,20 @@ export function ViewerLauncher(props: {
     (state) => (state.byCircuit[key] ?? EMPTY_CIRCUIT_BUILDS).length > 0,
   );
   return (
-    <aside aria-label="Circuit viewers" className="flex shrink-0 flex-col border-l bg-background px-1 py-2">
+    <aside
+      aria-label="Circuit viewers"
+      className="flex shrink-0 flex-col border-l bg-background px-1 py-2"
+    >
       <Button
         variant="ghost"
         size="sm"
         disabled={!ready}
-        title={ready ? "Open the board viewers" : "Viewers will be available after a successful circuit build"}
+        title={
+          ready
+            ? "Open the board viewers"
+            : "Viewers will be available after a successful circuit build"
+        }
         onClick={() => useRightPanelStore.getState().open(props.threadRef, "circuit")}
-        className="h-auto flex-col gap-1 px-2 py-2"
       >
         <CircuitBoard className="size-4" aria-hidden />
         <span className="text-xs">Viewers</span>
