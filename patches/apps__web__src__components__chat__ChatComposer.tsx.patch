@@ -1,9 +1,18 @@
-Handles /order and /chip using the composer's normal slash-command selection.
+Handles /order and /chip and adds an Add chip button and first-message hint to the composer.
 
 diff --git a/apps/web/src/components/chat/ChatComposer.tsx b/apps/web/src/components/chat/ChatComposer.tsx
-index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..784ef2f314928ed6c807f6fe21877dc8d3ee60d0 100644
+index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..8abcfd81ad2bd6edcfa35f37d5163de35a5346f5 100644
 --- a/apps/web/src/components/chat/ChatComposer.tsx
 +++ b/apps/web/src/components/chat/ChatComposer.tsx
+@@ -235,7 +235,7 @@ import { observeResize } from "~/lib/observeResize";
+ 
+ const isEnvironmentRequestInvalidError = Schema.is(EnvironmentRequestInvalidError);
+ import { toastManager } from "../ui/toast";
+-import { BuildingIcon, PlayIcon, ReplyIcon } from "lucide-react";
++import { BuildingIcon, CpuIcon, PlayIcon, ReplyIcon } from "lucide-react";
+ import { useNavigate } from "@tanstack/react-router";
+ import { assistantCitationLabel } from "@t3tools/shared/assistantCitations";
+ import { assistantCitationNavigation } from "../../lib/assistantCitationNavigation";
 @@ -263,6 +263,7 @@ import { useStableCallback } from "../../hooks/useStableCallback";
  import { usePanelAnimationSettings } from "../../panelAnimations";
  import { readEnvironmentScope, readPreparedConnection } from "../../state/session";
@@ -12,36 +21,46 @@ index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..784ef2f314928ed6c807f6fe21877dc8
  import { useComposerRestingTransition } from "./useComposerRestingTransition";
  import { ComposerCommandMenuLayer } from "./ComposerCommandMenuLayer";
  import { useRestingComposerControlsLayout } from "./useRestingComposerControlsLayout";
-@@ -382,6 +383,7 @@ export interface ChatComposerProps {
+@@ -382,6 +383,8 @@ export interface ChatComposerProps {
    keepFullHistory: boolean;
    onToggleKeepFullHistory: () => void;
    onUsageLimitsCommand?: (() => void) | undefined;
 +  onAddChip?: (() => void) | undefined;
++  showAddChipHint?: boolean;
    sideChatAvailable?: boolean;
    sideChatDisabledReason?: string | null;
    /** Arms a fresh session for the next message; absent where `/clear` is unavailable. */
-@@ -1118,6 +1120,8 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+@@ -1105,6 +1108,9 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+     composerPreviewAnnotations.length === 0 &&
+     composerReviewComments.length === 0;
+   const linkedEnvironments = useLinkedEnvironments(environmentId);
++  const addChipAction =
++    !isEditingQueuedMessage && pendingUserInputs.length === 0 ? props.onAddChip : undefined;
++  const addChipHint = props.showAddChipHint ? " Use /chip to generate a chip." : "";
+   const {
+     items: composerMenuItems,
+     isLoading: isComposerMenuLoading,
+@@ -1118,6 +1124,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
      pullRequestProjectId,
      pullRequestRepository,
      threadPullRequests,
-+    chipCommandAvailable:
-+      props.onAddChip !== undefined && !isEditingQueuedMessage && pendingUserInputs.length === 0,
++    chipCommandAvailable: addChipAction !== undefined,
      sideChatAvailable: props.sideChatAvailable === true,
      sideChatDisabledReason: props.sideChatDisabledReason ?? null,
      freshSessionAvailable: props.onFreshSession !== undefined,
-@@ -1873,6 +1877,19 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+@@ -1873,6 +1880,19 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
      };
    };
  
 +  const invokeAddChip = (start: number, end: number, text: string) => {
-+    if (!props.onAddChip || pendingUserInputs.length > 0 || isEditingQueuedMessage) return false;
++    if (!addChipAction) return false;
 +    const applied = applyPromptReplacement(start, end, "", {
 +      expectedText: text.slice(start, end),
 +      focusEditorAfterReplace: false,
 +    });
 +    if (applied) {
 +      setComposerHighlightedItemId(null);
-+      props.onAddChip();
++      addChipAction();
 +    }
 +    return applied;
 +  };
@@ -49,7 +68,7 @@ index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..784ef2f314928ed6c807f6fe21877dc8
    const { onUsageLimitsCommand } = props;
    const onSelectComposerItem = (item: ComposerCommandItem) => {
      if (composerSelectLockRef.current) return;
-@@ -1899,6 +1916,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+@@ -1899,6 +1919,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
        return;
      }
      if (item.type === "slash-command") {
@@ -60,7 +79,7 @@ index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..784ef2f314928ed6c807f6fe21877dc8
        if (item.command === "model") {
          const applied = applyPromptReplacement(trigger.rangeStart, trigger.rangeEnd, "", {
            expectedText: snapshot.value.slice(trigger.rangeStart, trigger.rangeEnd),
-@@ -1910,6 +1931,17 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+@@ -1910,6 +1934,17 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
          }
          return;
        }
@@ -78,7 +97,7 @@ index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..784ef2f314928ed6c807f6fe21877dc8
        if (item.command === "clear") {
          const applied = applyPromptReplacement(trigger.rangeStart, trigger.rangeEnd, "", {
            expectedText: snapshot.value.slice(trigger.rangeStart, trigger.rangeEnd),
-@@ -2122,6 +2154,22 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+@@ -2122,6 +2157,21 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
        event?.preventDefault();
        return false;
      }
@@ -89,15 +108,60 @@ index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..784ef2f314928ed6c807f6fe21877dc8
 +    ) {
 +      event?.preventDefault();
 +      const text = promptRef.current;
-+      if (props.onAddChip) return invokeAddChip(0, text.length, text);
++      if (addChipAction) return invokeAddChip(0, text.length, text);
 +      toastManager.add({
 +        type: "warning",
 +        title: "Could not open Add chip",
-+        description:
-+          props.sideChatDisabledReason ?? "Open a project thread with an available agent.",
++        description: "Open a project thread with an available agent.",
 +      });
 +      return false;
 +    }
      // A send while a pasted image is still compressing would strand that image:
      // the turn snapshot wouldn't include it, and it would surface in the *next*
      // draft instead.
+@@ -3405,7 +3455,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+                   ) : showProviderUnavailable ? (
+                     "Enable a provider in Settings"
+                   ) : (
+-                    "Ask anything..."
++                    `Ask anything...${addChipHint}`
+                   )}
+                 </button>
+                 {collapsedComposerImagePreviews}
+@@ -3589,7 +3639,10 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+                             ? "Choose a project above to start a thread"
+                             : showProviderUnavailable
+                               ? "Enable a provider in Settings to send a message"
+-                              : (offeredPromptSuggestion ?? DEFAULT_COMPOSER_PLACEHOLDER)
++                              : (offeredPromptSuggestion ??
++                                (addChipHint
++                                  ? `${DEFAULT_COMPOSER_PLACEHOLDER}.${addChipHint}`
++                                  : DEFAULT_COMPOSER_PLACEHOLDER))
+                     }
+                     placeholderSuffix={
+                       offeredPromptSuggestion !== null ? (
+@@ -3656,8 +3709,22 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
+                     "hidden sm:flex",
+                 )}
+               >
+-                {composerAttachButton && !dictationTakesFooter ? (
+-                  <div className="me-2">{composerAttachButton}</div>
++                {(composerAttachButton || addChipAction) && !dictationTakesFooter ? (
++                  <div className="me-2 flex shrink-0 items-center gap-1">
++                    {composerAttachButton}
++                    {addChipAction ? (
++                      <Button
++                        type="button"
++                        variant="ghost"
++                        size="icon-sm"
++                        aria-label="Add chip"
++                        onPointerDown={(event) => event.preventDefault()}
++                        onClick={addChipAction}
++                      >
++                        <CpuIcon className="size-4.5" />
++                      </Button>
++                    ) : null}
++                  </div>
+                 ) : null}
+                 <div
+                   data-chat-composer-actions="right"

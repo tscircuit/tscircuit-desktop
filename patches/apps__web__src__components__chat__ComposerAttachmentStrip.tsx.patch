@@ -1,0 +1,16 @@
+Matches the paperclip glyph size and alignment to the adjacent chip button.
+
+diff --git a/apps/web/src/components/chat/ComposerAttachmentStrip.tsx b/apps/web/src/components/chat/ComposerAttachmentStrip.tsx
+index ca98b4d2f6c796720f94b54b9b719b6aea99e988..17a3fd74edcc4525fdc3857f5f4d033333113f33 100644
+--- a/apps/web/src/components/chat/ComposerAttachmentStrip.tsx
++++ b/apps/web/src/components/chat/ComposerAttachmentStrip.tsx
+@@ -738,8 +738,7 @@ export function ComposerAttachButton({
+             />
+           }
+         >
+-          {/* The clip's weight sits in its upper loop; 1px down reads as centered on the row. */}
+-          <PaperclipIcon className="translate-y-px" />
++          <PaperclipIcon className="size-4.5" />
+         </TooltipTrigger>
+         <TooltipPopup>Attach files</TooltipPopup>
+       </Tooltip>
