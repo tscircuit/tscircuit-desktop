@@ -1,7 +1,7 @@
 Handles /order and /chip and adds an Add chip button and first-message hint to the composer.
 
 diff --git a/apps/web/src/components/chat/ChatComposer.tsx b/apps/web/src/components/chat/ChatComposer.tsx
-index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..62276cde0864e5a7a7c9adfef1a881c52585ea5e 100644
+index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..8abcfd81ad2bd6edcfa35f37d5163de35a5346f5 100644
 --- a/apps/web/src/components/chat/ChatComposer.tsx
 +++ b/apps/web/src/components/chat/ChatComposer.tsx
 @@ -235,7 +235,7 @@ import { observeResize } from "~/lib/observeResize";
@@ -9,7 +9,7 @@ index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..62276cde0864e5a7a7c9adfef1a881c5
  const isEnvironmentRequestInvalidError = Schema.is(EnvironmentRequestInvalidError);
  import { toastManager } from "../ui/toast";
 -import { BuildingIcon, PlayIcon, ReplyIcon } from "lucide-react";
-+import { BuildingIcon, MicrochipIcon, PlayIcon, ReplyIcon } from "lucide-react";
++import { BuildingIcon, CpuIcon, PlayIcon, ReplyIcon } from "lucide-react";
  import { useNavigate } from "@tanstack/react-router";
  import { assistantCitationLabel } from "@t3tools/shared/assistantCitations";
  import { assistantCitationNavigation } from "../../lib/assistantCitationNavigation";
@@ -158,7 +158,7 @@ index eb01b8242e2dfaaead2e42b57e6e7508758e90fd..62276cde0864e5a7a7c9adfef1a881c5
 +                        onPointerDown={(event) => event.preventDefault()}
 +                        onClick={addChipAction}
 +                      >
-+                        <MicrochipIcon className="size-4.5" />
++                        <CpuIcon className="size-4.5" />
 +                      </Button>
 +                    ) : null}
 +                  </div>
