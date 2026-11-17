@@ -12,7 +12,8 @@ export type OrderRequestKind =
   | "bom"
   | "pick_and_place"
   | "kicad_project"
-  | "jlcpcb_quote";
+  | "jlcpcb_quote"
+  | "circuithub_project";
 
 export interface OrderRequest {
   readonly kind: OrderRequestKind;

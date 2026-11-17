@@ -1,3 +1,4 @@
+import { CircuithubQuotePanel } from "./CircuithubQuotePanel";
 import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import { CheckIcon, ChevronDownIcon, DownloadIcon, ExternalLinkIcon } from "lucide-react";
 import { Fragment, useEffect, useId, useReducer, useState } from "react";
@@ -163,13 +164,13 @@ export default function OrderPanel(props: {
     <OrderPage
       key={viewerAttempt}
       fsMap={project.fsMap}
-      entryFile={entryFile}
       lookingForBuild={built.status === "checking"}
       buildText={
         built.status === "current"
           ? (built.files.fsMap[built.files.mainComponentPath] ?? null)
           : null
       }
+      entryFile={entryFile}
       projectName={orderProjectName(entryFile, cwd)}
       truncated={project.truncated}
       onChangeFile={candidates.some((path) => path !== entryFile) ? () => setChoosing(true) : null}
@@ -466,7 +467,27 @@ function OrderPage(props: {
 
           <ul aria-label="Where to order" className="divide-y overflow-hidden rounded-xl border">
             {MANUFACTURERS.map((manufacturer) =>
-              manufacturer.priced && quotable ? (
+              manufacturer.name === "CircuitHub" ? (
+                <CircuithubQuotePanel
+                  key={`${entryFile}:circuithub`}
+                  projectName={projectName}
+                  run={run}
+                  circuitJsonText={circuitJsonText}
+                  ready={quotable && readiness.status === "ready" && errorCount === 0}
+                  files={async () => {
+                    const payload = await request(
+                      { kind: "circuithub_project", projectName, circuitJsonText },
+                      FILES_TIMEOUT_MS,
+                    );
+                    const files = readOrderFiles(payload);
+                    if (!files)
+                      throw new Error(
+                        "The viewer could not prepare the complete CircuitHub project.",
+                      );
+                    return files;
+                  }}
+                />
+              ) : manufacturer.priced && quotable ? (
                 <li key={manufacturer.name}>
                   <div className="flex items-center">
                     <Tooltip>
