@@ -78,3 +78,18 @@ export const CircuithubResponse = Schema.Struct({
   error: Schema.NullOr(Schema.String),
 });
 export type CircuithubResponse = typeof CircuithubResponse.Type;
+
+// A pasted callback contains a credential; keep it redacted inside the HTTP API.
+export const CircuithubBrowserRequest = Schema.Union([
+  CircuithubRequest,
+  Schema.Struct({
+    action: Schema.Literal("complete_login"),
+    callbackUrl: Schema.RedactedFromValue(Schema.String),
+  }),
+]);
+export type CircuithubBrowserRequest = typeof CircuithubBrowserRequest.Type;
+export const CircuithubBrowserResponse = Schema.Struct({
+  ...CircuithubResponse.fields,
+  authorizationUrl: Schema.NullOr(Schema.String),
+});
+export type CircuithubBrowserResponse = typeof CircuithubBrowserResponse.Type;

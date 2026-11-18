@@ -1,0 +1,25 @@
+Expose the shared Node CircuitHub workflow to desktop and server without duplicating login, expiry, cancellation or quoting behavior.
+
+diff --git a/packages/shared/package.json b/packages/shared/package.json
+index 9df772f66d238133484b213f76a6047df97c3b8f..8afd3c515a9a545e319ef6200808f516082467b8 100644
+--- a/packages/shared/package.json
++++ b/packages/shared/package.json
+@@ -550,6 +550,18 @@
+     "./speech": {
+       "types": "./src/speech.ts",
+       "import": "./src/speech.ts"
++    },
++    "./circuithub/api": {
++      "types": "./src/circuithub/api.ts",
++      "import": "./src/circuithub/api.ts"
++    },
++    "./circuithub/login": {
++      "types": "./src/circuithub/login.ts",
++      "import": "./src/circuithub/login.ts"
++    },
++    "./circuithub/service": {
++      "types": "./src/circuithub/service.ts",
++      "import": "./src/circuithub/service.ts"
+     }
+   },
+   "scripts": {

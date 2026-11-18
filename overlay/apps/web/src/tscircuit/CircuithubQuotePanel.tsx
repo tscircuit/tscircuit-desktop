@@ -4,6 +4,7 @@ import type {
   CircuithubRequest,
 } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
+import * as Redacted from "effect/Redacted";
 import { ChevronDownIcon, ExternalLinkIcon } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
@@ -12,6 +13,7 @@ import { Input } from "~/components/ui/input";
 import { Spinner } from "~/components/ui/spinner";
 import { getLocalStorageItem, setLocalStorageItem } from "~/hooks/useLocalStorage";
 import { cn } from "~/lib/utils";
+import { requestCircuithubBrowser } from "./circuithubBrowser";
 import type { OrderFileContents } from "./orderFiles";
 import { isCircuithubPriceReady, parseCircuithubQuantities, quotePrice } from "./circuithubQuote";
 
@@ -32,7 +34,12 @@ export function CircuithubQuotePanel(props: {
   readonly ready: boolean;
   readonly files: () => Promise<OrderFileContents>;
 }) {
-  const api = window.desktopBridge?.circuithub;
+  const nativeApi = window.desktopBridge?.circuithub;
+  const api = nativeApi ?? requestCircuithubBrowser;
+  const browserMode = nativeApi === undefined;
+  const [authorizationUrl, setAuthorizationUrl] = useState<string | null>(null);
+  const [callbackUrl, setCallbackUrl] = useState("");
+  const [linking, setLinking] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [account, setAccount] = useState(ACCOUNT);
   const [workspace, setWorkspace] = useState(
@@ -56,7 +63,7 @@ export function CircuithubQuotePanel(props: {
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- reads native account and import progress; credentials never cross the bridge
   useEffect(() => {
-    if (!expanded || !api) return;
+    if (!expanded) return;
     let disposed = false;
     let reading = false;
     const read = async () => {
@@ -66,11 +73,19 @@ export function CircuithubQuotePanel(props: {
         const response = await api({ action: "status" });
         if (!disposed) {
           setAccount(response.account);
+          if (!response.account.loginPending) setCallbackUrl("");
+          setAuthorizationUrl(
+            "authorizationUrl" in response && typeof response.authorizationUrl === "string"
+              ? response.authorizationUrl
+              : null,
+          );
           if (response.error) setError(response.error);
         }
       } catch {
         if (!disposed)
-          setError("Could not read the CircuitHub connection. Restart the app and try again.");
+          setError(
+            "Could not access CircuitHub account settings. Check your workspace connection and account-management permissions.",
+          );
       }
       reading = false;
     };
@@ -83,15 +98,20 @@ export function CircuithubQuotePanel(props: {
   }, [expanded, api]);
 
   const invoke = async (request: CircuithubRequest) => {
-    if (!api) throw new Error("Open this project in tscircuit desktop to connect CircuitHub.");
     const response = await api(request);
     setAccount(response.account);
+    setAuthorizationUrl(
+      "authorizationUrl" in response && typeof response.authorizationUrl === "string"
+        ? response.authorizationUrl
+        : null,
+    );
     if (!response.ok)
       throw new Error(response.error ?? "CircuitHub could not complete this request.");
     return response;
   };
   const accountAction = async (action: "login" | "logout" | "cancel") => {
     setError(null);
+    setCallbackUrl("");
     if (action === "cancel" || action === "logout") quoteAttempt.current += 1;
     try {
       await invoke({ action });
@@ -102,6 +122,24 @@ export function CircuithubQuotePanel(props: {
     } catch (error) {
       setError(error instanceof Error ? error.message : "CircuitHub sign-in failed.");
     }
+  };
+  const completeAccount = async () => {
+    setLinking(true);
+    setError(null);
+    const pastedCallback = callbackUrl;
+    setCallbackUrl("");
+    try {
+      const response = await requestCircuithubBrowser({
+        action: "complete_login",
+        callbackUrl: Redacted.make(pastedCallback),
+      });
+      setAccount(response.account);
+      setAuthorizationUrl(response.authorizationUrl);
+      if (!response.ok) setError(response.error ?? "CircuitHub sign-in did not complete.");
+    } catch {
+      setError("Could not finish CircuitHub sign-in. Try the authorization link again.");
+    }
+    setLinking(false);
   };
   const getQuote = async (refresh: boolean) => {
     const attempt = ++quoteAttempt.current;
@@ -170,154 +208,197 @@ export function CircuithubQuotePanel(props: {
           className="min-w-0 flex-1 justify-between"
           aria-expanded={expanded}
           aria-controls={id}
-          onClick={() => setExpanded((value) => !value)}
+          onClick={() => {
+            if (!account.connected && !account.loginPending) {
+              setExpanded(true);
+              void accountAction("login");
+            } else setExpanded((value) => !value);
+          }}
         >
-          <span>CircuitHub</span>
+          <span>{account.connected ? "CircuitHub" : "Connect CircuitHub"}</span>
           <span className="flex items-center gap-2 text-muted-foreground text-xs">
             {account.connected ? "Connected" : "Connect for quotes"}
             <ChevronDownIcon className={cn("size-4", expanded && "rotate-180")} />
           </span>
         </Button>
-        <a
-          href="https://app.circuithub.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Open CircuitHub"
-          className="px-3.5 py-2.5 text-muted-foreground"
-        >
-          <ExternalLinkIcon className="size-4" />
-        </a>
       </div>
       {expanded ? (
         <div id={id} className="flex flex-col gap-3 border-t px-3.5 py-3 text-sm">
-          {!api ? (
-            <p>Connect and request CircuitHub quotes from the desktop app.</p>
-          ) : (
-            <>
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span>
-                  {account.connected
-                    ? `Signed in${account.displayName ? ` as ${account.displayName}` : ""}`
-                    : account.loginPending
-                      ? "Finish signing in in your browser"
-                      : "Sign in to request assembled-board prices."}
-                </span>
-                {account.connected ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={busy || account.progress !== null}
-                    onClick={() => void accountAction("logout")}
-                  >
-                    Disconnect
-                  </Button>
-                ) : account.loginPending ? (
-                  <Button variant="outline" size="sm" onClick={() => void accountAction("cancel")}>
-                    Cancel sign-in
-                  </Button>
-                ) : (
-                  <Button size="sm" onClick={() => void accountAction("login")}>
-                    Sign in to CircuitHub
-                  </Button>
-                )}
-              </div>
-              {account.connected && !account.persistent ? (
-                <p className="text-muted-foreground text-xs">
-                  Your OS keychain is unavailable. This connection lasts until you close the app.
-                </p>
-              ) : null}
+          <>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span>
+                {account.connected
+                  ? `Signed in${account.displayName ? ` as ${account.displayName}` : ""}`
+                  : account.loginPending
+                    ? "Finish signing in in your browser"
+                    : "Sign in to request assembled-board prices."}
+              </span>
               {account.connected ? (
-                <>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="flex flex-col gap-1" htmlFor={`${id}-workspace`}>
-                      Workspace
-                      <Input
-                        id={`${id}-workspace`}
-                        value={workspace}
-                        onChange={(event) => setWorkspace(event.target.value)}
-                        placeholder="Workspace slug"
-                        disabled={busy}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1" htmlFor={`${id}-quantities`}>
-                      Board quantities
-                      <Input
-                        id={`${id}-quantities`}
-                        value={quantities}
-                        onChange={(event) => setQuantities(event.target.value)}
-                        placeholder="1,5,10"
-                        disabled={busy}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1" htmlFor={`${id}-project`}>
-                      Existing project ID (optional)
-                      <Input
-                        id={`${id}-project`}
-                        value={projectId}
-                        onChange={(event) => setProjectId(event.target.value)}
-                        inputMode="numeric"
-                        disabled={busy}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1" htmlFor={`${id}-classification`}>
-                      Export classification
-                      <Input
-                        id={`${id}-classification`}
-                        value={classification}
-                        onChange={(event) => setClassification(event.target.value)}
-                        placeholder="For example, EAR99"
-                        disabled={busy}
-                      />
-                    </label>
-                  </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={busy || account.progress !== null}
+                  onClick={() => void accountAction("logout")}
+                >
+                  Disconnect
+                </Button>
+              ) : account.loginPending ? (
+                <Button variant="outline" size="sm" onClick={() => void accountAction("cancel")}>
+                  Cancel sign-in
+                </Button>
+              ) : (
+                <Button size="sm" onClick={() => void accountAction("login")}>
+                  Sign in to CircuitHub
+                </Button>
+              )}
+            </div>
+            {browserMode && account.loginPending && authorizationUrl ? (
+              <div className="flex flex-col gap-2">
+                <a
+                  href={authorizationUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline"
+                >
+                  Authorize CircuitHub (Link your CLI)
+                </a>
+                <p className="text-muted-foreground text-xs">
+                  Complete authorization in that tab. It will redirect to localhost, which may show
+                  a connection error because this workspace runs in the cloud. Copy the full URL
+                  from the browser address bar and paste it below to finish linking.
+                </p>
+                <form
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void completeAccount();
+                  }}
+                  className="flex flex-col gap-2"
+                >
+                  <label htmlFor={`${id}-callback`}>Callback URL from the authorization tab</label>
+                  <Input
+                    id={`${id}-callback`}
+                    type="password"
+                    autoComplete="off"
+                    spellCheck={false}
+                    value={callbackUrl}
+                    onChange={(event) => setCallbackUrl(event.target.value)}
+                    disabled={linking}
+                  />
+                  <Button type="submit" size="sm" disabled={linking || !callbackUrl.trim()}>
+                    {linking ? "Linking account" : "Finish linking CircuitHub"}
+                  </Button>
+                </form>
+              </div>
+            ) : null}
+            {account.connected ? (
+              <a
+                href="https://app.circuithub.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1 text-primary text-xs underline"
+              >
+                Open CircuitHub dashboard
+                <ExternalLinkIcon className="size-3" />
+              </a>
+            ) : null}
+            {account.connected && !account.persistent ? (
+              <p className="text-muted-foreground text-xs">
+                {browserMode
+                  ? "This account is linked only for this workspace session. Sign in again if the workspace restarts."
+                  : "Your OS keychain is unavailable. This connection lasts until you close the app."}
+              </p>
+            ) : null}
+            {account.connected ? (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1" htmlFor={`${id}-workspace`}>
+                    Workspace
+                    <Input
+                      id={`${id}-workspace`}
+                      value={workspace}
+                      onChange={(event) => setWorkspace(event.target.value)}
+                      placeholder="Workspace slug"
+                      disabled={busy}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1" htmlFor={`${id}-quantities`}>
+                    Board quantities
+                    <Input
+                      id={`${id}-quantities`}
+                      value={quantities}
+                      onChange={(event) => setQuantities(event.target.value)}
+                      placeholder="1,5,10"
+                      disabled={busy}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1" htmlFor={`${id}-project`}>
+                    Existing project ID (optional)
+                    <Input
+                      id={`${id}-project`}
+                      value={projectId}
+                      onChange={(event) => setProjectId(event.target.value)}
+                      inputMode="numeric"
+                      disabled={busy}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1" htmlFor={`${id}-classification`}>
+                    Export classification
+                    <Input
+                      id={`${id}-classification`}
+                      value={classification}
+                      onChange={(event) => setClassification(event.target.value)}
+                      placeholder="For example, EAR99"
+                      disabled={busy}
+                    />
+                  </label>
+                </div>
+                <p className="text-muted-foreground text-xs">
+                  Workspace is the slug in your CircuitHub workspace URL. Requesting a quote uploads
+                  this board's KiCad design to CircuitHub. Nothing is ordered.
+                </p>
+                {!props.ready ? (
                   <p className="text-muted-foreground text-xs">
-                    Workspace is the slug in your CircuitHub workspace URL. Requesting a quote
-                    uploads this board's KiCad design to CircuitHub. Nothing is ordered.
+                    Wait for the board to finish building and resolve its errors before requesting a
+                    quote.
                   </p>
-                  {!props.ready ? (
-                    <p className="text-muted-foreground text-xs">
-                      Wait for the board to finish building and resolve its errors before requesting
-                      a quote.
-                    </p>
-                  ) : null}
-                  <div className="flex flex-wrap items-center gap-2">
+                ) : null}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    size="sm"
+                    disabled={busy || account.progress !== null || !props.ready}
+                    onClick={() => void getQuote(false)}
+                  >
+                    {projectId ? "Quote new revision" : "Get quote"}
+                  </Button>
+                  {result ? (
                     <Button
                       size="sm"
-                      disabled={busy || account.progress !== null || !props.ready}
-                      onClick={() => void getQuote(false)}
+                      variant="outline"
+                      disabled={busy || account.progress !== null}
+                      onClick={() => void getQuote(true)}
                     >
-                      {projectId ? "Quote new revision" : "Get quote"}
+                      Refresh prices
                     </Button>
-                    {result ? (
+                  ) : null}
+                  {busy || account.progress !== null ? (
+                    <>
+                      <Spinner className="size-4" />
+                      <span className="text-muted-foreground text-xs">
+                        {account.progress ?? "Preparing quote"}
+                      </span>
                       <Button
                         size="sm"
-                        variant="outline"
-                        disabled={busy || account.progress !== null}
-                        onClick={() => void getQuote(true)}
+                        variant="ghost"
+                        onClick={() => void accountAction("cancel")}
                       >
-                        Refresh prices
+                        Cancel
                       </Button>
-                    ) : null}
-                    {busy || account.progress !== null ? (
-                      <>
-                        <Spinner className="size-4" />
-                        <span className="text-muted-foreground text-xs">
-                          {account.progress ?? "Preparing quote"}
-                        </span>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => void accountAction("cancel")}
-                        >
-                          Cancel
-                        </Button>
-                      </>
-                    ) : null}
-                  </div>
-                </>
-              ) : null}
-            </>
-          )}
+                    </>
+                  ) : null}
+                </div>
+              </>
+            ) : null}
+          </>
           {error ? (
             <Alert variant="error">
               <AlertTitle>CircuitHub needs attention</AlertTitle>

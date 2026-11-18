@@ -228,6 +228,7 @@ describe("CircuitHub integration", () => {
       login: async () => ({
         url: "https://app.circuithub.com/platform/v1/auth/cli",
         token: received.promise,
+        acceptCallback: () => false,
         close() {},
       }),
     });

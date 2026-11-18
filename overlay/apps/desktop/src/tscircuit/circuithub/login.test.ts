@@ -10,7 +10,9 @@ describe("CircuitHub browser callback", () => {
     try {
       const redirect = new URL(session.url).searchParams.get("redirect_uri")!;
       const callback = new URL(redirect);
-      expect(callback.hostname).toBe("127.0.0.1");
+      expect(callback.hostname).toBe("localhost");
+      expect(new URL(session.url).origin).toBe("https://app.circuithub.com");
+      expect(new URL(session.url).pathname).toBe("/platform/v1/auth/cli");
       expect((await fetch(new URL("/wrong-path?token=ignored", callback))).status).toBe(404);
       expect((await fetch(callback)).status).toBe(400);
       callback.searchParams.set("token", token);
@@ -30,4 +32,26 @@ describe("CircuitHub browser callback", () => {
     session.close();
     await expect(session.token).rejects.toThrow("cancelled");
   });
+});
+
+it("accepts the CLI cloud fallback only for the active callback and an unexpired JWT", async () => {
+  const session = await startLogin();
+  try {
+    const callback = new URL(new URL(session.url).searchParams.get("redirect_uri")!);
+    callback.searchParams.set("token", token);
+    const wrong = new URL(callback);
+    wrong.pathname += "-wrong";
+    expect(session.acceptCallback(wrong.href)).toBe(false);
+    const foreign = new URL(callback);
+    foreign.hostname = "example.com";
+    expect(session.acceptCallback(foreign.href)).toBe(false);
+    const expired = new URL(callback);
+    expired.searchParams.set("token", `h.${Buffer.from('{"exp":1}').toString("base64url")}.s`);
+    expect(session.acceptCallback(expired.href)).toBe(false);
+    expect(session.acceptCallback(callback.href)).toBe(true);
+    expect(await session.token).toBe(token);
+    expect(session.acceptCallback(callback.href)).toBe(false);
+  } finally {
+    session.close();
+  }
 });
