@@ -5,5 +5,6 @@
     "deploymentEnabled": {
       "main": false
     }
-  }
+  },
+  "ignoreCommand": "test \"$VERCEL_ENV\" != \"preview\""
 }
