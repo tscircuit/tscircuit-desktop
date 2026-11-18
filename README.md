@@ -129,6 +129,14 @@ The row of views is the app's, not RunFrame's. The app tells RunFrame which view
 
 To change the icon, edit `branding/app-icon.svg` and run `sh branding/make-icons.sh`, then `npm run export`.
 
+### CircuitHub quotes
+
+Open **Order → CircuitHub** in the desktop app and sign in using your system browser. Enter the workspace slug from your CircuitHub workspace URL, board quantities, and the board's export classification (for example, EAR99, if applicable). An existing project ID adds a revision to that project instead of creating another project.
+
+**Get quote** uploads the completed board as a KiCad project, including its schematic symbols. The panel shows import progress, service offers, unresolved parts and whether pricing is preliminary. **Refresh prices** requests fresh prices for the uploaded revision; **Quote new revision** uploads the current board. Quotes from an earlier board version stay labelled as such. **Review in CircuitHub** opens checkout in the browser; requesting a quote never orders a board.
+
+The desktop process holds the login token and uses the OS keychain to encrypt the saved session. It keeps the session in memory when secure storage is unavailable. **Disconnect** clears the saved session. CircuitHub tokens are never sent to the circuit viewer. In browser and cloud previews, **Connect CircuitHub** starts a workspace account-linking session. Open **Authorize CircuitHub (Link your CLI)**, finish authorization, then copy the full localhost callback URL from that tab's address bar and paste it into **Callback URL** in the preview. A localhost connection error is expected when the workspace runs remotely; the paste step completes the CLI's cloud-login handoff. The callback is bound to the initiating authenticated browser session. The app does not save it in local storage, and the server keeps the token only in workspace-process memory. Disconnect or workspace shutdown clears it, and JWT expiry is still enforced. Account management requires the workspace's provider-management permission.
+
 ### The bundled skill
 
 `setup` downloads the newest [tscircuit skill](https://github.com/tscircuit/skill) and packs it into the app, so every build carries the skill as it was on the day it was built. It is generated, not committed.

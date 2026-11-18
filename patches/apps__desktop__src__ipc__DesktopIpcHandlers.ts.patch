@@ -1,0 +1,19 @@
+Install the native CircuitHub account and quote service alongside the existing trusted desktop IPC handlers.
+
+diff --git a/apps/desktop/src/ipc/DesktopIpcHandlers.ts b/apps/desktop/src/ipc/DesktopIpcHandlers.ts
+index 9f2f68be615204bf2ffda87771833b445a6798d8..58f0a18b88415a162a0547f783adcf715210512c 100644
+--- a/apps/desktop/src/ipc/DesktopIpcHandlers.ts
++++ b/apps/desktop/src/ipc/DesktopIpcHandlers.ts
+@@ -1,3 +1,4 @@
++import { installCircuithub } from "../tscircuit/circuithub/ipc.ts";
+ import * as Effect from "effect/Effect";
+ 
+ import { receiveProviderAuthCallback, cancelProviderAuthCallback } from "./methods/providerAuth.ts";
+@@ -88,6 +89,7 @@ import {
+ export const installDesktopIpcHandlers = Effect.fn("desktop.ipc.installHandlers")(function* () {
+   const ipc = yield* DesktopIpc.DesktopIpc;
+   yield* installNotificationBadge();
++  yield* installCircuithub();
+   yield* PreviewIpc.installPreviewEventForwarding();
+ 
+   yield* ipc.handle(AppActivationIpc.setReady);

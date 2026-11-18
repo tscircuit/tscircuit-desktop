@@ -1,0 +1,20 @@
+Register the authenticated CircuitHub browser-account API. Each browser session owns its login state and in-memory token; desktop accounts continue to use the native bridge.
+
+diff --git a/apps/server/src/server.ts b/apps/server/src/server.ts
+index c73e4dcf19e81ded8602ba7df7506437c8eb192d..944f267566753004edeebed6a4708546c5277eb6 100644
+--- a/apps/server/src/server.ts
++++ b/apps/server/src/server.ts
+@@ -1,3 +1,5 @@
++import * as CircuithubBrowser from "./tscircuit/circuithub/CircuithubBrowser.ts";
++import * as CircuithubHttp from "./tscircuit/circuithub/http.ts";
+ import * as ProviderEventLoggers from "@t3tools/provider-core/server/ProviderEventLoggers";
+ import type { RelayManagedEndpointRuntimeConfig } from "@t3tools/contracts/relay";
+ import * as Random from "effect/Random";
+@@ -805,6 +807,7 @@ const layerMakeRoutes = Layer.mergeAll(
+       Layer.provide(OrchestrationHttp.layer),
+       Layer.provide(PullRequestHttp.layer),
+       Layer.provide(ProjectHttp.layer),
++      Layer.provide(CircuithubHttp.layer.pipe(Layer.provide(CircuithubBrowser.layer))),
+       Layer.provide(speechHttpApiLayer),
+       Layer.provide(ServerHttp.layerServerEnvironmentHttpApi),
+       Layer.provide(WebhookRoute.layer.pipe(Layer.provide(RelayDeliveryProof.layer))),
