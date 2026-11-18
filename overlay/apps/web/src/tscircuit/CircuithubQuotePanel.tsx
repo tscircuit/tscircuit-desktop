@@ -13,7 +13,7 @@ import { Spinner } from "~/components/ui/spinner";
 import { getLocalStorageItem, setLocalStorageItem } from "~/hooks/useLocalStorage";
 import { cn } from "~/lib/utils";
 import type { OrderFileContents } from "./orderFiles";
-import { parseCircuithubQuantities, quotePrice } from "./circuithubQuote";
+import { isCircuithubPriceReady, parseCircuithubQuantities, quotePrice } from "./circuithubQuote";
 
 const WORKSPACE_KEY = "tscircuit-desktop:circuithub-workspace";
 const ACCOUNT: CircuithubAccount = {
@@ -333,7 +333,7 @@ export function CircuithubQuotePanel(props: {
               {!result.quote.camReady ? (
                 <p className="text-xs">
                   Preliminary prices: CircuitHub is still analysing this board. Refresh later for
-                  final prices and available services.
+                  updated prices and available services.
                 </p>
               ) : null}
               {result.quote.unresolvedParts.length > 0 ? (
@@ -344,6 +344,18 @@ export function CircuithubQuotePanel(props: {
               {result.quote.quotes.map((quote) => (
                 <div key={quote.id} className="flex flex-col gap-2">
                   <h4 className="font-medium">{quote.quantity} boards</h4>
+                  <p className="text-xs" role="status">
+                    {isCircuithubPriceReady(result.quote.camReady, quote.status)
+                      ? "Prices ready"
+                      : "Preliminary prices"}{" "}
+                    · Quote status: {quote.status || "unknown"}
+                  </p>
+                  {!isCircuithubPriceReady(result.quote.camReady, quote.status) ? (
+                    <p className="text-muted-foreground text-xs">
+                      CircuitHub has not confirmed completed checks and pricing for this quote.
+                      Refresh for updated prices; displayed prices may change.
+                    </p>
+                  ) : null}
                   {quote.blockers.length > 0 ? (
                     <p className="text-xs">Cannot order yet: {quote.blockers.join(", ")}</p>
                   ) : null}
@@ -368,7 +380,9 @@ export function CircuithubQuotePanel(props: {
                           {offer.ships ? ` · Ships ${offer.ships}` : ""}
                         </div>
                       </div>
-                      {offer.checkoutUrl && quote.orderable ? (
+                      {offer.checkoutUrl &&
+                      quote.orderable &&
+                      isCircuithubPriceReady(result.quote.camReady, quote.status) ? (
                         <a
                           href={offer.checkoutUrl}
                           target="_blank"

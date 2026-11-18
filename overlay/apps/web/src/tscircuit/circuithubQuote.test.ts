@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { parseCircuithubQuantities, quotePrice } from "./circuithubQuote";
+import { isCircuithubPriceReady, parseCircuithubQuantities, quotePrice } from "./circuithubQuote";
 
 describe("CircuitHub quote inputs", () => {
   it("accepts separate quantities and removes duplicates", () => {
@@ -14,5 +14,18 @@ describe("CircuitHub quote inputs", () => {
   it("formats the quote in its stated currency", () => {
     expect(quotePrice("125.50", "USD")).toContain("125.50");
     expect(quotePrice("not available", "USD")).toBe("not available USD");
+  });
+});
+
+describe("CircuitHub price readiness", () => {
+  it.each([
+    { camReady: false, status: "complete", ready: false },
+    { camReady: true, status: "pending", ready: false },
+    { camReady: true, status: "processing", ready: false },
+    { camReady: true, status: "", ready: false },
+    { camReady: true, status: "unknown_future_status", ready: false },
+    { camReady: true, status: "complete", ready: true },
+  ])("CAM $camReady and quote $status gives ready=$ready", ({ camReady, status, ready }) => {
+    expect(isCircuithubPriceReady(camReady, status)).toBe(ready);
   });
 });

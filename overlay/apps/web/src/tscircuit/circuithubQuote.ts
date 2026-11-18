@@ -19,3 +19,8 @@ export function quotePrice(amount: string, currency: string): string {
     return `${amount} ${currency}`;
   }
 }
+
+/** Keep unknown pricing states provisional until the API explicitly reports completion. */
+export function isCircuithubPriceReady(camReady: boolean, status: string): boolean {
+  return camReady && status === "complete";
+}
