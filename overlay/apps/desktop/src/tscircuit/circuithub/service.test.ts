@@ -40,6 +40,13 @@ function setup(
     if (value.startsWith("https://storage.example/")) return new Response(null, { status: 200 });
     if (options.failAuth) return new Response("not authorized", { status: 401 });
     const endpoint = new URL(value).pathname;
+    if (endpoint === "/v1/workspaces")
+      return json({
+        workspaces: [
+          { id: 1, slug: "my-team", name: "My team" },
+          { id: 2, slug: "personal" },
+        ],
+      });
     if (endpoint === "/v1/projects/upload-urls")
       return json({
         uploads: input().files.map((file) => ({
@@ -134,6 +141,24 @@ describe("CircuitHub integration", () => {
     service.close();
   });
 
+  it("lists only account workspaces with a fallback label and never returns the bearer", async () => {
+    const { service, calls } = setup();
+    try {
+      const response = await service.request({ action: "workspaces" });
+      expect(response.ok).toBe(true);
+      expect(response.workspaces).toEqual([
+        { slug: "my-team", name: "My team" },
+        { slug: "personal", name: "personal" },
+      ]);
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.url).toBe("https://api.circuithub.com/v1/workspaces");
+      expect(calls[0]?.headers.get("authorization")).toBe(`Bearer ${TOKEN}`);
+      expect(JSON.stringify(response)).not.toContain(TOKEN);
+    } finally {
+      service.close();
+    }
+  });
+
   it("requires sign-in and clears expired sessions after an API rejection", async () => {
     const disconnected = setup({ initialToken: null });
     expect((await disconnected.service.request(input())).error).toMatch(/Sign in/);
@@ -143,8 +168,58 @@ describe("CircuitHub integration", () => {
     expect(response.account.connected).toBe(false);
     expect(response.error).toMatch(/session expired/);
     expect(expired.stored()).toBeNull();
+    const listExpired = setup({ failAuth: true });
+    const listResponse = await listExpired.service.request({ action: "workspaces" });
+    expect(listResponse.account.connected).toBe(false);
+    expect(listResponse.error).toMatch(/session expired/);
+    expect(listExpired.stored()).toBeNull();
+    listExpired.service.close();
     disconnected.service.close();
     expired.service.close();
+  });
+
+  it("does not clear a newly linked account after an older workspace request returns 401", async () => {
+    const entered = Promise.withResolvers<void>();
+    const response = Promise.withResolvers<Response>();
+    let saved: string | null = TOKEN;
+    let loginUrl = "";
+    const next = `header.${Buffer.from(JSON.stringify({ name: "New account", exp: 40_000_000_000 })).toString("base64url")}.signature`;
+    const service = createCircuithubService({
+      readToken: async () => saved,
+      writeToken: async (token) => {
+        saved = token;
+        return true;
+      },
+      clearToken: async () => {
+        saved = null;
+      },
+      openBrowser: async (url) => {
+        loginUrl = url;
+        return true;
+      },
+      fetch: async () => {
+        entered.resolve();
+        return response.promise;
+      },
+    });
+    try {
+      const pending = service.request({ action: "workspaces" });
+      await entered.promise;
+      await service.request({ action: "logout" });
+      await service.request({ action: "login" });
+      const callback = new URL(new URL(loginUrl).searchParams.get("redirect_uri")!);
+      callback.searchParams.set("token", next);
+      expect(
+        (await service.request({ action: "complete_login", callbackUrl: callback.href })).ok,
+      ).toBe(true);
+      response.resolve(new Response("expired", { status: 401 }));
+      const stale = await pending;
+      expect(stale.ok).toBe(false);
+      expect(stale.account).toMatchObject({ connected: true, displayName: "New account" });
+      expect(saved).toBe(next);
+    } finally {
+      service.close();
+    }
   });
 
   it("rejects unsafe and incomplete projects before making any network request", async () => {

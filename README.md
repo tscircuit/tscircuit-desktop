@@ -131,7 +131,7 @@ To change the icon, edit `branding/app-icon.svg` and run `sh branding/make-icons
 
 ### CircuitHub quotes
 
-Open **Order → CircuitHub** in the desktop app and sign in using your system browser. Enter the workspace slug from your CircuitHub workspace URL, board quantities, and the board's export classification (for example, EAR99, if applicable). An existing project ID adds a revision to that project instead of creating another project.
+Open **Order → CircuitHub** in the desktop app and sign in using your system browser. Choose a workspace from your connected account and enter board quantities. Export classification defaults to EAR99; choose **Other classification** to enter a different code when applicable. An existing project ID adds a revision to that project instead of creating another project.
 
 **Get quote** uploads the completed board as a KiCad project, including its schematic symbols. The panel shows import progress, service offers, unresolved parts and whether pricing is preliminary. **Refresh prices** requests fresh prices for the uploaded revision; **Quote new revision** uploads the current board. Quotes from an earlier board version stay labelled as such. **Review in CircuitHub** opens checkout in the browser; requesting a quote never orders a board.
 

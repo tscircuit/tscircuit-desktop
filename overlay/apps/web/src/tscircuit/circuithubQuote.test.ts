@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
-import { isCircuithubPriceReady, parseCircuithubQuantities, quotePrice } from "./circuithubQuote";
+import {
+  chooseCircuithubWorkspace,
+  isCircuithubPriceReady,
+  parseCircuithubQuantities,
+  quotePrice,
+} from "./circuithubQuote";
 
 describe("CircuitHub quote inputs", () => {
   it("accepts separate quantities and removes duplicates", () => {
@@ -27,5 +32,15 @@ describe("CircuitHub price readiness", () => {
     { camReady: true, status: "complete", ready: true },
   ])("CAM $camReady and quote $status gives ready=$ready", ({ camReady, status, ready }) => {
     expect(isCircuithubPriceReady(camReady, status)).toBe(ready);
+  });
+});
+
+describe("CircuitHub workspace selection", () => {
+  it("retains an available saved workspace and discards slugs unavailable to the current account", () => {
+    const choices = [{ slug: "alpha" }, { slug: "beta" }];
+    expect(chooseCircuithubWorkspace(choices, "beta")).toBe("beta");
+    expect(chooseCircuithubWorkspace(choices, "another-account")).toBe("");
+    expect(chooseCircuithubWorkspace([{ slug: "only-team" }], "")).toBe("only-team");
+    expect(chooseCircuithubWorkspace([], "beta")).toBe("");
   });
 });

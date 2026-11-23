@@ -1,5 +1,6 @@
 import type {
   CircuithubAccount,
+  CircuithubWorkspace,
   CircuithubQuoteResult,
   CircuithubRequest,
 } from "@t3tools/contracts";
@@ -10,13 +11,29 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "~/components/ui/alert";
 import { Button } from "~/components/ui/button";
 import { Input } from "~/components/ui/input";
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from "~/components/ui/select";
 import { Spinner } from "~/components/ui/spinner";
 import { getLocalStorageItem, setLocalStorageItem } from "~/hooks/useLocalStorage";
 import { cn } from "~/lib/utils";
 import { requestCircuithubBrowser } from "./circuithubBrowser";
 import type { OrderFileContents } from "./orderFiles";
-import { isCircuithubPriceReady, parseCircuithubQuantities, quotePrice } from "./circuithubQuote";
+import {
+  chooseCircuithubWorkspace,
+  isCircuithubPriceReady,
+  parseCircuithubQuantities,
+  quotePrice,
+} from "./circuithubQuote";
 
+const CLASSIFICATIONS = [
+  { value: "EAR99", label: "EAR99" },
+  { value: "other", label: "Other classification" },
+];
 const WORKSPACE_KEY = "tscircuit-desktop:circuithub-workspace";
 const ACCOUNT: CircuithubAccount = {
   connected: false,
@@ -46,7 +63,13 @@ export function CircuithubQuotePanel(props: {
     () => getLocalStorageItem(WORKSPACE_KEY, Schema.String) ?? "",
   );
   const [quantities, setQuantities] = useState("1,5,10");
-  const [classification, setClassification] = useState("");
+  const [classificationChoice, setClassificationChoice] = useState("EAR99");
+  const [customClassification, setCustomClassification] = useState("");
+  const classification = classificationChoice === "EAR99" ? "EAR99" : customClassification;
+  const [workspaces, setWorkspaces] = useState<readonly CircuithubWorkspace[]>([]);
+  const [loadingWorkspaces, setLoadingWorkspaces] = useState(false);
+  const [workspaceError, setWorkspaceError] = useState<string | null>(null);
+  const [workspaceRefresh, setWorkspaceRefresh] = useState(0);
   const [projectId, setProjectId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,6 +120,45 @@ export function CircuithubQuotePanel(props: {
     };
   }, [expanded, api]);
 
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- loads account-owned workspaces after sign-in; discards responses after account changes
+  useEffect(() => {
+    if (!expanded || !account.connected) return;
+    let disposed = false;
+    const accountExpiry = account.expiresAt;
+    void Promise.resolve()
+      .then(() => {
+        if (disposed || (accountExpiry !== null && accountExpiry <= Date.now())) return;
+        setLoadingWorkspaces(true);
+        setWorkspaceError(null);
+        setWorkspaces([]);
+        return api({ action: "workspaces" });
+      })
+      .then((response) => {
+        if (disposed || !response) return;
+        setAccount(response.account);
+        setLoadingWorkspaces(false);
+        if (!response.ok) {
+          setWorkspaceError(response.error ?? "Could not load your CircuitHub workspaces.");
+          return;
+        }
+        const choices = response.workspaces ?? [];
+        setWorkspaces(choices);
+        setWorkspace((previous) => chooseCircuithubWorkspace(choices, previous));
+      })
+      .catch((error: unknown) => {
+        if (!disposed) {
+          setLoadingWorkspaces(false);
+          setWorkspaceError(
+            error instanceof Error ? error.message : "Could not load your CircuitHub workspaces.",
+          );
+        }
+      });
+    return () => {
+      disposed = true;
+    };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies -- workspaceRefresh explicitly retries loading the account-owned workspace list
+  }, [expanded, account.connected, account.expiresAt, workspaceRefresh, api]);
+
   const invoke = async (request: CircuithubRequest) => {
     const response = await api(request);
     setAccount(response.account);
@@ -118,6 +180,8 @@ export function CircuithubQuotePanel(props: {
       if (action === "logout") {
         setResult(null);
         setProjectId("");
+        setWorkspaces([]);
+        setWorkspaceError(null);
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : "CircuitHub sign-in failed.");
@@ -311,16 +375,63 @@ export function CircuithubQuotePanel(props: {
             {account.connected ? (
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="flex flex-col gap-1" htmlFor={`${id}-workspace`}>
-                    Workspace
-                    <Input
-                      id={`${id}-workspace`}
-                      value={workspace}
-                      onChange={(event) => setWorkspace(event.target.value)}
-                      placeholder="Workspace slug"
-                      disabled={busy}
-                    />
-                  </label>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor={`${id}-workspace`}>Workspace</label>
+                    <Select
+                      value={
+                        workspaces.some((choice) => choice.slug === workspace) ? workspace : null
+                      }
+                      disabled={busy || loadingWorkspaces || workspaces.length === 0}
+                      items={workspaces.map((choice) => ({
+                        value: choice.slug,
+                        label:
+                          choice.name === choice.slug
+                            ? choice.slug
+                            : `${choice.name} (${choice.slug})`,
+                      }))}
+                      onValueChange={(value) => setWorkspace(value ?? "")}
+                    >
+                      <SelectTrigger id={`${id}-workspace`} aria-label="Workspace">
+                        <SelectValue
+                          placeholder={
+                            loadingWorkspaces
+                              ? "Loading workspaces…"
+                              : workspaceError
+                                ? "Couldn't load workspaces"
+                                : workspaces.length === 0
+                                  ? "No workspaces available"
+                                  : "Choose a workspace"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectPopup>
+                        {workspaces.map((choice) => (
+                          <SelectItem key={choice.slug} value={choice.slug}>
+                            {choice.name === choice.slug
+                              ? choice.slug
+                              : `${choice.name} (${choice.slug})`}
+                          </SelectItem>
+                        ))}
+                      </SelectPopup>
+                    </Select>
+                    <Button
+                      size="xs"
+                      variant="ghost"
+                      disabled={busy || loadingWorkspaces}
+                      onClick={() => setWorkspaceRefresh((value) => value + 1)}
+                    >
+                      {workspaceError ? "Retry loading workspaces" : "Refresh workspaces"}
+                    </Button>
+                    {workspaceError ? (
+                      <p role="alert" className="text-xs">
+                        {workspaceError}
+                      </p>
+                    ) : !loadingWorkspaces && workspaces.length === 0 ? (
+                      <p className="text-muted-foreground text-xs">
+                        Create or join a workspace in CircuitHub, then refresh this list.
+                      </p>
+                    ) : null}
+                  </div>
                   <label className="flex flex-col gap-1" htmlFor={`${id}-quantities`}>
                     Board quantities
                     <Input
@@ -341,20 +452,46 @@ export function CircuithubQuotePanel(props: {
                       disabled={busy}
                     />
                   </label>
-                  <label className="flex flex-col gap-1" htmlFor={`${id}-classification`}>
-                    Export classification
-                    <Input
-                      id={`${id}-classification`}
-                      value={classification}
-                      onChange={(event) => setClassification(event.target.value)}
-                      placeholder="For example, EAR99"
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor={`${id}-classification`}>Export classification</label>
+                    <Select
+                      value={classificationChoice}
+                      items={CLASSIFICATIONS}
                       disabled={busy}
-                    />
-                  </label>
+                      onValueChange={(value) => {
+                        if (value !== null) setClassificationChoice(value);
+                      }}
+                    >
+                      <SelectTrigger id={`${id}-classification`} aria-label="Export classification">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectPopup>
+                        {CLASSIFICATIONS.map((choice) => (
+                          <SelectItem key={choice.value} value={choice.value}>
+                            {choice.label}
+                          </SelectItem>
+                        ))}
+                      </SelectPopup>
+                    </Select>
+                    {classificationChoice === "other" ? (
+                      <>
+                        <label htmlFor={`${id}-custom-classification`}>
+                          Custom export classification
+                        </label>
+                        <Input
+                          id={`${id}-custom-classification`}
+                          value={customClassification}
+                          onChange={(event) => setCustomClassification(event.target.value)}
+                          placeholder="Enter classification"
+                          disabled={busy}
+                        />
+                      </>
+                    ) : null}
+                  </div>
                 </div>
                 <p className="text-muted-foreground text-xs">
-                  Workspace is the slug in your CircuitHub workspace URL. Requesting a quote uploads
-                  this board's KiCad design to CircuitHub. Nothing is ordered.
+                  Choose a workspace from your CircuitHub account. Requesting a quote uploads this
+                  board's KiCad design to CircuitHub. Nothing is ordered.
                 </p>
                 {!props.ready ? (
                   <p className="text-muted-foreground text-xs">
@@ -365,7 +502,14 @@ export function CircuithubQuotePanel(props: {
                 <div className="flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"
-                    disabled={busy || account.progress !== null || !props.ready}
+                    disabled={
+                      busy ||
+                      account.progress !== null ||
+                      !props.ready ||
+                      loadingWorkspaces ||
+                      !workspaces.some((choice) => choice.slug === workspace) ||
+                      (!projectId.trim() && !classification.trim())
+                    }
                     onClick={() => void getQuote(false)}
                   >
                     {projectId ? "Quote new revision" : "Get quote"}

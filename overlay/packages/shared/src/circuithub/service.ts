@@ -2,6 +2,7 @@
 import * as Schema from "effect/Schema";
 import type {
   CircuithubAccount,
+  CircuithubWorkspace,
   CircuithubQuoteResult,
   CircuithubRequest,
   CircuithubResponse,
@@ -162,6 +163,39 @@ export function createCircuithubService(options: Options) {
     }
   }
 
+  async function listWorkspaces(): Promise<readonly CircuithubWorkspace[]> {
+    if (!token || !tokenClaims(token))
+      throw new Error("Sign in to CircuitHub to load your workspaces.");
+    const accountGeneration = generation;
+    try {
+      const result = await createApi(
+        token,
+        AbortSignal.timeout(30_000),
+        options.fetch,
+      ).workspaces();
+      if (accountGeneration !== generation)
+        throw new Error("The CircuitHub account changed. Reload workspaces.");
+      if (!Array.isArray(result.workspaces))
+        throw new Error("CircuitHub returned an invalid workspace list.");
+      return result.workspaces.map((workspace) => {
+        if (typeof workspace.slug !== "string" || !workspace.slug.trim())
+          throw new Error("CircuitHub returned a workspace without a slug.");
+        return {
+          slug: workspace.slug,
+          name:
+            typeof workspace.name === "string" && workspace.name.trim()
+              ? workspace.name
+              : workspace.slug,
+        };
+      });
+    } catch (error) {
+      if (accountGeneration !== generation)
+        throw new Error("The CircuitHub account changed. Reload workspaces.", { cause: error });
+      if (isCircuitHubHttpError(error) && error.status === 401) await logout();
+      throw error;
+    }
+  }
+
   async function quote(
     request: Extract<CircuithubRequest, { action: "create" | "refresh" }>,
   ): Promise<CircuithubQuoteResult> {
@@ -300,8 +334,12 @@ export function createCircuithubService(options: Options) {
       await load();
       try {
         let result: CircuithubQuoteResult | null = null;
+        let workspaces: readonly CircuithubWorkspace[] | undefined;
         switch (request.action) {
           case "status":
+            break;
+          case "workspaces":
+            workspaces = await listWorkspaces();
             break;
           case "complete_login": {
             const completion = loginCompletion;
@@ -331,7 +369,13 @@ export function createCircuithubService(options: Options) {
             result = await quote(request);
             break;
         }
-        return { ok: true, account: account(), quote: result, error: authError };
+        return {
+          ok: true,
+          account: account(),
+          quote: result,
+          error: authError,
+          ...(workspaces ? { workspaces } : {}),
+        };
       } catch (error) {
         return {
           ok: false,

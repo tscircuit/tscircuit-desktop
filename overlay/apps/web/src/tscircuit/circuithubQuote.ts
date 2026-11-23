@@ -24,3 +24,12 @@ export function quotePrice(amount: string, currency: string): string {
 export function isCircuithubPriceReady(camReady: boolean, status: string): boolean {
   return camReady && status === "complete";
 }
+
+/** Never reuse a saved slug that is not available to the current account. */
+export function chooseCircuithubWorkspace(
+  workspaces: readonly { readonly slug: string }[],
+  previous: string,
+): string {
+  if (workspaces.some((workspace) => workspace.slug === previous)) return previous;
+  return workspaces.length === 1 ? workspaces[0]!.slug : "";
+}

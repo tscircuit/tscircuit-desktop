@@ -30,14 +30,19 @@ export interface Bom {
 }
 export class CircuitHubHttpError extends Schema.TaggedError<CircuitHubHttpError>()(
   "CircuitHubHttpError",
-  { status: Schema.Number },
+  {
+    status: Schema.Number,
+    operation: Schema.optional(Schema.String),
+    detail: Schema.optional(Schema.String),
+    code: Schema.optional(Schema.String),
+  },
 ) {
   override get message() {
-    return this.status === 401
-      ? "Your CircuitHub session expired. Sign in again."
-      : this.status === 403
-        ? "CircuitHub denied access to this workspace or project."
-        : `CircuitHub could not complete the request (HTTP ${this.status}). Please try again.`;
+    if (this.status === 401) return "Your CircuitHub session expired. Sign in again.";
+    const operation = this.operation ? ` ${this.operation}` : " the request";
+    const code = this.code ? ` [${this.code}]` : "";
+    const detail = this.detail ? `: ${this.detail}` : ". Please try again.";
+    return `CircuitHub rejected${operation} (HTTP ${this.status})${code}${detail}`;
   }
 }
 
@@ -53,10 +58,43 @@ export function createApi(token: string, signal: AbortSignal, fetchFn = globalTh
       },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     });
-    if (!response.ok) throw new CircuitHubHttpError({ status: response.status });
+    if (!response.ok) {
+      let detail: string | undefined;
+      let code: string | undefined;
+      try {
+        const body = (await response.json()) as {
+          error?: string | { message?: unknown; code?: unknown };
+          message?: unknown;
+          code?: unknown;
+        };
+        const nested = typeof body.error === "object" && body.error !== null ? body.error : null;
+        const message = nested?.message ?? body.message ?? body.error;
+        const errorCode = nested?.code ?? body.code;
+        if (typeof errorCode === "string" && /^[A-Za-z0-9_-]{1,80}$/.test(errorCode))
+          code = errorCode;
+        if (typeof message === "string" && response.status < 500 && response.status !== 401) {
+          detail = message
+            .replaceAll(token, "[redacted]")
+            .replace(/Bearer\s+[^\s"'<>]+/gi, "Bearer [redacted]")
+            .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[redacted]")
+            .replace(/https?:\/\/[^\s"'<>]+/gi, "[redacted URL]")
+            .replace(/\p{Cc}/gu, " ")
+            .slice(0, 500);
+        }
+      } catch {
+        /* Non-JSON error pages are never echoed. */
+      }
+      throw new CircuitHubHttpError({
+        status: response.status,
+        operation: `${method} ${path}`,
+        ...(detail ? { detail } : {}),
+        ...(code ? { code } : {}),
+      });
+    }
     return (await response.json()) as T;
   }
   return {
+    workspaces: () => call<{ workspaces: { slug: string; name?: string }[] }>("GET", "/workspaces"),
     uploads: (workspace: string, files: { filename: string; size: number }[]) =>
       call<{ uploads: Upload[] }>("POST", "/projects/upload-urls", { workspace, files }),
     upload: async (upload: Upload, content: Uint8Array) => {

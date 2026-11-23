@@ -2,6 +2,8 @@ import * as Schema from "effect/Schema";
 
 const Id = Schema.Int.check(Schema.isGreaterThan(0));
 const Text = Schema.String.check(Schema.isMaxLength(512));
+export const CircuithubWorkspace = Schema.Struct({ slug: Text, name: Text });
+export type CircuithubWorkspace = typeof CircuithubWorkspace.Type;
 const Quantities = Schema.Array(Id.check(Schema.isLessThanOrEqualTo(100_000))).check(
   Schema.isMinLength(1),
   Schema.isMaxLength(12),
@@ -14,7 +16,7 @@ const Files = Schema.Array(
 ).check(Schema.isMinLength(3), Schema.isMaxLength(100));
 
 export const CircuithubRequest = Schema.Union([
-  Schema.Struct({ action: Schema.Literals(["status", "login", "logout", "cancel"]) }),
+  Schema.Struct({ action: Schema.Literals(["status", "login", "logout", "cancel", "workspaces"]) }),
   Schema.Struct({
     action: Schema.Literal("create"),
     workspace: Text,
@@ -72,6 +74,7 @@ export const CircuithubQuoteResult = Schema.Struct({
 export type CircuithubQuoteResult = typeof CircuithubQuoteResult.Type;
 
 export const CircuithubResponse = Schema.Struct({
+  workspaces: Schema.optional(Schema.Array(CircuithubWorkspace)),
   ok: Schema.Boolean,
   account: CircuithubAccount,
   quote: Schema.NullOr(CircuithubQuoteResult),
