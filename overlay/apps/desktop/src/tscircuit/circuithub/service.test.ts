@@ -226,6 +226,8 @@ describe("CircuitHub integration", () => {
     const { service, calls } = setup();
     for (const request of [
       { ...input(), exportClassification: "" },
+      { ...input(), exportClassification: "ITAR" },
+      { ...input(), exportClassification: "arbitrary-code" },
       { ...input(), workspace: "https://other.example/" },
       { ...input(), files: [{ filename: "../board.kicad_pcb", content: "private" }] },
       { ...input(), files: input().files.slice(0, 2) },

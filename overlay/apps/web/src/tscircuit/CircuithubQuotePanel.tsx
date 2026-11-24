@@ -32,7 +32,8 @@ import {
 
 const CLASSIFICATIONS = [
   { value: "EAR99", label: "EAR99" },
-  { value: "other", label: "Other classification" },
+  { value: "NotExportControlled", label: "Not export controlled" },
+  { value: "other", label: "Other classification (ECCN)" },
 ];
 const WORKSPACE_KEY = "tscircuit-desktop:circuithub-workspace";
 const ACCOUNT: CircuithubAccount = {
@@ -65,7 +66,8 @@ export function CircuithubQuotePanel(props: {
   const [quantities, setQuantities] = useState("1,5,10");
   const [classificationChoice, setClassificationChoice] = useState("EAR99");
   const [customClassification, setCustomClassification] = useState("");
-  const classification = classificationChoice === "EAR99" ? "EAR99" : customClassification;
+  const classification =
+    classificationChoice === "other" ? customClassification : classificationChoice;
   const [workspaces, setWorkspaces] = useState<readonly CircuithubWorkspace[]>([]);
   const [loadingWorkspaces, setLoadingWorkspaces] = useState(false);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
@@ -482,7 +484,7 @@ export function CircuithubQuotePanel(props: {
                           id={`${id}-custom-classification`}
                           value={customClassification}
                           onChange={(event) => setCustomClassification(event.target.value)}
-                          placeholder="Enter classification"
+                          placeholder="ECCN, for example 3A001"
                           disabled={busy}
                         />
                       </>

@@ -7,7 +7,13 @@ import type {
   CircuithubRequest,
   CircuithubResponse,
 } from "@t3tools/contracts";
-import { createApi, CircuitHubHttpError, checkoutUrl, isBoardMeasured } from "./api.ts";
+import {
+  createApi,
+  CircuitHubHttpError,
+  checkoutUrl,
+  isBoardMeasured,
+  parseExportClassification,
+} from "./api.ts";
 import { startLogin, tokenClaims } from "./login.ts";
 
 const isCircuitHubHttpError = Schema.is(CircuitHubHttpError);
@@ -45,6 +51,7 @@ export function validateProject(input: Extract<CircuithubRequest, { action: "cre
     throw new Error(
       "Enter the board's export classification, or use an existing CircuitHub project.",
     );
+  if (input.projectId === null) parseExportClassification(input.exportClassification);
   const names = new Set<string>();
   let bytes = 0;
   for (const file of input.files) {

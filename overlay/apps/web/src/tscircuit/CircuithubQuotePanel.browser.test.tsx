@@ -152,14 +152,24 @@ it("selects an account workspace and submits EAR99 by default or a custom classi
     )
     .toBeVisible();
   await screen.getByRole("combobox", { name: "Export classification", exact: true }).click();
-  await page.getByRole("option", { name: "Other classification", exact: true }).click();
-  await screen.getByLabelText("Custom export classification", { exact: true }).fill("TEST-CODE");
+  await page.getByRole("option", { name: "Not export controlled", exact: true }).click();
   await screen.getByRole("button", { name: "Get quote", exact: true }).click();
-  expect(requestBrowser).toHaveBeenLastCalledWith(
+  expect(requestBrowser).toHaveBeenCalledWith(
     expect.objectContaining({
       action: "create",
       workspace: "seveibar",
-      exportClassification: "TEST-CODE",
+      exportClassification: "NotExportControlled",
+    }),
+  );
+  await screen.getByRole("combobox", { name: "Export classification", exact: true }).click();
+  await page.getByRole("option", { name: "Other classification (ECCN)", exact: true }).click();
+  await screen.getByLabelText("Custom export classification", { exact: true }).fill("3A001");
+  await screen.getByRole("button", { name: "Get quote", exact: true }).click();
+  expect(requestBrowser).toHaveBeenCalledWith(
+    expect.objectContaining({
+      action: "create",
+      workspace: "seveibar",
+      exportClassification: "3A001",
     }),
   );
 });

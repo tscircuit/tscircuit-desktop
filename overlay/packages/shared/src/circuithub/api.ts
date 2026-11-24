@@ -46,6 +46,17 @@ export class CircuitHubHttpError extends Schema.TaggedError<CircuitHubHttpError>
   }
 }
 
+export function parseExportClassification(
+  value: string,
+): { tag: "EAR99" | "NotExportControlled" } | { tag: "ECCN"; contents: string } {
+  const classification = value.trim();
+  if (classification === "EAR99" || classification === "NotExportControlled")
+    return { tag: classification };
+  if (/^[0-9][A-E][0-9]{3}(?:\.[A-Za-z0-9]+)*$/i.test(classification))
+    return { tag: "ECCN", contents: classification };
+  throw new Error("Choose EAR99, NotExportControlled, or enter an ECCN such as 3A001.");
+}
+
 export function createApi(token: string, signal: AbortSignal, fetchFn = globalThis.fetch) {
   async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
     const response = await fetchFn(`https://api.circuithub.com/v1${path}`, {
@@ -62,27 +73,47 @@ export function createApi(token: string, signal: AbortSignal, fetchFn = globalTh
       let detail: string | undefined;
       let code: string | undefined;
       try {
-        const body = (await response.json()) as {
-          error?: string | { message?: unknown; code?: unknown };
-          message?: unknown;
-          code?: unknown;
-        };
-        const nested = typeof body.error === "object" && body.error !== null ? body.error : null;
-        const message = nested?.message ?? body.message ?? body.error;
-        const errorCode = nested?.code ?? body.code;
-        if (typeof errorCode === "string" && /^[A-Za-z0-9_-]{1,80}$/.test(errorCode))
-          code = errorCode;
-        if (typeof message === "string" && response.status < 500 && response.status !== 401) {
-          detail = message
-            .replaceAll(token, "[redacted]")
-            .replace(/Bearer\s+[^\s"'<>]+/gi, "Bearer [redacted]")
-            .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[redacted]")
-            .replace(/https?:\/\/[^\s"'<>]+/gi, "[redacted URL]")
-            .replace(/\p{Cc}/gu, " ")
-            .slice(0, 500);
+        const text = await response.text();
+        let message: unknown;
+        let errorCode: unknown;
+        try {
+          const body = JSON.parse(text) as
+            | {
+                error?: string | { message?: unknown; code?: unknown };
+                message?: unknown;
+                code?: unknown;
+              }
+            | string;
+          if (typeof body === "string") message = body;
+          else if (body !== null) {
+            const nested =
+              typeof body.error === "object" && body.error !== null ? body.error : null;
+            message = nested?.message ?? body.message ?? body.error;
+            errorCode = nested?.code ?? body.code;
+          }
+        } catch {
+          if (
+            /^text\/plain(?:;|$)/i.test(response.headers.get("content-type") ?? "") &&
+            !/^\s*<(?:!doctype|html|head|body)\b/i.test(text)
+          )
+            message = text;
+        }
+        if (response.status < 500 && response.status !== 401) {
+          if (typeof errorCode === "string" && /^[A-Za-z0-9_-]{1,80}$/.test(errorCode))
+            code = errorCode;
+          if (typeof message === "string") {
+            detail = message
+              .replaceAll(token, "[redacted]")
+              .replace(/Bearer\s+[^\s"'<>]+/gi, "Bearer [redacted]")
+              .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[redacted]")
+              .replace(/https?:\/\/[^\s"'<>]+/gi, "[redacted URL]")
+              .replace(/\p{Cc}/gu, " ")
+              .trim()
+              .slice(0, 500);
+          }
         }
       } catch {
-        /* Non-JSON error pages are never echoed. */
+        /* Unreadable error bodies never replace the HTTP failure. */
       }
       throw new CircuitHubHttpError({
         status: response.status,
@@ -114,7 +145,11 @@ export function createApi(token: string, signal: AbortSignal, fetchFn = globalTh
       workspace: string;
       exportClassification: string;
       files: { filename: string; objectKey: string }[];
-    }) => call<{ projectId: number; revisionId: number }>("POST", "/projects", input),
+    }) =>
+      call<{ projectId: number; revisionId: number }>("POST", "/projects", {
+        ...input,
+        exportClassification: parseExportClassification(input.exportClassification),
+      }),
     revision: (projectId: number, files: { filename: string; objectKey: string }[]) =>
       call<{ projectId: number; revisionId: number }>("POST", `/projects/${projectId}/revisions`, {
         files,
