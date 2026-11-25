@@ -127,6 +127,8 @@ How the Circuit tab works: it reads the project's source files through T3 Code's
 
 The row of views is the app's, not RunFrame's. The app tells RunFrame which view to draw and to hide its own header, and RunFrame reports back what the rendered circuit contains (how many elements of each type) and whether the run failed. From that the app greys out views with nothing in them, moves off an empty view when a file is first opened, and shows RunFrame's error list when a file does not run. Source is drawn by the app from the same file text, with T3 Code's read-only viewer.
 
+The Circuit tab also keeps a timestamped **Design playback** timeline for this panel session. It records observed native preview attempts, routing and check events, and frozen Circuit JSON, including failures without new snapshots. Seeking is read-only and does not evaluate source; **Back to live** returns to the current design. See [playback behavior, limits, and the native proof](docs/playback/README.md).
+
 To change the icon, edit `branding/app-icon.svg` and run `sh branding/make-icons.sh`, then `npm run export`.
 
 ### The bundled skill

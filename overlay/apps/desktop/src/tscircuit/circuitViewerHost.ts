@@ -6,7 +6,12 @@
 const VIEWER_HOST = "viewer";
 /** Where the web app's build keeps the viewer's files (apps/web/public/tscircuit-viewer). */
 const VIEWER_FOLDER = "/tscircuit-viewer";
-const VIEWER_FILES = new Set(["/frame.html", "/runframe.min.js", "/viewer-assets.js"]);
+const VIEWER_FILES = new Set([
+  "/frame.html",
+  "/runframe.min.js",
+  "/viewer-assets.js",
+  "/playback.js",
+]);
 
 export type ViewerRoute =
   /** Not the viewer's host: the request is the app's. */
@@ -27,7 +32,10 @@ export function routeViewerRequest(input: {
   if (!VIEWER_FILES.has(url.pathname) || (input.method !== "GET" && input.method !== "HEAD")) {
     return { kind: "not_found" };
   }
-  return { kind: "viewer", appUrl: `${url.protocol}//${input.appHost}${VIEWER_FOLDER}${url.pathname}` };
+  return {
+    kind: "viewer",
+    appUrl: `${url.protocol}//${input.appHost}${VIEWER_FOLDER}${url.pathname}`,
+  };
 }
 
 /**

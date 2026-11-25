@@ -29,6 +29,7 @@
     -->
     <div id="root"></div>
     <script src="./viewer-assets.js"></script>
+    <script src="./playback.js"></script>
     <script>
       (() => {
         const assets = self.TSCIRCUIT_VIEWER_ASSETS ?? {};
@@ -112,7 +113,9 @@
         // RunFrame's 3D viewer uses this in place of the copy it would import from a CDN.
         if (assets.manifoldJs && assets.manifoldWasmBase64) {
           window.MANIFOLD_MODULE = async () => {
-            const wasmBinary = Uint8Array.from(atob(assets.manifoldWasmBase64), (c) => c.charCodeAt(0));
+            const wasmBinary = Uint8Array.from(atob(assets.manifoldWasmBase64), (c) =>
+              c.charCodeAt(0),
+            );
             const { default: createManifold } = await import(blobUrl(assets.manifoldJs));
             // locateFile keeps manifold from resolving its .wasm against a blob URL, which throws.
             return createManifold({ wasmBinary, locateFile: (path) => path });
@@ -149,8 +152,7 @@
         let phases = [];
         const phaseInputs = new Map();
         const tellApp = (message) => window.parent?.postMessage(message, "*");
-        const tellPhases = () =>
-          tellApp({ tscircuit_desktop_type: "autorouter_phases", phases });
+        const tellPhases = () => tellApp({ tscircuit_desktop_type: "autorouter_phases", phases });
         const sameUnlessMissing = (a, b) => a === undefined || b === undefined || a === b;
         // The app draws each routed board or group from this, so that two boards without
         // names can be told apart. A thinned copy: a routing problem can hold thousands of pads.
@@ -235,6 +237,7 @@
             tellPhases();
             return executeWithFsMap.apply(worker, args);
           };
+          self.tscircuitDesktopTapPlayback?.(worker);
         };
         let runFrameWorker = globalThis.runFrameWorker;
         Object.defineProperty(globalThis, "runFrameWorker", {

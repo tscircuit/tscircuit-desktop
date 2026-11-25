@@ -1,8 +1,10 @@
+import { type CircuitObservation, readCircuitObservation } from "./circuitPlayback";
 import { type AutorouterPhase, readAutorouterPhases } from "./autorouterPhases";
 import type { CircuitScreen, ElementCounts } from "./circuitViews";
 
 /** What the viewer frame tells the app. Null for a message that is not one of these. */
 export type ViewerMessage =
+  | { readonly kind: "playback_observation"; readonly observation: CircuitObservation }
   | { readonly kind: "ready" }
   | { readonly kind: "run_started" }
   | { readonly kind: "circuit_rendered"; readonly counts: ElementCounts }
@@ -36,6 +38,10 @@ function readCounts(value: unknown): ElementCounts {
 /** RunFrame says nothing of autorouting to the page around it. These come from frame.html itself. */
 function parseFrameMessage(data: Record<string, unknown>): ViewerMessage | null {
   switch (data.tscircuit_desktop_type) {
+    case "playback_observation": {
+      const observation = readCircuitObservation(data.observation);
+      return observation === null ? null : { kind: "playback_observation", observation };
+    }
     case "autorouter_phases":
       return { kind: "autorouter_phases", phases: readAutorouterPhases(data.phases) };
     case "autorouter_phase_input":

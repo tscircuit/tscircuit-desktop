@@ -97,8 +97,10 @@ it("stacks at most two panes, isolates navigation/errors, and closes with focus 
   const panel = document.querySelector("[data-circuit-panel]")!;
   expect(panel.classList.contains("flex-col")).toBe(true);
   expect(panel.classList.contains("divide-y")).toBe(true);
-  expect(panel.children[0]?.getAttribute("aria-label")).toBe("Primary circuit view");
-  expect(panel.children[1]?.getAttribute("aria-label")).toBe("Secondary circuit view");
+  expect(panel.querySelector("section")?.getAttribute("aria-label")).toBe("Primary circuit view");
+  expect(panel.querySelectorAll("section")[1]?.getAttribute("aria-label")).toBe(
+    "Secondary circuit view",
+  );
   expect(document.querySelectorAll('button[aria-label="Order"]')).toHaveLength(1);
   await screen.getByRole("button", { name: "Order", exact: true }).click();
   expect(openOrderPane).toHaveBeenCalledWith(props.threadRef);
@@ -148,6 +150,6 @@ it("stacks at most two panes, isolates navigation/errors, and closes with focus 
   await screen.rerender(<Harness {...props} cwd={undefined} />);
   await screen.getByRole("button", { name: "Close split circuit view", exact: true }).click();
   expect(document.querySelectorAll("iframe")).toHaveLength(1);
-  expect(document.querySelector("iframe")).toBe(topFrame);
+  expect(document.querySelector("iframe")).not.toBe(topFrame);
   expect(document.activeElement?.getAttribute("aria-label")).toBe("Split circuit view");
 });

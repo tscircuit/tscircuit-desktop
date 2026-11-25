@@ -1,0 +1,425 @@
+{
+  "options": [
+    {
+      "value": "preview-1:0",
+      "text": "2:10:40 PM \u00b7 Preview attempt started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-1:1",
+      "text": "2:10:40 PM \u00b7 SOURCE checks started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-1:2",
+      "text": "2:10:40 PM \u00b7 PLACEMENT checks started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-1:3",
+      "text": "2:10:40 PM \u00b7 PCB checks started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-1:4",
+      "text": "2:10:40 PM \u00b7 Routing started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-1:5",
+      "text": "2:10:41 PM \u00b7 Routing finished \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-1:6",
+      "text": "2:10:41 PM \u00b7 Native checks finished \u00b7 0 error records"
+    },
+    {
+      "value": "preview-2:0",
+      "text": "2:10:41 PM \u00b7 Preview attempt started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-2:1",
+      "text": "2:10:41 PM \u00b7 Preview attempt failed \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-3:0",
+      "text": "2:10:42 PM \u00b7 Preview attempt started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-3:1",
+      "text": "2:10:42 PM \u00b7 SOURCE checks started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-3:2",
+      "text": "2:10:42 PM \u00b7 PLACEMENT checks started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-3:3",
+      "text": "2:10:42 PM \u00b7 PCB checks started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-3:4",
+      "text": "2:10:42 PM \u00b7 Routing started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-3:5",
+      "text": "2:10:42 PM \u00b7 Routing finished \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-3:6",
+      "text": "2:10:42 PM \u00b7 Native checks finished \u00b7 0 error records"
+    },
+    {
+      "value": "preview-4:0",
+      "text": "2:10:42 PM \u00b7 Preview attempt started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-4:1",
+      "text": "2:10:42 PM \u00b7 SOURCE checks started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-4:2",
+      "text": "2:10:42 PM \u00b7 PLACEMENT checks started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-4:3",
+      "text": "2:10:42 PM \u00b7 PCB checks started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-4:4",
+      "text": "2:10:42 PM \u00b7 Routing failed \u00b7 15 error records"
+    },
+    {
+      "value": "preview-5:0",
+      "text": "2:10:43 PM \u00b7 Preview attempt started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-5:1",
+      "text": "2:10:43 PM \u00b7 SOURCE checks started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-5:2",
+      "text": "2:10:43 PM \u00b7 PLACEMENT checks started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-5:3",
+      "text": "2:10:43 PM \u00b7 PCB checks started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-5:4",
+      "text": "2:10:43 PM \u00b7 Routing started \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-5:5",
+      "text": "2:10:43 PM \u00b7 Routing finished \u00b7 no new snapshot"
+    },
+    {
+      "value": "preview-5:6",
+      "text": "2:10:43 PM \u00b7 Native checks finished \u00b7 0 error records"
+    },
+    {
+      "value": "live",
+      "text": "Live"
+    }
+  ],
+  "evalBefore": 6,
+  "evalAfter": 6,
+  "splitViews": 2,
+  "playAdvanced": true,
+  "viewSwitchKeptSelection": true,
+  "runCount": 5,
+  "terminalCount": 5,
+  "observations": [
+    {
+      "requestId": "preview-1",
+      "sequence": 0,
+      "at": 1795612240612,
+      "stage": "started",
+      "observedAtUtc": "2026-11-25T13:10:40.612000+00:00"
+    },
+    {
+      "requestId": "preview-1",
+      "sequence": 1,
+      "at": 1795612240692,
+      "stage": "checks",
+      "checks": [
+        "source"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:40.692000+00:00"
+    },
+    {
+      "requestId": "preview-1",
+      "sequence": 2,
+      "at": 1795612240758,
+      "stage": "checks",
+      "checks": [
+        "placement"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:40.758000+00:00"
+    },
+    {
+      "requestId": "preview-1",
+      "sequence": 3,
+      "at": 1795612240946,
+      "stage": "checks",
+      "checks": [
+        "pcb"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:40.946000+00:00"
+    },
+    {
+      "requestId": "preview-1",
+      "sequence": 4,
+      "at": 1795612240972,
+      "stage": "routing",
+      "phaseStatus": "running",
+      "observedAtUtc": "2026-11-25T13:10:40.972000+00:00"
+    },
+    {
+      "requestId": "preview-1",
+      "sequence": 5,
+      "at": 1795612241235,
+      "stage": "routing",
+      "phaseStatus": "complete",
+      "observedAtUtc": "2026-11-25T13:10:41.235000+00:00"
+    },
+    {
+      "requestId": "preview-1",
+      "sequence": 6,
+      "at": 1795612241300,
+      "stage": "completed",
+      "checks": [
+        "source",
+        "placement",
+        "pcb"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:41.300000+00:00",
+      "artifactSha256": "4b96e31f873f014a8df96a7f3add8a6d3cabc9d342ce5c9262086a95ce13ff0f",
+      "errorTypes": []
+    },
+    {
+      "requestId": "preview-2",
+      "sequence": 0,
+      "at": 1795612241771,
+      "stage": "started",
+      "observedAtUtc": "2026-11-25T13:10:41.771000+00:00"
+    },
+    {
+      "requestId": "preview-2",
+      "sequence": 1,
+      "at": 1795612241788,
+      "stage": "failed",
+      "checks": [],
+      "observedAtUtc": "2026-11-25T13:10:41.788000+00:00"
+    },
+    {
+      "requestId": "preview-3",
+      "sequence": 0,
+      "at": 1795612242165,
+      "stage": "started",
+      "observedAtUtc": "2026-11-25T13:10:42.165000+00:00"
+    },
+    {
+      "requestId": "preview-3",
+      "sequence": 1,
+      "at": 1795612242192,
+      "stage": "checks",
+      "checks": [
+        "source"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:42.192000+00:00"
+    },
+    {
+      "requestId": "preview-3",
+      "sequence": 2,
+      "at": 1795612242207,
+      "stage": "checks",
+      "checks": [
+        "placement"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:42.207000+00:00"
+    },
+    {
+      "requestId": "preview-3",
+      "sequence": 3,
+      "at": 1795612242222,
+      "stage": "checks",
+      "checks": [
+        "pcb"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:42.222000+00:00"
+    },
+    {
+      "requestId": "preview-3",
+      "sequence": 4,
+      "at": 1795612242226,
+      "stage": "routing",
+      "phaseStatus": "running",
+      "observedAtUtc": "2026-11-25T13:10:42.226000+00:00"
+    },
+    {
+      "requestId": "preview-3",
+      "sequence": 5,
+      "at": 1795612242303,
+      "stage": "routing",
+      "phaseStatus": "complete",
+      "observedAtUtc": "2026-11-25T13:10:42.303000+00:00"
+    },
+    {
+      "requestId": "preview-3",
+      "sequence": 6,
+      "at": 1795612242366,
+      "stage": "completed",
+      "checks": [
+        "source",
+        "placement",
+        "pcb"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:42.366000+00:00",
+      "artifactSha256": "c4d434006c363468f428e5ee873df8033388248ea3b7c15a8fb167f397b33748",
+      "errorTypes": []
+    },
+    {
+      "requestId": "preview-4",
+      "sequence": 0,
+      "at": 1795612242620,
+      "stage": "started",
+      "observedAtUtc": "2026-11-25T13:10:42.620000+00:00"
+    },
+    {
+      "requestId": "preview-4",
+      "sequence": 1,
+      "at": 1795612242644,
+      "stage": "checks",
+      "checks": [
+        "source"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:42.644000+00:00"
+    },
+    {
+      "requestId": "preview-4",
+      "sequence": 2,
+      "at": 1795612242658,
+      "stage": "checks",
+      "checks": [
+        "placement"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:42.658000+00:00"
+    },
+    {
+      "requestId": "preview-4",
+      "sequence": 3,
+      "at": 1795612242676,
+      "stage": "checks",
+      "checks": [
+        "pcb"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:42.676000+00:00"
+    },
+    {
+      "requestId": "preview-4",
+      "sequence": 4,
+      "at": 1795612242734,
+      "stage": "completed",
+      "checks": [
+        "source",
+        "placement",
+        "pcb"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:42.734000+00:00",
+      "artifactSha256": "5b6673eb8dc7a0f015c84f31acb1ce6cd3c3d623aa3a94db0a23d9ac64f15911",
+      "errorTypes": [
+        "pcb_placement_error",
+        "pcb_placement_error",
+        "pcb_placement_error",
+        "pcb_placement_error",
+        "pcb_placement_error",
+        "pcb_placement_error",
+        "pcb_autorouting_error",
+        "pcb_port_not_connected_error",
+        "pcb_port_not_connected_error",
+        "pcb_port_not_connected_error",
+        "pcb_port_not_connected_error",
+        "pcb_trace_missing_error",
+        "pcb_trace_missing_error",
+        "pcb_trace_missing_error",
+        "pcb_trace_missing_error"
+      ]
+    },
+    {
+      "requestId": "preview-5",
+      "sequence": 0,
+      "at": 1795612243051,
+      "stage": "started",
+      "observedAtUtc": "2026-11-25T13:10:43.051000+00:00"
+    },
+    {
+      "requestId": "preview-5",
+      "sequence": 1,
+      "at": 1795612243071,
+      "stage": "checks",
+      "checks": [
+        "source"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:43.071000+00:00"
+    },
+    {
+      "requestId": "preview-5",
+      "sequence": 2,
+      "at": 1795612243086,
+      "stage": "checks",
+      "checks": [
+        "placement"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:43.086000+00:00"
+    },
+    {
+      "requestId": "preview-5",
+      "sequence": 3,
+      "at": 1795612243101,
+      "stage": "checks",
+      "checks": [
+        "pcb"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:43.101000+00:00"
+    },
+    {
+      "requestId": "preview-5",
+      "sequence": 4,
+      "at": 1795612243106,
+      "stage": "routing",
+      "phaseStatus": "running",
+      "observedAtUtc": "2026-11-25T13:10:43.106000+00:00"
+    },
+    {
+      "requestId": "preview-5",
+      "sequence": 5,
+      "at": 1795612243176,
+      "stage": "routing",
+      "phaseStatus": "complete",
+      "observedAtUtc": "2026-11-25T13:10:43.176000+00:00"
+    },
+    {
+      "requestId": "preview-5",
+      "sequence": 6,
+      "at": 1795612243213,
+      "stage": "completed",
+      "checks": [
+        "source",
+        "placement",
+        "pcb"
+      ],
+      "observedAtUtc": "2026-11-25T13:10:43.213000+00:00",
+      "artifactSha256": "d4278f1f4b05ceb2d765ca3e1cf6bb4e67c79d253784320eaea7a665687f2bbb",
+      "errorTypes": []
+    }
+  ],
+  "environment": {
+    "node": "26.12.1",
+    "pnpm": "12.14.0",
+    "tscircuit": "0.0.3293",
+    "chromiumPackage": "@sparticuz/chromium@158.0.0",
+    "entrypoint": "npm run preview \u2192 Circuit review \u2192 Circuit \u2192 Schematic",
+    "notes": [
+      "Test-only empty network-interface fallback when enumeration is denied.",
+      "Browser HTTP caching and GPU disabled for the final two-pane run.",
+      "Stock Replay chat supplies none of the observed circuit states.",
+      "Native PCB bitmap not verified: opaque-origin browser WebGPU restriction."
+    ]
+  }
+}
