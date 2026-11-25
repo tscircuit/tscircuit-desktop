@@ -13,7 +13,7 @@ import {
   viewStateForFile,
   viewsWithContent,
   viewTabs,
-} from "./circuitViews";
+} from "../../src/tscircuit/circuitViews";
 
 const BOARD = { pcb_board: 1, pcb_component: 2, schematic_component: 2, schematic_group: 1 };
 const SYSTEM_ONLY = { system_block_page: 1, system_block_component: 2 };

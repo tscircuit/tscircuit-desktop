@@ -6,7 +6,7 @@ import {
   patchFileName,
   readNote,
   upstreamPathOf,
-} from "./patch-files.ts"
+} from "../../../scripts/lib/patch-files.ts"
 
 const DIFF = "diff --git a/a.ts b/a.ts\n--- a/a.ts\n+++ b/a.ts\n@@ -1 +1 @@\n-a\n+b"
 

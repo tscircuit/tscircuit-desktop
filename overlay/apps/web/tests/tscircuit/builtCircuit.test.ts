@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { circuitBuildOutput, expectedBuild, isBuildOfSources } from "./builtCircuit";
-import { type ProjectReader, readProject } from "./projectFsMap";
-import { readCircuitBuildHistory } from "./circuitBuildHistory";
+import {
+  circuitBuildOutput,
+  expectedBuild,
+  isBuildOfSources,
+} from "../../src/tscircuit/builtCircuit";
+import { type ProjectReader, readProject } from "../../src/tscircuit/projectFsMap";
+import { readCircuitBuildHistory } from "../../src/tscircuit/circuitBuildHistory";
 
 const PROJECT: Record<string, string> = {
   "package.json": '{ "name": "phone" }\n',

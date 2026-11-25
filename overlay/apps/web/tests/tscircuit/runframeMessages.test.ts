@@ -5,7 +5,7 @@ import {
   phaseInputRequest,
   viewerFileProps,
   viewerTabProps,
-} from "./runframeMessages";
+} from "../../src/tscircuit/runframeMessages";
 
 describe("parseViewerMessage", () => {
   it("is ready only for a RunFrame that takes the app's tab and reports its renders", () => {

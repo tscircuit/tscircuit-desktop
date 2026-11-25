@@ -1,0 +1,14 @@
+Typecheck Desktop tests from the separate tests directory.
+
+diff --git a/apps/web/tsconfig.json b/apps/web/tsconfig.json
+index c60a2173e971e2b36ac0b217527899ae9e0c0c06..a0eba8fe54865c16e079246b1d6dfe4a5ec53f05 100644
+--- a/apps/web/tsconfig.json
++++ b/apps/web/tsconfig.json
+@@ -32,6 +32,7 @@
+     "vercel.ts",
+     "gt.config.json",
+     "test",
++    "tests",
+     "scripts/verify-built-boot.ts",
+     "scripts/warm-dep-cache.ts",
+     "../../scripts/lib/public-config.ts",

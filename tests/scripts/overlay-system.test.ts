@@ -9,7 +9,7 @@ import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, 
 import { tmpdir } from "node:os"
 import { dirname, join } from "node:path"
 import { test } from "node:test"
-import { NOTE_PLACEHOLDER } from "./lib/patch-files.ts"
+import { NOTE_PLACEHOLDER } from "../../scripts/lib/patch-files.ts"
 
 const UPSTREAM_FILE = `${["one", "two", "three", "four", "five", "six", "seven", "eight"].join("\n")}\n`
 
@@ -46,7 +46,7 @@ function createSandbox(extraUpstreamFiles: Record<string, string | Buffer> = {})
   const firstCommit = commitUpstream("first")
 
   mkdirSync(repo)
-  cpSync(import.meta.dirname, join(repo, "scripts"), { recursive: true })
+  cpSync(new URL("../../scripts/", import.meta.url), join(repo, "scripts"), { recursive: true })
   writeFileSync(
     join(repo, "upstream.json"),
     JSON.stringify({ repository: upstream, branch: "main", commit: firstCommit }),

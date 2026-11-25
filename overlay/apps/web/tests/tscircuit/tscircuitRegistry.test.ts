@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { createAutorouterBugReport, signInToTscircuit } from "./tscircuitRegistry";
+import {
+  createAutorouterBugReport,
+  signInToTscircuit,
+} from "../../src/tscircuit/tscircuitRegistry";
 
 interface Call {
   readonly path: string;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import { circuitPanelReducer, initialCircuitPanelState } from "./circuitViews";
-import { secondCircuitView } from "./circuitSplit";
+import { circuitPanelReducer, initialCircuitPanelState } from "../../src/tscircuit/circuitViews";
+import { secondCircuitView } from "../../src/tscircuit/circuitSplit";
 
 const rendered = (preferred: "pcb" | "schematic", counts: Record<string, number>) =>
   circuitPanelReducer(initialCircuitPanelState(preferred), {

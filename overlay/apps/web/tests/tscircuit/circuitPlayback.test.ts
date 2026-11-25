@@ -8,7 +8,7 @@ import {
   recordCircuitPreviewEvent,
   recordBuildSnapshot,
   findSnapshotStep,
-} from "./circuitPlayback";
+} from "../../src/tscircuit/circuitPlayback";
 
 it("bounds retained history and preserves failed output separately from missing output", () => {
   let history: ReadonlyArray<CircuitPlaybackStep> = [];

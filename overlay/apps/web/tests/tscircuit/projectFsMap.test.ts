@@ -6,7 +6,7 @@ import {
   pickEntryFile,
   pickFileToOrder,
   shouldWalkDirectory,
-} from "./projectFsMap";
+} from "../../src/tscircuit/projectFsMap";
 
 describe("pickEntryFile", () => {
   it("prefers the entrypoint named in tscircuit.config.json", () => {

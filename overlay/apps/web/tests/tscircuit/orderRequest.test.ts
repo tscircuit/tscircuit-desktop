@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { orderRequestMessage, parseOrderResponse } from "./orderRequest";
+import { orderRequestMessage, parseOrderResponse } from "../../src/tscircuit/orderRequest";
 
 const response = (fields: Record<string, unknown>) => ({
   tscircuit_desktop_type: "order_output",
