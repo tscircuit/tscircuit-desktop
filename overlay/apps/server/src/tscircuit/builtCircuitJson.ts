@@ -3,7 +3,7 @@
  * `dist/<file>/circuit.json`, which runs to megabytes for a board of any size. File reads stop
  * at 1 MB to keep previews light, so a build's Circuit JSON gets a limit of its own.
  */
-const BUILT_CIRCUIT_JSON = /(^|[\\/])dist[\\/](.*[\\/])?circuit\.json$/;
+const BUILT_CIRCUIT_JSON = /(^|[\\/])(?:[^\\/]+\.)?circuit\.json$/i;
 const BUILT_CIRCUIT_JSON_MAX_BYTES = 32 * 1024 * 1024;
 
 /** How much of a file a read returns before it is cut short. */

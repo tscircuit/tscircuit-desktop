@@ -29,10 +29,14 @@ export function circuitTabFile(panel: ThreadRightPanelState): string | undefined
   return tab === undefined ? null : tab.relativePath;
 }
 
-const isCircuitSourcePath = (path: string): boolean => /\.tsx$/i.test(path);
+export const isCircuitJsonPath = (path: string): boolean =>
+  /(^|[\\/])(?:[^\\/]*\.)?circuit\.json$/i.test(path);
+
+const isCircuitSourcePath = (path: string): boolean =>
+  /\.tsx$/i.test(path) || isCircuitJsonPath(path);
 
 /**
- * Opening a .tsx shows it in the Circuit tab. Returns null to fall through to
+ * Opening a .tsx or Circuit JSON shows it in the Circuit tab. Returns null to fall through to
  * the source viewer: other file types, and opens that ask for a line.
  */
 export function openTsxInCircuitTab(
