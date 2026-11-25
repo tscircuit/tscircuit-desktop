@@ -1,3 +1,4 @@
+import { isCircuitJsonPath } from "./circuitSurface";
 import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import * as Schema from "effect/Schema";
 import { CheckIcon, EllipsisIcon, ShoppingCart } from "lucide-react";
@@ -176,25 +177,29 @@ export function useBuiltCircuit(input: {
   readonly cwd: string | undefined;
   readonly visible: boolean;
   readonly workspaceMutationId: string | null;
-  /** Where the build would be and the hash it has to carry, or null when either is unknown. */
-  readonly build: { readonly path: string; readonly sourceHash: string } | null;
+  /** Null hash opens an explicitly selected result; source previews require a matching hash. */
+  readonly build: { readonly path: string; readonly sourceHash: string | null } | null;
 }): BuiltCircuit {
   const { environmentId, cwd, visible, workspaceMutationId } = input;
   const path = input.build?.path ?? null;
   const sourceHash = input.build?.sourceHash ?? null;
   const [found, setFound] = useState<{
     readonly path: string;
-    readonly sourceHash: string;
+    readonly sourceHash: string | null;
     /** The workspace mutation this look was made for. */
     readonly revision: string | null;
     readonly files: ViewerFiles | null;
   } | null>(null);
-  const answer = found !== null && found.path === path && found.sourceHash === sourceHash;
+  const answer =
+    found !== null &&
+    found.path === path &&
+    found.sourceHash === sourceHash &&
+    (sourceHash !== null || found.revision === workspaceMutationId);
   const settled = answer && found.files !== null;
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- reads the build's file from the environment; looks again after agent work and on focus, when a build may have been made
   useEffect(() => {
-    if (!cwd || !visible || path === null || sourceHash === null || settled) return;
+    if (!cwd || !visible || path === null || (settled && sourceHash !== null)) return;
     const abort = new AbortController();
     let reading = false;
     const look = () => {
@@ -209,7 +214,7 @@ export function useBuiltCircuit(input: {
             sourceHash,
             revision: workspaceMutationId,
             files:
-              text !== null && isBuildOfSources(text, sourceHash)
+              text !== null && (sourceHash === null || isBuildOfSources(text, sourceHash))
                 ? { fsMap: { [path]: text }, mainComponentPath: path }
                 : null,
           });
@@ -226,7 +231,7 @@ export function useBuiltCircuit(input: {
     };
   }, [environmentId, cwd, visible, workspaceMutationId, path, sourceHash, settled]);
 
-  if (path === null || sourceHash === null) return { status: "none" };
+  if (path === null) return { status: "none" };
   if (!answer) return { status: "checking" };
   return found.files === null ? { status: "none" } : { status: "current", files: found.files };
 }
@@ -300,7 +305,7 @@ export default function CircuitPanel(props: {
   const entryFile =
     project === null
       ? null
-      : relativePath !== null && relativePath in project.fsMap
+      : relativePath !== null && (isCircuitJsonPath(relativePath) || relativePath in project.fsMap)
         ? relativePath
         : pickEntryFile(project.fsMap);
 
@@ -310,9 +315,11 @@ export default function CircuitPanel(props: {
     visible,
     workspaceMutationId,
     build:
-      entryFile === null || !project?.hashedFiles
-        ? null
-        : expectedBuild(entryFile, project.hashedFiles),
+      entryFile !== null && isCircuitJsonPath(entryFile)
+        ? { path: entryFile, sourceHash: null }
+        : entryFile === null || !project?.hashedFiles
+          ? null
+          : expectedBuild(entryFile, project.hashedFiles),
   });
   // Nothing new goes to the viewer until it is known whether there is a build to show instead.
   const viewerFiles =

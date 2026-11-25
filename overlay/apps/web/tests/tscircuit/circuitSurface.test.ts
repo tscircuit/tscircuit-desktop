@@ -39,6 +39,8 @@ describe("openTsxInCircuitTab", () => {
     expect(openTsxInCircuitTab(closedPanel, "README.md", undefined)).toBeNull();
     expect(openTsxInCircuitTab(closedPanel, "lib/math.ts", undefined)).toBeNull();
     expect(openTsxInCircuitTab(closedPanel, "index.tsx", 12)).toBeNull();
+    expect(openTsxInCircuitTab(closedPanel, "dist/index/circuit.json", 12)).toBeNull();
+    expect(openTsxInCircuitTab(closedPanel, "settings.json", undefined)).toBeNull();
   });
 });
 
@@ -53,7 +55,7 @@ describe("circuitTabTitle", () => {
   });
 });
 
-it("cannot open completed simulation results after a report edit invalidates the build", () => {
+it("opens completed simulation results after a report edit invalidates the build", () => {
   const files = {
     "index.circuit.tsx": "export default () => <board />",
     "README.md": "Simulation pending",
@@ -78,8 +80,27 @@ it("cannot open completed simulation results after a report edit invalidates the
     openedResult: openTsxInCircuitTab(closedPanel, build.path, undefined),
   }).toMatchInlineSnapshot(`
     {
-      "openedResult": null,
+      "openedResult": {
+        "activeSurfaceId": "circuit",
+        "isOpen": true,
+        "surfaces": [
+          {
+            "id": "circuit",
+            "kind": "circuit",
+            "relativePath": "dist/index/circuit.json",
+          },
+        ],
+      },
       "sourceBuildIsCurrent": false,
     }
   `);
 });
+
+it.each(["board.circuit.json", "dist/startup/circuit.json", "DIST/STARTUP/CIRCUIT.JSON"])(
+  "opens %s as a circuit",
+  (path) => {
+    expect(openTsxInCircuitTab(closedPanel, path, undefined)?.surfaces).toEqual([
+      circuitSurface(path),
+    ]);
+  },
+);

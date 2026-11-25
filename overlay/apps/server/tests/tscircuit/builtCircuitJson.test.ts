@@ -20,6 +20,9 @@ const USUAL_MAX_BYTES = 1024 * 1024;
 describe("readFileMaxBytes", () => {
   it.each([
     "dist/main-board/circuit.json",
+    "main-board.circuit.json",
+    "circuit.json",
+    "DIST/main-board/CIRCUIT.JSON",
     "packages/usb/dist/boards/usb/circuit.json",
     "dist\\main-board\\circuit.json",
     "/Users/me/phone/dist/main-board/circuit.json",
@@ -29,10 +32,9 @@ describe("readFileMaxBytes", () => {
 
   it.each([
     "main-board.circuit.tsx",
-    "circuit.json",
     "dist/main-board/pcb.svg",
     "dist/main-board/circuit.json.bak",
-    "src/redist/circuit.json",
+    "src/redist/other.json",
   ])("keeps the usual limit for %s", (path) => {
     expect(readFileMaxBytes(path, USUAL_MAX_BYTES)).toBe(USUAL_MAX_BYTES);
   });
