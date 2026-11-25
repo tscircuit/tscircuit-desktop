@@ -6,14 +6,14 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
 
-import * as ServerConfig from "../config.ts";
-import * as VcsDriverRegistry from "../vcs/VcsDriverRegistry.ts";
-import * as VcsProcess from "../vcs/VcsProcess.ts";
-import * as KnownWorkspaces from "../workspace/KnownWorkspaces.ts";
-import * as WorkspaceEntries from "../workspace/WorkspaceEntries.ts";
-import * as WorkspaceFileSystem from "../workspace/WorkspaceFileSystem.ts";
-import * as WorkspacePaths from "../workspace/WorkspacePaths.ts";
-import { readFileMaxBytes } from "./builtCircuitJson.ts";
+import * as ServerConfig from "../../src/config.ts";
+import * as VcsDriverRegistry from "../../src/vcs/VcsDriverRegistry.ts";
+import * as VcsProcess from "../../src/vcs/VcsProcess.ts";
+import * as KnownWorkspaces from "../../src/workspace/KnownWorkspaces.ts";
+import * as WorkspaceEntries from "../../src/workspace/WorkspaceEntries.ts";
+import * as WorkspaceFileSystem from "../../src/workspace/WorkspaceFileSystem.ts";
+import * as WorkspacePaths from "../../src/workspace/WorkspacePaths.ts";
+import { readFileMaxBytes } from "../../src/tscircuit/builtCircuitJson.ts";
 
 const USUAL_MAX_BYTES = 1024 * 1024;
 

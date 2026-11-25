@@ -5,7 +5,7 @@ import {
   formatEstimateTotal,
   type JlcpcbEstimate,
   readJlcpcbEstimate,
-} from "./jlcpcbEstimate";
+} from "../../src/tscircuit/jlcpcbEstimate";
 
 /** The frame's answer for a two-part board, as circuit-json-to-jlcpcb-quote 0.0.4 gives it. */
 const quote = () => ({

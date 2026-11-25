@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { makeViewerContentSecurityPolicy, routeViewerRequest } from "./circuitViewerHost.ts";
+import {
+  makeViewerContentSecurityPolicy,
+  routeViewerRequest,
+} from "../../src/tscircuit/circuitViewerHost.ts";
 
 const route = (requestUrl: string, method = "GET") =>
   routeViewerRequest({ requestUrl, method, appHost: "app" });

@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import type { ThreadRightPanelState } from "../rightPanelStore";
-import { circuitSurface, circuitTabTitle, openTsxInCircuitTab } from "./circuitSurface";
+import type { ThreadRightPanelState } from "../../src/rightPanelStore";
+import {
+  circuitSurface,
+  circuitTabTitle,
+  openTsxInCircuitTab,
+} from "../../src/tscircuit/circuitSurface";
 
 const closedPanel: ThreadRightPanelState = { isOpen: false, activeSurfaceId: null, surfaces: [] };
 

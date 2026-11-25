@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import { test } from "node:test"
-import { nextVersion } from "./release-version.ts"
+import { nextVersion } from "../../../scripts/lib/release-version.ts"
 
 test("a release is one patch number above the highest release", () => {
   assert.equal(nextVersion(["v0.1.59", "v0.1.61", "v0.1.57"], "patch"), "0.1.62")

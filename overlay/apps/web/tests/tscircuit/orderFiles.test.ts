@@ -8,7 +8,7 @@ import {
   orderProjectName,
   packOrderFiles,
   readOrderFiles,
-} from "./orderFiles";
+} from "../../src/tscircuit/orderFiles";
 
 describe("orderFileNeedsMet", () => {
   it("needs a board for the board's files and placed parts for the assembly files", () => {

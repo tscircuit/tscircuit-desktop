@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import type { ThreadRightPanelState } from "../rightPanelStore";
-import { circuitSurface } from "./circuitSurface";
-import { focusedCircuitFile, withOrderFile } from "./orderActions";
-import { orderSurface } from "./orderSurface";
+import type { ThreadRightPanelState } from "../../src/rightPanelStore";
+import { circuitSurface } from "../../src/tscircuit/circuitSurface";
+import { focusedCircuitFile, withOrderFile } from "../../src/tscircuit/orderActions";
+import { orderSurface } from "../../src/tscircuit/orderSurface";
 
 const panel = (fields: Partial<ThreadRightPanelState>): ThreadRightPanelState => ({
   isOpen: true,

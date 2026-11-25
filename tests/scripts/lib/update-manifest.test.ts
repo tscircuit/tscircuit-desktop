@@ -3,7 +3,7 @@ import { mkdtempSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { test } from "node:test"
-import { manifestFor, manifestProblems, readManifest, sha512Of } from "./update-manifest.ts"
+import { manifestFor, manifestProblems, readManifest, sha512Of } from "../../../scripts/lib/update-manifest.ts"
 
 const release = () => {
   const dir = mkdtempSync(join(tmpdir(), "update-manifest-"))

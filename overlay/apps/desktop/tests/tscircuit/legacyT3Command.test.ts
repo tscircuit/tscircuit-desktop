@@ -4,7 +4,7 @@ import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 
-import * as LegacyT3Command from "./legacyT3Command.ts";
+import * as LegacyT3Command from "../../src/tscircuit/legacyT3Command.ts";
 
 const OURS = "#!/bin/sh\n# Written by tscircuit desktop: runs the desktop app's bundled t3 CLI.\n";
 const T3_CODE = "#!/bin/sh\n# Written by T3 Code: runs the desktop app's bundled t3 CLI.\n";
