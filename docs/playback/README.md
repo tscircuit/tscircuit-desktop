@@ -21,7 +21,7 @@ The proof uses the repository's standard review-preview app and real worker outp
 
 ## Captured states
 
-[Watch the actual 36-second native panel recording](native-playback.mp4). It preserves the original timing and is cropped to the Circuit panel.
+[Watch the actual native panel recording](native-playback.mp4). It preserves the original timing and is cropped to the Circuit panel.
 
 The final native run observed five source attempts and five terminal results. After opening the second live pane, evaluation RPC counts stayed **6 → 6** through two-pane history, Schematic/PCB tab changes, play/pause, and returning live. See [the timestamped machine-readable proof](native-proof.json).
 

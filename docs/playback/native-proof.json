@@ -2,115 +2,115 @@
   "options": [
     {
       "value": "preview-1:0",
-      "text": "2:17:26 PM \u00b7 Preview attempt started \u00b7 no new snapshot"
+      "text": "3:11:26 PM \u00b7 Preview started \u00b7 no new snapshot"
     },
     {
       "value": "preview-1:1",
-      "text": "2:17:26 PM \u00b7 SOURCE checks started \u00b7 no new snapshot"
+      "text": "3:11:26 PM \u00b7 Source design-rule checks started \u00b7 no new snapshot"
     },
     {
       "value": "preview-1:2",
-      "text": "2:17:26 PM \u00b7 PLACEMENT checks started \u00b7 no new snapshot"
+      "text": "3:11:26 PM \u00b7 PCB placement checks started \u00b7 no new snapshot"
     },
     {
       "value": "preview-1:3",
-      "text": "2:17:26 PM \u00b7 PCB checks started \u00b7 no new snapshot"
+      "text": "3:11:26 PM \u00b7 PCB design-rule checks started \u00b7 no new snapshot"
     },
     {
       "value": "preview-1:4",
-      "text": "2:17:26 PM \u00b7 Routing started \u00b7 no new snapshot"
+      "text": "3:11:26 PM \u00b7 Routing started \u00b7 no new snapshot"
     },
     {
       "value": "preview-1:5",
-      "text": "2:17:26 PM \u00b7 Routing finished \u00b7 no new snapshot"
+      "text": "3:11:26 PM \u00b7 Routing finished \u00b7 no new snapshot"
     },
     {
       "value": "preview-1:6",
-      "text": "2:17:26 PM \u00b7 Native checks finished \u00b7 0 error records"
+      "text": "3:11:27 PM \u00b7 Preview finished \u00b7 0 error records"
     },
     {
       "value": "preview-2:0",
-      "text": "2:17:27 PM \u00b7 Preview attempt started \u00b7 no new snapshot"
+      "text": "3:11:27 PM \u00b7 Preview started \u00b7 no new snapshot"
     },
     {
       "value": "preview-2:1",
-      "text": "2:17:27 PM \u00b7 Preview attempt failed \u00b7 no new snapshot"
+      "text": "3:11:27 PM \u00b7 Preview failed \u00b7 no new snapshot"
     },
     {
       "value": "preview-3:0",
-      "text": "2:17:27 PM \u00b7 Preview attempt started \u00b7 no new snapshot"
+      "text": "3:11:28 PM \u00b7 Preview started \u00b7 no new snapshot"
     },
     {
       "value": "preview-3:1",
-      "text": "2:17:27 PM \u00b7 SOURCE checks started \u00b7 no new snapshot"
+      "text": "3:11:28 PM \u00b7 Source design-rule checks started \u00b7 no new snapshot"
     },
     {
       "value": "preview-3:2",
-      "text": "2:17:27 PM \u00b7 PLACEMENT checks started \u00b7 no new snapshot"
+      "text": "3:11:28 PM \u00b7 PCB placement checks started \u00b7 no new snapshot"
     },
     {
       "value": "preview-3:3",
-      "text": "2:17:27 PM \u00b7 PCB checks started \u00b7 no new snapshot"
+      "text": "3:11:28 PM \u00b7 PCB design-rule checks started \u00b7 no new snapshot"
     },
     {
       "value": "preview-3:4",
-      "text": "2:17:27 PM \u00b7 Routing started \u00b7 no new snapshot"
+      "text": "3:11:28 PM \u00b7 Routing started \u00b7 no new snapshot"
     },
     {
       "value": "preview-3:5",
-      "text": "2:17:27 PM \u00b7 Routing finished \u00b7 no new snapshot"
+      "text": "3:11:28 PM \u00b7 Routing finished \u00b7 no new snapshot"
     },
     {
       "value": "preview-3:6",
-      "text": "2:17:27 PM \u00b7 Native checks finished \u00b7 0 error records"
+      "text": "3:11:29 PM \u00b7 Preview finished \u00b7 0 error records"
     },
     {
       "value": "preview-4:0",
-      "text": "2:17:28 PM \u00b7 Preview attempt started \u00b7 no new snapshot"
+      "text": "3:11:29 PM \u00b7 Preview started \u00b7 no new snapshot"
     },
     {
       "value": "preview-4:1",
-      "text": "2:17:28 PM \u00b7 SOURCE checks started \u00b7 no new snapshot"
+      "text": "3:11:29 PM \u00b7 Source design-rule checks started \u00b7 no new snapshot"
     },
     {
       "value": "preview-4:2",
-      "text": "2:17:28 PM \u00b7 PLACEMENT checks started \u00b7 no new snapshot"
+      "text": "3:11:29 PM \u00b7 PCB placement checks started \u00b7 no new snapshot"
     },
     {
       "value": "preview-4:3",
-      "text": "2:17:28 PM \u00b7 PCB checks started \u00b7 no new snapshot"
+      "text": "3:11:29 PM \u00b7 PCB design-rule checks started \u00b7 no new snapshot"
     },
     {
       "value": "preview-4:4",
-      "text": "2:17:28 PM \u00b7 Routing failed \u00b7 15 error records"
+      "text": "3:11:29 PM \u00b7 Routing failed \u00b7 15 error records"
     },
     {
       "value": "preview-5:0",
-      "text": "2:17:28 PM \u00b7 Preview attempt started \u00b7 no new snapshot"
+      "text": "3:11:30 PM \u00b7 Preview started \u00b7 no new snapshot"
     },
     {
       "value": "preview-5:1",
-      "text": "2:17:28 PM \u00b7 SOURCE checks started \u00b7 no new snapshot"
+      "text": "3:11:30 PM \u00b7 Source design-rule checks started \u00b7 no new snapshot"
     },
     {
       "value": "preview-5:2",
-      "text": "2:17:28 PM \u00b7 PLACEMENT checks started \u00b7 no new snapshot"
+      "text": "3:11:30 PM \u00b7 PCB placement checks started \u00b7 no new snapshot"
     },
     {
       "value": "preview-5:3",
-      "text": "2:17:28 PM \u00b7 PCB checks started \u00b7 no new snapshot"
+      "text": "3:11:30 PM \u00b7 Routing started \u00b7 no new snapshot"
     },
     {
       "value": "preview-5:4",
-      "text": "2:17:28 PM \u00b7 Routing started \u00b7 no new snapshot"
+      "text": "3:11:30 PM \u00b7 PCB design-rule checks started \u00b7 no new snapshot"
     },
     {
       "value": "preview-5:5",
-      "text": "2:17:28 PM \u00b7 Routing finished \u00b7 no new snapshot"
+      "text": "3:11:30 PM \u00b7 Routing finished \u00b7 no new snapshot"
     },
     {
       "value": "preview-5:6",
-      "text": "2:17:28 PM \u00b7 Native checks finished \u00b7 0 error records"
+      "text": "3:11:30 PM \u00b7 Preview finished \u00b7 0 error records"
     },
     {
       "value": "live",
@@ -124,205 +124,205 @@
   "viewSwitchKeptSelection": true,
   "runCount": 5,
   "terminalCount": 5,
-  "observations": [
+  "previewEvents": [
     {
-      "requestId": "preview-1",
+      "previewId": "preview-1",
       "sequence": 0,
-      "at": 1795612646099,
+      "observedAt": 1795615886193,
       "stage": "started",
-      "observedAtUtc": "2026-11-25T13:17:26.099000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:26.193000+00:00"
     },
     {
-      "requestId": "preview-1",
+      "previewId": "preview-1",
       "sequence": 1,
-      "at": 1795612646197,
+      "observedAt": 1795615886292,
       "stage": "checks",
       "checks": [
         "source"
       ],
-      "observedAtUtc": "2026-11-25T13:17:26.197000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:26.292000+00:00"
     },
     {
-      "requestId": "preview-1",
+      "previewId": "preview-1",
       "sequence": 2,
-      "at": 1795612646264,
+      "observedAt": 1795615886379,
       "stage": "checks",
       "checks": [
         "placement"
       ],
-      "observedAtUtc": "2026-11-25T13:17:26.264000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:26.379000+00:00"
     },
     {
-      "requestId": "preview-1",
+      "previewId": "preview-1",
       "sequence": 3,
-      "at": 1795612646323,
+      "observedAt": 1795615886569,
       "stage": "checks",
       "checks": [
         "pcb"
       ],
-      "observedAtUtc": "2026-11-25T13:17:26.323000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:26.569000+00:00"
     },
     {
-      "requestId": "preview-1",
+      "previewId": "preview-1",
       "sequence": 4,
-      "at": 1795612646349,
+      "observedAt": 1795615886614,
       "stage": "routing",
       "phaseStatus": "running",
-      "observedAtUtc": "2026-11-25T13:17:26.349000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:26.614000+00:00"
     },
     {
-      "requestId": "preview-1",
+      "previewId": "preview-1",
       "sequence": 5,
-      "at": 1795612646619,
+      "observedAt": 1795615886979,
       "stage": "routing",
       "phaseStatus": "complete",
-      "observedAtUtc": "2026-11-25T13:17:26.619000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:26.979000+00:00"
     },
     {
-      "requestId": "preview-1",
+      "previewId": "preview-1",
       "sequence": 6,
-      "at": 1795612646697,
+      "observedAt": 1795615887040,
       "stage": "completed",
       "checks": [
         "source",
         "placement",
         "pcb"
       ],
-      "observedAtUtc": "2026-11-25T13:17:26.697000+00:00",
-      "artifactSha256": "b6eec6d3d285799e5d8431fb9879d9d787ab2bb97f05433a9f43d5fc959b5d68",
+      "observedAtUtc": "2026-11-25T14:11:27.040000+00:00",
+      "artifactSha256": "3a7ecd1f5218460e6632d8b89fd830f5d2dbfda62c2ff198fd25d34d72acb653",
       "errorTypes": []
     },
     {
-      "requestId": "preview-2",
+      "previewId": "preview-2",
       "sequence": 0,
-      "at": 1795612647095,
+      "observedAt": 1795615887792,
       "stage": "started",
-      "observedAtUtc": "2026-11-25T13:17:27.095000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:27.792000+00:00"
     },
     {
-      "requestId": "preview-2",
+      "previewId": "preview-2",
       "sequence": 1,
-      "at": 1795612647110,
+      "observedAt": 1795615887809,
       "stage": "failed",
       "checks": [],
-      "observedAtUtc": "2026-11-25T13:17:27.110000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:27.809000+00:00"
     },
     {
-      "requestId": "preview-3",
+      "previewId": "preview-3",
       "sequence": 0,
-      "at": 1795612647552,
+      "observedAt": 1795615888604,
       "stage": "started",
-      "observedAtUtc": "2026-11-25T13:17:27.552000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:28.604000+00:00"
     },
     {
-      "requestId": "preview-3",
+      "previewId": "preview-3",
       "sequence": 1,
-      "at": 1795612647603,
+      "observedAt": 1795615888649,
       "stage": "checks",
       "checks": [
         "source"
       ],
-      "observedAtUtc": "2026-11-25T13:17:27.603000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:28.649000+00:00"
     },
     {
-      "requestId": "preview-3",
+      "previewId": "preview-3",
       "sequence": 2,
-      "at": 1795612647634,
+      "observedAt": 1795615888675,
       "stage": "checks",
       "checks": [
         "placement"
       ],
-      "observedAtUtc": "2026-11-25T13:17:27.634000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:28.675000+00:00"
     },
     {
-      "requestId": "preview-3",
+      "previewId": "preview-3",
       "sequence": 3,
-      "at": 1795612647645,
+      "observedAt": 1795615888706,
       "stage": "checks",
       "checks": [
         "pcb"
       ],
-      "observedAtUtc": "2026-11-25T13:17:27.645000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:28.706000+00:00"
     },
     {
-      "requestId": "preview-3",
+      "previewId": "preview-3",
       "sequence": 4,
-      "at": 1795612647653,
+      "observedAt": 1795615888707,
       "stage": "routing",
       "phaseStatus": "running",
-      "observedAtUtc": "2026-11-25T13:17:27.653000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:28.707000+00:00"
     },
     {
-      "requestId": "preview-3",
+      "previewId": "preview-3",
       "sequence": 5,
-      "at": 1795612647775,
+      "observedAt": 1795615888865,
       "stage": "routing",
       "phaseStatus": "complete",
-      "observedAtUtc": "2026-11-25T13:17:27.775000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:28.865000+00:00"
     },
     {
-      "requestId": "preview-3",
+      "previewId": "preview-3",
       "sequence": 6,
-      "at": 1795612647830,
+      "observedAt": 1795615889135,
       "stage": "completed",
       "checks": [
         "source",
         "placement",
         "pcb"
       ],
-      "observedAtUtc": "2026-11-25T13:17:27.830000+00:00",
-      "artifactSha256": "c693d7fdcb5b571b7fc605f2a539898f5ccba348d7bcc6af1e6f15d466671a68",
+      "observedAtUtc": "2026-11-25T14:11:29.135000+00:00",
+      "artifactSha256": "36d181bf56fca5d5396523780907db6e7652713b84f9dccfe5f54080237676cf",
       "errorTypes": []
     },
     {
-      "requestId": "preview-4",
+      "previewId": "preview-4",
       "sequence": 0,
-      "at": 1795612648169,
+      "observedAt": 1795615889730,
       "stage": "started",
-      "observedAtUtc": "2026-11-25T13:17:28.169000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:29.730000+00:00"
     },
     {
-      "requestId": "preview-4",
+      "previewId": "preview-4",
       "sequence": 1,
-      "at": 1795612648225,
+      "observedAt": 1795615889801,
       "stage": "checks",
       "checks": [
         "source"
       ],
-      "observedAtUtc": "2026-11-25T13:17:28.225000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:29.801000+00:00"
     },
     {
-      "requestId": "preview-4",
+      "previewId": "preview-4",
       "sequence": 2,
-      "at": 1795612648240,
+      "observedAt": 1795615889821,
       "stage": "checks",
       "checks": [
         "placement"
       ],
-      "observedAtUtc": "2026-11-25T13:17:28.240000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:29.821000+00:00"
     },
     {
-      "requestId": "preview-4",
+      "previewId": "preview-4",
       "sequence": 3,
-      "at": 1795612648261,
+      "observedAt": 1795615889830,
       "stage": "checks",
       "checks": [
         "pcb"
       ],
-      "observedAtUtc": "2026-11-25T13:17:28.261000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:29.830000+00:00"
     },
     {
-      "requestId": "preview-4",
+      "previewId": "preview-4",
       "sequence": 4,
-      "at": 1795612648303,
+      "observedAt": 1795615889937,
       "stage": "completed",
       "checks": [
         "source",
         "placement",
         "pcb"
       ],
-      "observedAtUtc": "2026-11-25T13:17:28.303000+00:00",
-      "artifactSha256": "e6d291c7b5524eef595d66d418b012c65327d04162b0249dfebe558e9bf8e4a3",
+      "observedAtUtc": "2026-11-25T14:11:29.937000+00:00",
+      "artifactSha256": "dfefd4f21f81072acff61205af8dcbcecdf64d72df0728f457229f89d2dd6f5b",
       "errorTypes": [
         "pcb_placement_error",
         "pcb_placement_error",
@@ -342,70 +342,70 @@
       ]
     },
     {
-      "requestId": "preview-5",
+      "previewId": "preview-5",
       "sequence": 0,
-      "at": 1795612648588,
+      "observedAt": 1795615890508,
       "stage": "started",
-      "observedAtUtc": "2026-11-25T13:17:28.588000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:30.508000+00:00"
     },
     {
-      "requestId": "preview-5",
+      "previewId": "preview-5",
       "sequence": 1,
-      "at": 1795612648614,
+      "observedAt": 1795615890547,
       "stage": "checks",
       "checks": [
         "source"
       ],
-      "observedAtUtc": "2026-11-25T13:17:28.614000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:30.547000+00:00"
     },
     {
-      "requestId": "preview-5",
+      "previewId": "preview-5",
       "sequence": 2,
-      "at": 1795612648634,
+      "observedAt": 1795615890555,
       "stage": "checks",
       "checks": [
         "placement"
       ],
-      "observedAtUtc": "2026-11-25T13:17:28.634000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:30.555000+00:00"
     },
     {
-      "requestId": "preview-5",
+      "previewId": "preview-5",
       "sequence": 3,
-      "at": 1795612648647,
+      "observedAt": 1795615890574,
+      "stage": "routing",
+      "phaseStatus": "running",
+      "observedAtUtc": "2026-11-25T14:11:30.574000+00:00"
+    },
+    {
+      "previewId": "preview-5",
+      "sequence": 4,
+      "observedAt": 1795615890584,
       "stage": "checks",
       "checks": [
         "pcb"
       ],
-      "observedAtUtc": "2026-11-25T13:17:28.647000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:30.584000+00:00"
     },
     {
-      "requestId": "preview-5",
-      "sequence": 4,
-      "at": 1795612648648,
-      "stage": "routing",
-      "phaseStatus": "running",
-      "observedAtUtc": "2026-11-25T13:17:28.648000+00:00"
-    },
-    {
-      "requestId": "preview-5",
+      "previewId": "preview-5",
       "sequence": 5,
-      "at": 1795612648741,
+      "observedAt": 1795615890705,
       "stage": "routing",
       "phaseStatus": "complete",
-      "observedAtUtc": "2026-11-25T13:17:28.741000+00:00"
+      "observedAtUtc": "2026-11-25T14:11:30.705000+00:00"
     },
     {
-      "requestId": "preview-5",
+      "previewId": "preview-5",
       "sequence": 6,
-      "at": 1795612648796,
+      "observedAt": 1795615890747,
       "stage": "completed",
       "checks": [
         "source",
         "placement",
         "pcb"
       ],
-      "observedAtUtc": "2026-11-25T13:17:28.796000+00:00",
-      "artifactSha256": "2bc34855f2a10227b8fa2496215d332b11933188d01aa38652a296d7e33b8393",
+      "observedAtUtc": "2026-11-25T14:11:30.747000+00:00",
+      "artifactSha256": "1c15eb65fc58d1929503c6fb86485d38aa44c756d4df1c0263a7507fd89caaa3",
       "errorTypes": []
     }
   ],
@@ -414,7 +414,7 @@
     "pnpm": "12.14.0",
     "tscircuit": "0.0.3293",
     "chromiumPackage": "@sparticuz/chromium@158.0.0",
-    "recordedSourceCommit": "436385c7c30f298913a2fb492e346364a937e3ab",
+    "recordedSourceCommit": "4b89cb02c7965c3f5eec626f77f08bf35224546a",
     "entrypoint": "npm run preview \u2192 Circuit review \u2192 Circuit \u2192 Schematic",
     "notes": [
       "Test-only empty network-interface fallback when enumeration is denied.",
@@ -425,8 +425,8 @@
   },
   "recording": {
     "path": "native-playback.mp4",
-    "durationSeconds": 36.64,
-    "sha256": "a2501bf92e5c1116f90a40c296768daa2eb7f5b62e380fa83df32ec68e65b099",
+    "durationSeconds": 40.4,
+    "sha256": "e52b540235a0ef3bc9b1984dc6c74a5d97f4a6cc7d8b907eabe49d012ce3e627",
     "capture": "Actual screen recording cropped to the Circuit panel; original timing preserved."
   }
 }
