@@ -1,13 +1,13 @@
 import type { ComponentProps } from "react";
 import { scopedThreadKey } from "@t3tools/client-runtime/environment";
 import { useRightPanelStore } from "~/rightPanelStore";
-import { CircuitSplitControl } from "./CircuitSplitControl";
+import { CircuitSplitControl } from "../../src/tscircuit/CircuitSplitControl";
 import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import { expect, it, vi } from "vite-plus/test";
 import { act, render } from "../../test/render";
 import type { ComposerThreadTarget } from "~/composerDraftStore";
 
-vi.mock(import("./projectFsMap"), () => ({
+vi.mock(import("../../src/tscircuit/projectFsMap"), () => ({
   loadProjectFsMap: async () => ({
     fsMap: { "index.tsx": "export default () => null" },
     hashedFiles: null,
@@ -16,24 +16,24 @@ vi.mock(import("./projectFsMap"), () => ({
   pickEntryFile: () => "index.tsx",
   readBuiltCircuitJson: async () => null,
 }));
-vi.mock(import("./viewerFrame"), () => ({
+vi.mock(import("../../src/tscircuit/viewerFrame"), () => ({
   viewerFrame: () => ({ src: "about:blank", sandbox: "allow-scripts", targetOrigin: "*" }),
 }));
 
 // Keep the dialog boundary observable without opening external report destinations.
-vi.mock(import("./AutorouterReportDialog"), () => ({
+vi.mock(import("../../src/tscircuit/AutorouterReportDialog"), () => ({
   AutorouterReportDialog: (props) => (
     <output data-testid="routing-report">{props.phases.map((phase) => phase.id).join(",")}</output>
   ),
 }));
 
 const { openOrderPane } = vi.hoisted(() => ({ openOrderPane: vi.fn() }));
-vi.mock(import("./orderActions"), async (importOriginal) => ({
+vi.mock(import("../../src/tscircuit/orderActions"), async (importOriginal) => ({
   ...(await importOriginal()),
   openOrderPane,
 }));
 
-import CircuitPanel from "./CircuitPanel";
+import CircuitPanel from "../../src/tscircuit/CircuitPanel";
 
 function Harness(props: ComponentProps<typeof CircuitPanel>) {
   const split = useRightPanelStore(

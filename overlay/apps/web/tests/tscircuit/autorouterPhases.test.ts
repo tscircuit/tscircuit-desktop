@@ -8,7 +8,7 @@ import {
   defaultAutorouterReportTitle,
   isSimpleRouteJson,
   readAutorouterPhases,
-} from "./autorouterPhases";
+} from "../../src/tscircuit/autorouterPhases";
 
 const phase = (id: string, rest: Partial<AutorouterPhase> = {}): AutorouterPhase => ({
   id,

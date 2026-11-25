@@ -5,7 +5,7 @@ import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import { assert } from "vite-plus/test";
 
-import { type BundledSkill, installSkill } from "./bundledSkill.ts";
+import { type BundledSkill, installSkill } from "../../src/tscircuit/bundledSkill.ts";
 
 const skill = (commit: string, body: string): BundledSkill => ({
   name: "tscircuit",

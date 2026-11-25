@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { viewerFrame } from "./viewerFrame";
+import { viewerFrame } from "../../src/tscircuit/viewerFrame";
 
 describe("viewerFrame", () => {
   it("frames the desktop app's viewer host, which is an origin of its own", () => {
