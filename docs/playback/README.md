@@ -31,7 +31,7 @@ The final native run observed five source attempts and five terminal results. Af
 
 ## Coverage and limits
 
-Unit tests cover bounded retention, malformed/oversized artifacts, repeated events, partial failures, and remote worker proxy calls. Browser tests cover the hooked panel, stale requests, workspace isolation, split-frame synchronization, and no source messages while seeking. The native proof additionally counts actual worker `executeWithFsMap` RPCs while scrubbing, switching tabs, playing, and returning live.
+Unit tests cover retention limits, UTF-8 artifact budgets, repeated events, failed output versus missing output, superseded worker results, remote proxy calls, and the preview-event parser. The existing Circuit panel browser suite covers stale preview IDs, workspace isolation, split-frame synchronization, and JSON-only seeking without resending live source. The native proof additionally counts actual worker `executeWithFsMap` RPCs while scrubbing, switching tabs, playing, and returning live.
 
 This observes the Desktop preview path, not every command an agent may run. CLI attempts between refreshes, internal solver retries without a recognized event, and datasheet producer attempt-history files are not imported. No CLI, Core, autorouter, or Circuit JSON contract changes are included. History is not a restore feature or a persistent audit trail. Historical frames initially fit their own viewport.
 

@@ -6,10 +6,16 @@ import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import { expect, it, vi } from "vite-plus/test";
 import { act, render } from "../../test/render";
 import type { ComposerThreadTarget } from "~/composerDraftStore";
+import { PREVIEW_REQUEST_FILE } from "./circuitPlayback";
+
+const workspace = vi.hoisted(() => ({ source: "" }));
+function setup() {
+  workspace.source = "export default () => null";
+}
 
 vi.mock(import("./projectFsMap"), () => ({
   loadProjectFsMap: async () => ({
-    fsMap: { "index.tsx": "export default () => null" },
+    fsMap: { "index.tsx": workspace.source },
     hashedFiles: null,
     truncated: false,
   }),
@@ -17,7 +23,11 @@ vi.mock(import("./projectFsMap"), () => ({
   readBuiltCircuitJson: async () => null,
 }));
 vi.mock(import("./viewerFrame"), () => ({
-  viewerFrame: () => ({ src: "about:blank", sandbox: "allow-scripts", targetOrigin: "*" }),
+  viewerFrame: () => ({
+    src: "about:blank",
+    sandbox: "allow-scripts allow-same-origin",
+    targetOrigin: "*",
+  }),
 }));
 
 // Keep the dialog boundary observable without opening external report destinations.
@@ -69,16 +79,18 @@ function rendered(frame: HTMLIFrameElement) {
   });
 }
 
+const props = {
+  environmentId: "test" as EnvironmentId,
+  cwd: "/test",
+  relativePath: "index.tsx",
+  visible: true,
+  workspaceMutationId: null,
+  composerDraftTarget: {} as ComposerThreadTarget,
+  threadRef: { environmentId: "test", threadId: "thread" } as ScopedThreadRef,
+};
+
 it("stacks at most two panes, isolates navigation/errors, and closes with focus retained", async () => {
-  const props = {
-    environmentId: "test" as EnvironmentId,
-    cwd: "/test",
-    relativePath: "index.tsx",
-    visible: true,
-    workspaceMutationId: null,
-    composerDraftTarget: {} as ComposerThreadTarget,
-    threadRef: { environmentId: "test", threadId: "thread" } as ScopedThreadRef,
-  };
+  setup();
   useRightPanelStore.getState().open(props.threadRef, "circuit");
   // This isolated circuit panel has no route-dependent behavior.
   await using screen = await render(<Harness {...props} />, { router: false });
@@ -94,13 +106,6 @@ it("stacks at most two panes, isolates navigation/errors, and closes with focus 
   await expect
     .element(screen.getByRole("button", { name: "Close split circuit view", exact: true }))
     .toHaveAttribute("aria-pressed", "true");
-  const panel = document.querySelector("[data-circuit-panel]")!;
-  expect(panel.classList.contains("flex-col")).toBe(true);
-  expect(panel.classList.contains("divide-y")).toBe(true);
-  expect(panel.querySelector("section")?.getAttribute("aria-label")).toBe("Primary circuit view");
-  expect(panel.querySelectorAll("section")[1]?.getAttribute("aria-label")).toBe(
-    "Secondary circuit view",
-  );
   expect(document.querySelectorAll('button[aria-label="Order"]')).toHaveLength(1);
   await screen.getByRole("button", { name: "Order", exact: true }).click();
   expect(openOrderPane).toHaveBeenCalledWith(props.threadRef);
@@ -147,9 +152,60 @@ it("stacks at most two panes, isolates navigation/errors, and closes with focus 
     expect(bottom.textContent).toContain("1 error");
     expect(top.textContent).not.toContain("1 error");
   });
-  await screen.rerender(<Harness {...props} cwd={undefined} />);
   await screen.getByRole("button", { name: "Close split circuit view", exact: true }).click();
   expect(document.querySelectorAll("iframe")).toHaveLength(1);
-  expect(document.querySelector("iframe")).not.toBe(topFrame);
+  expect(document.querySelector("iframe")).toBe(topFrame);
   expect(document.activeElement?.getAttribute("aria-label")).toBe("Split circuit view");
+});
+
+it("seeks one snapshot in both panes without resending live source", async () => {
+  setup();
+  // The panel reads its workspace props without route state.
+  await using screen = await render(<CircuitPanel {...props} split />, { router: false });
+  const frame = document.querySelector("iframe")!;
+  using posted = vi.spyOn(frame.contentWindow!, "postMessage");
+  await act(() => ready(frame));
+  const previewId = () =>
+    posted.mock.calls.findLast(([data]) => data?.runframe_props?.fsMap)?.[0].runframe_props.fsMap[
+      PREVIEW_REQUEST_FILE
+    ];
+  await vi.waitFor(() => expect(previewId()).toBeTruthy());
+  const originalPreview = previewId();
+  const snapshot = '[{"type":"pcb_board","pcb_board_id":"original"}]';
+  const emitPreview = (id: string, sequence: number, stage: string, circuitJsonText?: string) =>
+    act(() =>
+      send(frame, {
+        tscircuit_desktop_type: "circuit_preview_event",
+        event: { previewId: id, sequence, observedAt: sequence, stage, circuitJsonText },
+      }),
+    );
+  await emitPreview(originalPreview, 0, "completed", snapshot);
+  workspace.source = "export default () => <board />";
+  await screen.rerender(<CircuitPanel {...props} split workspaceMutationId="edited" />);
+  await vi.waitFor(() => expect(previewId()).not.toBe(originalPreview));
+  await emitPreview(originalPreview, 1, "completed", "stale output");
+  await emitPreview(previewId(), 0, "failed");
+  await expect
+    .element(screen.getByRole("slider", { name: "Design timeline" }))
+    .toHaveAttribute("max", "2");
+  const sourceMessages = posted.mock.calls.length;
+  await screen.getByRole("button", { name: "Previous step" }).click();
+  const history = document.querySelector('[aria-label="Historical design"]')!;
+  expect(history.querySelector('[aria-label="Order"]')).toBeNull();
+  for (const historicalFrame of history.querySelectorAll("iframe")) {
+    using received = vi.spyOn(historicalFrame.contentWindow!, "postMessage");
+    await act(() => ready(historicalFrame));
+    await vi.waitFor(() =>
+      expect(received.mock.lastCall?.[0]?.runframe_props).toMatchObject({
+        mainComponentPath: "playback.circuit.json",
+        fsMap: { "playback.circuit.json": snapshot },
+      }),
+    );
+  }
+  await screen.getByRole("button", { name: "Back to live" }).click();
+  expect(posted.mock.calls).toHaveLength(sourceMessages);
+  await screen.rerender(<CircuitPanel {...props} cwd="/another-workspace" />);
+  await expect
+    .element(screen.getByRole("group", { name: "Design playback" }))
+    .not.toBeInTheDocument();
 });

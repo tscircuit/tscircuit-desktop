@@ -1,12 +1,12 @@
-export const PLAYBACK_REQUEST_FILE = ".tscircuit-desktop/playback-request";
+export const PREVIEW_REQUEST_FILE = ".tscircuit-desktop/preview-request";
 const MAX_STEPS = 40;
 const MAX_SNAPSHOTS = 10;
-const MAX_BYTES = 20 * 1024 * 1024;
+const MAX_HISTORY_BYTES = 20 * 1024 * 1024;
 
-export interface CircuitObservation {
-  readonly requestId: string;
+export interface CircuitPreviewEvent {
+  readonly previewId: string;
   readonly sequence: number;
-  readonly at: number;
+  readonly observedAt: number;
   readonly stage: "started" | "routing" | "checks" | "completed" | "failed";
   readonly phaseStatus?: "running" | "complete" | "error";
   readonly reroute?: boolean;
@@ -21,19 +21,18 @@ export interface CircuitPlaybackStep {
   readonly snapshot: string | null;
   readonly snapshotEvicted?: boolean;
   readonly bytes: number;
-  readonly errorCount: number | null;
 }
 
-export function readCircuitObservation(value: unknown): CircuitObservation | null {
+export function parseCircuitPreviewEvent(value: unknown): CircuitPreviewEvent | null {
   if (typeof value !== "object" || value === null) return null;
   const data = value as Record<string, unknown>;
   if (
-    typeof data.requestId !== "string" ||
-    data.requestId.length > 100 ||
+    typeof data.previewId !== "string" ||
+    data.previewId.length > 100 ||
     !Number.isSafeInteger(data.sequence) ||
     (data.sequence as number) < 0 ||
-    typeof data.at !== "number" ||
-    !Number.isFinite(data.at) ||
+    typeof data.observedAt !== "number" ||
+    !Number.isFinite(data.observedAt) ||
     !["started", "routing", "checks", "completed", "failed"].includes(String(data.stage)) ||
     (data.stage === "routing" &&
       !["running", "complete", "error"].includes(String(data.phaseStatus))) ||
@@ -43,10 +42,10 @@ export function readCircuitObservation(value: unknown): CircuitObservation | nul
   )
     return null;
   return {
-    requestId: data.requestId,
+    previewId: data.previewId,
     sequence: data.sequence as number,
-    at: data.at,
-    stage: data.stage as CircuitObservation["stage"],
+    observedAt: data.observedAt,
+    stage: data.stage as CircuitPreviewEvent["stage"],
     ...(data.phaseStatus === "running" ||
     data.phaseStatus === "complete" ||
     data.phaseStatus === "error"
@@ -64,14 +63,14 @@ export function readCircuitObservation(value: unknown): CircuitObservation | nul
         }
       : {}),
     ...(data.reroute === true ? { reroute: true } : {}),
-    ...(typeof data.circuitJsonText === "string" && data.circuitJsonText.length <= MAX_BYTES
+    ...(typeof data.circuitJsonText === "string" && data.circuitJsonText.length <= MAX_HISTORY_BYTES
       ? { circuitJsonText: data.circuitJsonText }
       : {}),
   };
 }
 
 function inspectSnapshot(text: string | undefined) {
-  if (text === undefined || text.length > MAX_BYTES) return null;
+  if (text === undefined || text.length > MAX_HISTORY_BYTES) return null;
   try {
     const records: unknown = JSON.parse(text);
     if (!Array.isArray(records) || records.length === 0) return null;
@@ -95,7 +94,7 @@ function inspectSnapshot(text: string | undefined) {
         drawable = true;
     }
     const bytes = new TextEncoder().encode(text).length;
-    return bytes <= MAX_BYTES ? { drawable, errorCount, routingFailed, bytes } : null;
+    return bytes <= MAX_HISTORY_BYTES ? { drawable, errorCount, routingFailed, bytes } : null;
   } catch {
     return null;
   }
@@ -106,7 +105,11 @@ function retain(history: ReadonlyArray<CircuitPlaybackStep>, step: CircuitPlayba
   const next = [...history, step].slice(-MAX_STEPS);
   let bytes = next.reduce((total, item) => total + item.bytes, 0);
   let snapshots = next.filter((item) => item.snapshot !== null).length;
-  for (let i = 0; i < next.length && (bytes > MAX_BYTES || snapshots > MAX_SNAPSHOTS); i += 1) {
+  for (
+    let i = 0;
+    i < next.length && (bytes > MAX_HISTORY_BYTES || snapshots > MAX_SNAPSHOTS);
+    i += 1
+  ) {
     const item = next[i]!;
     if (item.snapshot === null) continue;
     bytes -= item.bytes;
@@ -116,35 +119,34 @@ function retain(history: ReadonlyArray<CircuitPlaybackStep>, step: CircuitPlayba
   return next;
 }
 
-export function recordCircuitObservation(
+export function recordCircuitPreviewEvent(
   history: ReadonlyArray<CircuitPlaybackStep>,
-  event: CircuitObservation,
+  event: CircuitPreviewEvent,
 ) {
   const inspected = inspectSnapshot(event.circuitJsonText);
   const errors = `${inspected?.errorCount ?? 0} error record${inspected?.errorCount === 1 ? "" : "s"}`;
   const label =
     event.stage === "started"
-      ? "Preview attempt started"
+      ? "Preview started"
       : event.stage === "routing"
         ? `${event.reroute ? "Rerouting" : "Routing"} ${event.phaseStatus === "error" ? "failed" : event.phaseStatus === "complete" ? "finished" : "started"}`
         : event.stage === "checks"
-          ? `${event.checks?.join(" / ").toUpperCase() ?? "Native"} checks started`
+          ? `${event.checks?.map((check) => ({ source: "Source design-rule", placement: "PCB placement", pcb: "PCB design-rule" })[check]).join(" / ") ?? "Design-rule"} checks started`
           : event.stage === "failed"
-            ? "Preview attempt failed"
+            ? "Preview failed"
             : inspected === null
-              ? "Preview attempt finished"
-              : `${inspected.routingFailed ? "Routing failed" : event.checks?.includes("pcb") ? "Native checks finished" : "Preview finished"} · ${errors}`;
+              ? "Preview finished"
+              : `${inspected.routingFailed ? "Routing failed" : "Preview finished"} · ${errors}`;
   return retain(history, {
-    id: `${event.requestId}:${event.sequence}`,
-    at: event.at,
+    id: `${event.previewId}:${event.sequence}`,
+    at: event.observedAt,
     label,
     snapshot: inspected?.drawable ? event.circuitJsonText! : null,
     bytes: inspected?.drawable ? inspected.bytes : 0,
-    errorCount: inspected?.errorCount ?? null,
   });
 }
 
-export function recordBuiltCheckpoint(
+export function recordBuildSnapshot(
   history: ReadonlyArray<CircuitPlaybackStep>,
   text: string,
   at: number,
@@ -155,14 +157,13 @@ export function recordBuiltCheckpoint(
   return retain(history, {
     id: `build:${at}:${history.length}`,
     at,
-    label: `Verified build · ${inspected.errorCount} error records`,
+    label: `Build snapshot · ${inspected.errorCount} error records`,
     snapshot: text,
     bytes: inspected.bytes,
-    errorCount: inspected.errorCount,
   });
 }
 
-export function playbackSnapshot(history: ReadonlyArray<CircuitPlaybackStep>, id: string) {
+export function findSnapshotStep(history: ReadonlyArray<CircuitPlaybackStep>, id: string) {
   const index = history.findIndex((step) => step.id === id);
   if (index < 0) return null;
   return history.slice(0, index + 1).findLast((step) => step.snapshot !== null) ?? null;

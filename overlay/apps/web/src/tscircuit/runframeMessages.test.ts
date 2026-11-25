@@ -54,6 +54,20 @@ describe("parseViewerMessage", () => {
     ).toEqual({ kind: "tab_requested", tab: "schematic" });
   });
 
+  it("accepts recognized preview events and rejects unknown routing outcomes", () => {
+    const event = { previewId: "preview", sequence: 0, observedAt: 1, stage: "completed" };
+    expect(parseViewerMessage({ tscircuit_desktop_type: "circuit_preview_event", event })).toEqual({
+      kind: "circuit_preview_event",
+      event,
+    });
+    expect(
+      parseViewerMessage({
+        tscircuit_desktop_type: "circuit_preview_event",
+        event: { ...event, stage: "routing", phaseStatus: "unknown" },
+      }),
+    ).toBeNull();
+  });
+
   it("reads what the frame says of the run's autorouting", () => {
     expect(
       parseViewerMessage({

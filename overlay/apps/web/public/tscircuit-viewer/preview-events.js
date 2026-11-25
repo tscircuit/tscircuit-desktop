@@ -1,9 +1,9 @@
 // This adapter observes the bundled eval worker; history itself is always JSON-mode viewing.
 (() => {
-  const requestFile = ".tscircuit-desktop/playback-request";
+  const requestFile = ".tscircuit-desktop/preview-request";
   const limit = 20 * 1024 * 1024;
   const tapped = new WeakSet();
-  self.tscircuitDesktopTapPlayback = (worker) => {
+  self.tscircuitDesktopObservePreviewWorker = (worker) => {
     if (tapped.has(worker)) return;
     const { on, executeWithFsMap, renderUntilSettled, getCircuitJson } = worker;
     if (
@@ -18,11 +18,11 @@
       if (current !== run) return;
       window.parent.postMessage(
         {
-          tscircuit_desktop_type: "playback_observation",
-          observation: {
-            requestId: run.id,
+          tscircuit_desktop_type: "circuit_preview_event",
+          event: {
+            previewId: run.id,
             sequence: run.sequence++,
-            at: Date.now(),
+            observedAt: Date.now(),
             stage,
             ...detail,
           },

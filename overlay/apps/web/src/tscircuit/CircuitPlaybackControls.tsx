@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
 import type { CircuitPlaybackStep } from "./circuitPlayback";
 
-export function CircuitPlaybackBar(props: {
+export function CircuitPlaybackControls(props: {
   readonly steps: ReadonlyArray<CircuitPlaybackStep>;
   readonly selectedId: string | null;
   readonly onSelect: (id: string | null) => void;
@@ -113,7 +113,7 @@ export function CircuitPlaybackBar(props: {
           <option key={step.id} value={step.id}>
             {new Date(step.at).toLocaleTimeString()} · {step.label}
             {step.snapshotEvicted
-              ? " · snapshot evicted"
+              ? " · snapshot no longer retained"
               : step.snapshot === null
                 ? " · no new snapshot"
                 : ""}

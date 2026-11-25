@@ -67,14 +67,14 @@ import {
   viewerTabProps,
 } from "./runframeMessages";
 import { viewerFrame } from "./viewerFrame";
-import { CircuitPlaybackBar } from "./CircuitPlaybackBar";
+import { CircuitPlaybackControls } from "./CircuitPlaybackControls";
 import {
-  type CircuitObservation,
+  type CircuitPreviewEvent,
   type CircuitPlaybackStep,
-  PLAYBACK_REQUEST_FILE,
-  playbackSnapshot,
-  recordBuiltCheckpoint,
-  recordCircuitObservation,
+  PREVIEW_REQUEST_FILE,
+  findSnapshotStep,
+  recordBuildSnapshot,
+  recordCircuitPreviewEvent,
 } from "./circuitPlayback";
 import { secondCircuitView } from "./circuitSplit";
 
@@ -107,10 +107,10 @@ interface FilePhases {
 }
 
 let phaseInputRequestCount = 0;
-let playbackRequestCount = 0;
-const nextPlaybackRequestId = () => {
-  playbackRequestCount += 1;
-  return `preview-${playbackRequestCount}`;
+let previewIdCount = 0;
+const createPreviewId = () => {
+  previewIdCount += 1;
+  return `preview-${previewIdCount}`;
 };
 
 /**
@@ -359,9 +359,9 @@ export default function CircuitPanel(props: CircuitPanelProps) {
       ? null
       : selection.id;
   const selected = steps.find((step) => step.id === selectedId);
-  const snapshot =
-    selectedId === null || selected?.snapshotEvicted ? null : playbackSnapshot(steps, selectedId);
-  const snapshotText = snapshot?.snapshot ?? null;
+  const snapshotStep =
+    selectedId === null || selected?.snapshotEvicted ? null : findSnapshotStep(steps, selectedId);
+  const snapshotText = snapshotStep?.snapshot ?? null;
   const historicalFiles =
     snapshotText === null
       ? null
@@ -369,11 +369,11 @@ export default function CircuitPanel(props: CircuitPanelProps) {
           fsMap: { "playback.circuit.json": snapshotText },
           mainComponentPath: "playback.circuit.json",
         };
-  const observe = (event: CircuitObservation) => {
+  const recordPreview = (event: CircuitPreviewEvent) => {
     setHistory((current) => ({
       scope: historyScope,
       session: current.scope === historyScope ? current.session : current.session + 1,
-      steps: recordCircuitObservation(current.scope === historyScope ? current.steps : [], event),
+      steps: recordCircuitPreviewEvent(current.scope === historyScope ? current.steps : [], event),
     }));
   };
   const select = (id: string | null) => {
@@ -389,7 +389,7 @@ export default function CircuitPanel(props: CircuitPanelProps) {
     onBuilt: (text) =>
       setHistory((current) => {
         const previous = current.scope === historyScope ? current.steps : [];
-        const next = recordBuiltCheckpoint(previous, text, Date.now());
+        const next = recordBuildSnapshot(previous, text, Date.now());
         return next === previous
           ? current
           : {
@@ -433,7 +433,7 @@ export default function CircuitPanel(props: CircuitPanelProps) {
           reportOwner
           showOrder
           historical={false}
-          onObservation={observe}
+          onPreviewEvent={recordPreview}
           reporting={reporting}
           cwd={cwd}
           failed={projectState.status === "failed" && projectState.scope === scope}
@@ -445,7 +445,7 @@ export default function CircuitPanel(props: CircuitPanelProps) {
           label="Primary circuit view"
         />
         {!props.split ? null : (
-          <SecondaryCircuitPane
+          <CircuitPaneWithLocalState
             key={`secondary:${historyScope}`}
             project={project}
             entryFile={entryFile}
@@ -454,7 +454,7 @@ export default function CircuitPanel(props: CircuitPanelProps) {
             showOrder={false}
             reporting={false}
             historical={false}
-            onObservation={undefined}
+            onPreviewEvent={undefined}
             cwd={cwd}
             failed={projectState.status === "failed" && projectState.scope === scope}
             composerDraftTarget={props.composerDraftTarget}
@@ -474,11 +474,11 @@ export default function CircuitPanel(props: CircuitPanelProps) {
                 ? "Snapshot no longer retained · this step remains in the timeline"
                 : selected.snapshot !== null
                   ? "Historical snapshot · read-only"
-                  : snapshot !== null
+                  : snapshotStep !== null
                     ? "No new snapshot at this step · showing the preceding retained snapshot"
                     : "No new snapshot at this step · no preceding snapshot retained"}
           </p>
-          <SecondaryCircuitPane
+          <CircuitPaneWithLocalState
             project={project}
             entryFile={entryFile}
             viewerFiles={historicalFiles}
@@ -486,7 +486,7 @@ export default function CircuitPanel(props: CircuitPanelProps) {
             showOrder={false}
             reporting={false}
             historical
-            onObservation={undefined}
+            onPreviewEvent={undefined}
             cwd={cwd}
             failed={false}
             composerDraftTarget={props.composerDraftTarget}
@@ -500,7 +500,7 @@ export default function CircuitPanel(props: CircuitPanelProps) {
             label="Historical primary view"
           />
           {!props.split ? null : (
-            <SecondaryCircuitPane
+            <CircuitPaneWithLocalState
               project={project}
               entryFile={entryFile}
               viewerFiles={historicalFiles}
@@ -508,7 +508,7 @@ export default function CircuitPanel(props: CircuitPanelProps) {
               showOrder={false}
               reporting={false}
               historical
-              onObservation={undefined}
+              onPreviewEvent={undefined}
               cwd={cwd}
               failed={false}
               composerDraftTarget={props.composerDraftTarget}
@@ -521,7 +521,7 @@ export default function CircuitPanel(props: CircuitPanelProps) {
         </div>
       )}
       {reporting ? null : (
-        <CircuitPlaybackBar
+        <CircuitPlaybackControls
           key={historyScope}
           steps={steps}
           selectedId={selectedId}
@@ -549,10 +549,10 @@ interface CircuitPaneProps {
   readonly showOrder: boolean;
   readonly reporting: boolean;
   readonly historical: boolean;
-  readonly onObservation: ((event: CircuitObservation) => void) | undefined;
+  readonly onPreviewEvent: ((event: CircuitPreviewEvent) => void) | undefined;
 }
 
-function SecondaryCircuitPane(
+function CircuitPaneWithLocalState(
   props: Omit<CircuitPaneProps, "panelState" | "dispatch"> & {
     readonly initialView: CircuitViewId;
   },
@@ -656,7 +656,7 @@ function CircuitPane(props: CircuitPaneProps) {
             setViewerAttempt((attempt) => attempt + 1);
           }}
           frameRef={frameRef}
-          onObservation={props.onObservation}
+          onPreviewEvent={props.onPreviewEvent}
         />
         {notice !== null ? (
           <Cover>{notice}</Cover>
@@ -912,7 +912,7 @@ function CircuitViewTabs(props: {
  */
 function CircuitViewer(props: {
   /** The file on screen, which the viewer's events are about. */
-  readonly onObservation: ((event: CircuitObservation) => void) | undefined;
+  readonly onPreviewEvent: ((event: CircuitPreviewEvent) => void) | undefined;
   readonly file: string | null;
   /** What the viewer draws for it. Null while that is not known yet. */
   readonly files: ViewerFiles | null;
@@ -929,7 +929,7 @@ function CircuitViewer(props: {
   readonly frameRef: RefObject<HTMLIFrameElement | null>;
 }) {
   const { file, screen, covered, rebuilds, dispatch, onRetry } = props;
-  const { onPhases, onStartFailed, frameRef, onObservation } = props;
+  const { onPhases, onStartFailed, frameRef, onPreviewEvent } = props;
   const fsMap = props.files?.fsMap ?? null;
   const mainComponentPath = props.files?.mainComponentPath ?? null;
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
@@ -938,7 +938,7 @@ function CircuitViewer(props: {
     | ({
         readonly file: string;
         readonly rebuilds: number;
-        readonly requestId: string;
+        readonly previewId: string;
       } & ViewerFiles)
     | null
   >(null);
@@ -956,9 +956,8 @@ function CircuitViewer(props: {
         setState("ready");
         return;
       }
-      if (message.kind === "playback_observation") {
-        if (message.observation.requestId === sentRef.current?.requestId)
-          onObservation?.(message.observation);
+      if (message.kind === "circuit_preview_event") {
+        if (message.event.previewId === sentRef.current?.previewId) onPreviewEvent?.(message.event);
         return;
       }
       // The answer to a question the report dialog asked, which listens for it itself.
@@ -982,7 +981,7 @@ function CircuitViewer(props: {
       window.removeEventListener("message", onMessage);
       window.clearTimeout(timeout);
     };
-  }, [dispatch, onPhases, onStartFailed, frameRef, onObservation]);
+  }, [dispatch, onPhases, onStartFailed, frameRef, onPreviewEvent]);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- sends the files and the tab to show to the viewer frame, an external system
   useEffect(() => {
@@ -993,7 +992,7 @@ function CircuitViewer(props: {
       sent.fsMap !== fsMap ||
       sent.mainComponentPath !== mainComponentPath ||
       sent.rebuilds !== rebuilds;
-    const requestId = filesChanged ? nextPlaybackRequestId() : sent!.requestId;
+    const previewId = filesChanged ? createPreviewId() : sent!.previewId;
     frameRef.current?.contentWindow?.postMessage(
       {
         runframe_type: "runframe_props_changed",
@@ -1001,8 +1000,8 @@ function CircuitViewer(props: {
         runframe_props: filesChanged
           ? viewerFileProps({
               fsMap:
-                onObservation && !mainComponentPath.endsWith(".json")
-                  ? { ...fsMap, [PLAYBACK_REQUEST_FILE]: requestId }
+                onPreviewEvent && !mainComponentPath.endsWith(".json")
+                  ? { ...fsMap, [PREVIEW_REQUEST_FILE]: previewId }
                   : fsMap,
               mainComponentPath,
               screen,
@@ -1013,7 +1012,7 @@ function CircuitViewer(props: {
       VIEWER_FRAME.targetOrigin,
     );
     if (!filesChanged) return;
-    sentRef.current = { file, fsMap, mainComponentPath, rebuilds, requestId };
+    sentRef.current = { file, fsMap, mainComponentPath, rebuilds, previewId };
     // The phases the viewer reported were of what it had before.
     onPhases?.(null);
     dispatch({ type: "files_sent", file });
@@ -1027,7 +1026,7 @@ function CircuitViewer(props: {
     dispatch,
     onPhases,
     frameRef,
-    onObservation,
+    onPreviewEvent,
   ]);
 
   return (
