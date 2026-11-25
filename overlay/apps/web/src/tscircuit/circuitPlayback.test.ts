@@ -34,6 +34,17 @@ it("bounds retained history and preserves failed output separately from missing 
   expect(history.at(-1)?.snapshot).toBeNull();
   expect(findSnapshotStep(history, "preview:1")?.snapshot).toBe(output);
   expect(recordCircuitPreviewEvent(history, { ...event, sequence: 1 })).toBe(history);
+  const undated: CircuitPlaybackStep = {
+    id: "disk",
+    at: null,
+    label: "Disk build",
+    archivePath: "dist/index/circuit.json",
+    snapshot: null,
+    bytes: 0,
+  };
+  const noOutput = recordCircuitPreviewEvent([undated], event);
+  expect(findSnapshotStep(noOutput, "preview:0")).toBeNull();
+  expect(findSnapshotStep(noOutput, "disk")).toBe(undated);
 });
 
 it("enforces the UTF-8 byte budget for individual and accumulated snapshots", () => {

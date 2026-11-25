@@ -112,24 +112,27 @@ function hashSources(files: Files, projectDir: string): string {
   return bytesToHex(hash.digest());
 }
 
-/**
- * Where the build of a file would be, and the hash a build of the sources as they are carries.
- * `hashedFiles` holds every file the CLI hashes, with its exact text. Null for a file that is
- * not built, or that shares its output with another, whose build may be the one on disk.
- */
+/** The CLI output location, independent of whether its sources are current. */
+export function circuitBuildOutput(sourcePath: string, files: Files) {
+  const projectDir = projectDirOf(sourcePath, files);
+  const path = builtCircuitJsonPath(sourcePath, projectDir);
+  if (path === null) return null;
+  const sharesOutput = Object.keys(files).some(
+    (other) =>
+      other !== sourcePath && builtCircuitJsonPath(other, projectDirOf(other, files)) === path,
+  );
+  return sharesOutput ? null : { projectDir, path };
+}
+
+/** The live build location and source hash; ambiguous output paths are never considered current. */
 export function expectedBuild(
   sourcePath: string,
   hashedFiles: Files,
 ): { readonly path: string; readonly sourceHash: string } | null {
-  const projectDir = projectDirOf(sourcePath, hashedFiles);
-  const path = builtCircuitJsonPath(sourcePath, projectDir);
-  if (path === null) return null;
-  const sharesOutput = Object.keys(hashedFiles).some(
-    (other) =>
-      other !== sourcePath &&
-      builtCircuitJsonPath(other, projectDirOf(other, hashedFiles)) === path,
-  );
-  return sharesOutput ? null : { path, sourceHash: sourceFilesystemHash(hashedFiles, projectDir) };
+  const output = circuitBuildOutput(sourcePath, hashedFiles);
+  return output === null
+    ? null
+    : { path: output.path, sourceHash: sourceFilesystemHash(hashedFiles, output.projectDir) };
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

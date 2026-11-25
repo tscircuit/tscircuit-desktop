@@ -16,10 +16,11 @@ export interface CircuitPreviewEvent {
 
 export interface CircuitPlaybackStep {
   readonly id: string;
-  readonly at: number;
+  readonly at: number | null;
   readonly label: string;
   readonly snapshot: string | null;
   readonly snapshotEvicted?: boolean;
+  readonly archivePath?: string;
   readonly bytes: number;
 }
 
@@ -69,7 +70,7 @@ export function parseCircuitPreviewEvent(value: unknown): CircuitPreviewEvent | 
   };
 }
 
-function inspectSnapshot(text: string | undefined) {
+export function inspectCircuitSnapshot(text: string | undefined) {
   if (text === undefined || text.length > MAX_HISTORY_BYTES) return null;
   try {
     const records: unknown = JSON.parse(text);
@@ -123,7 +124,7 @@ export function recordCircuitPreviewEvent(
   history: ReadonlyArray<CircuitPlaybackStep>,
   event: CircuitPreviewEvent,
 ) {
-  const inspected = inspectSnapshot(event.circuitJsonText);
+  const inspected = inspectCircuitSnapshot(event.circuitJsonText);
   const errors = `${inspected?.errorCount ?? 0} error record${inspected?.errorCount === 1 ? "" : "s"}`;
   const label =
     event.stage === "started"
@@ -151,7 +152,7 @@ export function recordBuildSnapshot(
   text: string,
   at: number,
 ) {
-  const inspected = inspectSnapshot(text);
+  const inspected = inspectCircuitSnapshot(text);
   if (!inspected?.drawable || history.findLast((step) => step.snapshot !== null)?.snapshot === text)
     return history;
   return retain(history, {
@@ -166,5 +167,13 @@ export function recordBuildSnapshot(
 export function findSnapshotStep(history: ReadonlyArray<CircuitPlaybackStep>, id: string) {
   const index = history.findIndex((step) => step.id === id);
   if (index < 0) return null;
-  return history.slice(0, index + 1).findLast((step) => step.snapshot !== null) ?? null;
+  if (history[index]?.archivePath !== undefined) return history[index]!;
+  // An undated disk file cannot establish which artifact preceded a failed preview.
+  return (
+    history
+      .slice(0, index + 1)
+      .findLast(
+        (step) => step.snapshot !== null || (step.archivePath !== undefined && step.at !== null),
+      ) ?? null
+  );
 }

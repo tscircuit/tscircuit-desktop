@@ -25,12 +25,9 @@ export function CircuitPlaybackControls(props: {
   }, [playing, visible, selectedId, index, nextId, onSelect]);
   if (props.steps.length === 0) return null;
   const selected = props.steps[index];
-  const time = selected ? new Date(selected.at).toLocaleTimeString() : null;
-  const elapsed = selected
-    ? Math.max(0, Math.round((selected.at - props.steps[0]!.at) / 1000))
-    : null;
+  const time = selected?.at != null ? new Date(selected.at).toLocaleString() : null;
   const description = selected
-    ? `${selected.label} · +${elapsed}s · ${time}`
+    ? `${selected.label}${time === null ? "" : ` · ${time}`}`
     : props.selectedId === null
       ? "Live"
       : "Step no longer retained";
@@ -111,10 +108,11 @@ export function CircuitPlaybackControls(props: {
         ) : null}
         {props.steps.map((step) => (
           <option key={step.id} value={step.id}>
-            {new Date(step.at).toLocaleTimeString()} · {step.label}
+            {step.at === null ? "" : `${new Date(step.at).toLocaleString()} · `}
+            {step.label}
             {step.snapshotEvicted
               ? " · snapshot no longer retained"
-              : step.snapshot === null
+              : step.snapshot === null && step.archivePath === undefined
                 ? " · no new snapshot"
                 : ""}
           </option>
@@ -125,8 +123,8 @@ export function CircuitPlaybackControls(props: {
         {description}
       </span>
       <span className="text-muted-foreground">
-        This panel session · last 40 steps / 10 snapshots · error records are not an independent
-        ERC/DRC result
+        Saved CLI builds + last 40 preview steps / 10 preview snapshots · error records are not an
+        independent ERC/DRC result
       </span>
     </div>
   );

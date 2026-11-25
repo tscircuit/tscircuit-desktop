@@ -6,21 +6,33 @@ import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import { expect, it, vi } from "vite-plus/test";
 import { act, render } from "../../test/render";
 import type { ComposerThreadTarget } from "~/composerDraftStore";
-import { PREVIEW_REQUEST_FILE } from "./circuitPlayback";
+import { type CircuitPlaybackStep, PREVIEW_REQUEST_FILE } from "./circuitPlayback";
 
-const workspace = vi.hoisted(() => ({ source: "" }));
+const workspace = vi.hoisted(() => ({
+  source: "",
+  truncated: false,
+  builds: [] as CircuitPlaybackStep[],
+  read: async (_path: string): Promise<string | null> => null,
+}));
 function setup() {
   workspace.source = "export default () => null";
+  workspace.truncated = false;
+  workspace.builds = [];
+  workspace.read = async () => null;
 }
 
 vi.mock(import("./projectFsMap"), () => ({
   loadProjectFsMap: async () => ({
     fsMap: { "index.tsx": workspace.source },
     hashedFiles: null,
-    truncated: false,
+    truncated: workspace.truncated,
   }),
   pickEntryFile: () => "index.tsx",
-  readBuiltCircuitJson: async () => null,
+  readBuiltCircuitJson: async (_env: unknown, _cwd: string, path: string) => workspace.read(path),
+}));
+vi.mock(import("./circuitBuildHistory"), () => ({
+  loadCircuitBuildHistory: async (_env: unknown, cwd: string) =>
+    cwd === "/test" ? workspace.builds : [],
 }));
 vi.mock(import("./viewerFrame"), () => ({
   viewerFrame: () => ({
@@ -208,4 +220,84 @@ it("seeks one snapshot in both panes without resending live source", async () =>
   await expect
     .element(screen.getByRole("group", { name: "Design playback" }))
     .not.toBeInTheDocument();
+});
+
+it("views saved builds before any preview completes and drops a late archive read", async () => {
+  setup();
+  workspace.truncated = true;
+  const build = (id: string): CircuitPlaybackStep => ({
+    id: `archive:${id}`,
+    at: 1,
+    label: "Saved build",
+    archivePath: id,
+    snapshot: null,
+    bytes: 0,
+  });
+  workspace.builds = [build("older"), build("newer")];
+  let finishOld!: (text: string) => void;
+  const snapshot =
+    '[{"type":"pcb_board","pcb_board_id":"saved"},{"type":"source_project_metadata","source_filesystem_md5_hash":"old-source"}]';
+  workspace.read = (path) =>
+    path === "older"
+      ? new Promise((resolve) => {
+          finishOld = resolve;
+        })
+      : Promise.resolve(snapshot);
+  // The panel reads its workspace props without route state.
+  await using screen = await render(<CircuitPanel {...props} split />, { router: false });
+  const live = document.querySelector("iframe")!;
+  using posted = vi.spyOn(live.contentWindow!, "postMessage");
+  await act(() => ready(live));
+  await vi.waitFor(() =>
+    expect(document.querySelector('option[value="archive:older"]')).not.toBeNull(),
+  );
+  await screen.getByRole("combobox", { name: "Playback step" }).selectOptions("archive:older");
+  await expect.element(screen.getByText("Loading saved build…", { exact: true })).toBeVisible();
+  await screen.getByRole("combobox", { name: "Playback step" }).selectOptions("archive:newer");
+  const historyFrames = () =>
+    document.querySelectorAll<HTMLIFrameElement>('[aria-label="Historical design"] iframe');
+  await vi.waitFor(() => expect(historyFrames()).toHaveLength(2));
+  const first = historyFrames()[0]!;
+  const second = historyFrames()[1]!;
+  using firstPosts = vi.spyOn(first.contentWindow!, "postMessage");
+  using secondPosts = vi.spyOn(second.contentWindow!, "postMessage");
+  for (const [frame, sent] of [
+    [first, firstPosts],
+    [second, secondPosts],
+  ] as const) {
+    await act(() => ready(frame));
+    await vi.waitFor(() =>
+      expect(sent.mock.lastCall?.[0]?.runframe_props).toMatchObject({
+        mainComponentPath: "playback.circuit.json",
+        fsMap: { "playback.circuit.json": snapshot },
+      }),
+    );
+  }
+  await act(async () => {
+    finishOld('[{"type":"pcb_board","pcb_board_id":"late"}]');
+    await Promise.resolve();
+  });
+  expect(firstPosts.mock.lastCall?.[0]?.runframe_props.fsMap["playback.circuit.json"]).toBe(
+    snapshot,
+  );
+  const liveInput = posted.mock.calls.find(([data]) => data?.runframe_props?.fsMap)?.[0]
+    .runframe_props.fsMap;
+  const count = posted.mock.calls.length;
+  await act(() =>
+    send(live, {
+      tscircuit_desktop_type: "circuit_preview_event",
+      event: {
+        previewId: liveInput[PREVIEW_REQUEST_FILE],
+        sequence: 0,
+        observedAt: 2,
+        stage: "started",
+      },
+    }),
+  );
+  await expect
+    .element(screen.getByRole("combobox", { name: "Playback step" }))
+    .toHaveValue("archive:newer");
+  expect(historyFrames()[0]?.isConnected).toBe(true);
+  await screen.getByRole("button", { name: "Back to live" }).click();
+  expect(posted.mock.calls).toHaveLength(count);
 });

@@ -27,7 +27,7 @@ import { useStableCallback } from "~/hooks/useStableCallback";
 import { observeResize } from "~/lib/observeResize";
 import { cn } from "~/lib/utils";
 
-import { expectedBuild, isBuildOfSources } from "./builtCircuit";
+import { circuitBuildOutput, expectedBuild, isBuildOfSources } from "./builtCircuit";
 import type { AutorouterPhase } from "./autorouterPhases";
 import { AutorouterReportDialog } from "./AutorouterReportDialog";
 import { useAutorouterReportRequest } from "./autorouterReportRequest";
@@ -77,6 +77,7 @@ import {
   recordCircuitPreviewEvent,
 } from "./circuitPlayback";
 import { secondCircuitView } from "./circuitSplit";
+import { useArchivedCircuitSnapshot, useCircuitBuildHistory } from "./useCircuitBuildHistory";
 
 /**
  * The app's own copy of RunFrame, a bare viewer that takes files over
@@ -346,22 +347,43 @@ export default function CircuitPanel(props: CircuitPanelProps) {
   }>({ scope: null, session: 0, steps: [] });
   const [selection, setSelection] = useState<{
     readonly scope: string;
-    readonly session: number;
+    readonly session: number | null;
     readonly id: string;
   } | null>(null);
-  const steps = history.scope === historyScope ? history.steps : [];
+  const savedBuilds = useCircuitBuildHistory({
+    environmentId,
+    cwd,
+    visible,
+    workspaceMutationId,
+    output:
+      entryFile === null || project === null
+        ? null
+        : circuitBuildOutput(entryFile, project.hashedFiles ?? project.fsMap),
+  });
+  const steps = [
+    ...savedBuilds.steps,
+    ...(history.scope === historyScope ? history.steps : []),
+  ].toSorted((a, b) => (a.at === b.at ? 0 : a.at === null ? 1 : b.at === null ? -1 : a.at - b.at));
   const selectedId =
     reporting ||
     selection === null ||
     selection.scope !== historyScope ||
-    history.scope !== historyScope ||
-    selection.session !== history.session
+    (selection.session !== null &&
+      (history.scope !== historyScope || selection.session !== history.session))
       ? null
       : selection.id;
   const selected = steps.find((step) => step.id === selectedId);
   const snapshotStep =
     selectedId === null || selected?.snapshotEvicted ? null : findSnapshotStep(steps, selectedId);
-  const snapshotText = snapshotStep?.snapshot ?? null;
+  const archive = useArchivedCircuitSnapshot({
+    environmentId,
+    cwd,
+    path: snapshotStep?.archivePath ?? null,
+    scope: historyScope,
+    selection,
+  });
+  const snapshotText =
+    snapshotStep?.archivePath === undefined ? (snapshotStep?.snapshot ?? null) : archive.text;
   const historicalFiles =
     snapshotText === null
       ? null
@@ -378,7 +400,15 @@ export default function CircuitPanel(props: CircuitPanelProps) {
   };
   const select = (id: string | null) => {
     if (historyScope !== null)
-      setSelection(id === null ? null : { scope: historyScope, session: history.session, id });
+      setSelection(
+        id === null
+          ? null
+          : {
+              scope: historyScope,
+              session: id.startsWith("archive:") ? null : history.session,
+              id,
+            },
+      );
   };
   const built = useBuiltCircuit({
     environmentId,
@@ -468,58 +498,75 @@ export default function CircuitPanel(props: CircuitPanelProps) {
       {selectedId === null ? null : (
         <div className="flex min-h-0 flex-1 flex-col" aria-label="Historical design">
           <p role="status" className="border-b px-3 py-2 text-xs">
-            {selected === undefined
-              ? "Step no longer retained. Back to live returns to the current design."
-              : selected.snapshotEvicted
-                ? "Snapshot no longer retained · this step remains in the timeline"
-                : selected.snapshot !== null
-                  ? "Historical snapshot · read-only"
-                  : snapshotStep !== null
-                    ? "No new snapshot at this step · showing the preceding retained snapshot"
-                    : "No new snapshot at this step · no preceding snapshot retained"}
+            {archive.loading
+              ? "Loading saved build…"
+              : snapshotStep?.archivePath !== undefined && archive.text === null
+                ? "Saved build unavailable · the file is missing, unreadable, too large, or has no drawable circuit."
+                : selected === undefined
+                  ? "Step no longer retained. Back to live returns to the current design."
+                  : selected.snapshotEvicted
+                    ? "Snapshot no longer retained · this step remains in the timeline"
+                    : selected.snapshot !== null || selected.archivePath !== undefined
+                      ? "Historical snapshot · read-only"
+                      : snapshotStep !== null
+                        ? "No new snapshot at this step · showing the preceding retained snapshot"
+                        : "No new snapshot at this step · no preceding snapshot retained"}
           </p>
-          <CircuitPaneWithLocalState
-            project={project}
-            entryFile={entryFile}
-            viewerFiles={historicalFiles}
-            reportOwner={false}
-            showOrder={false}
-            reporting={false}
-            historical
-            onPreviewEvent={undefined}
-            cwd={cwd}
-            failed={false}
-            composerDraftTarget={props.composerDraftTarget}
-            threadRef={props.threadRef}
-            initialView={
-              canBePreferred(viewStateForFile(panelState, entryFile).screen)
-                ? (viewStateForFile(panelState, entryFile).screen as CircuitViewId)
-                : "schematic"
-            }
-            persistPreference={false}
-            label="Historical primary view"
-          />
-          {!props.split ? null : (
-            <CircuitPaneWithLocalState
-              project={project}
-              entryFile={entryFile}
-              viewerFiles={historicalFiles}
-              reportOwner={false}
-              showOrder={false}
-              reporting={false}
-              historical
-              onPreviewEvent={undefined}
-              cwd={cwd}
-              failed={false}
-              composerDraftTarget={props.composerDraftTarget}
-              threadRef={props.threadRef}
-              initialView={secondCircuitView(viewStateForFile(panelState, entryFile))}
-              persistPreference={false}
-              label="Historical secondary view"
-            />
+          {archive.loading ? (
+            <div className="flex min-h-0 flex-1 items-center justify-center">
+              <Notice title="Loading saved build" busy />
+            </div>
+          ) : (
+            <>
+              <CircuitPaneWithLocalState
+                project={project}
+                entryFile={entryFile}
+                viewerFiles={historicalFiles}
+                reportOwner={false}
+                showOrder={false}
+                reporting={false}
+                historical
+                onPreviewEvent={undefined}
+                cwd={cwd}
+                failed={false}
+                composerDraftTarget={props.composerDraftTarget}
+                threadRef={props.threadRef}
+                initialView={
+                  canBePreferred(viewStateForFile(panelState, entryFile).screen)
+                    ? (viewStateForFile(panelState, entryFile).screen as CircuitViewId)
+                    : "schematic"
+                }
+                persistPreference={false}
+                label="Historical primary view"
+              />
+              {!props.split ? null : (
+                <CircuitPaneWithLocalState
+                  project={project}
+                  entryFile={entryFile}
+                  viewerFiles={historicalFiles}
+                  reportOwner={false}
+                  showOrder={false}
+                  reporting={false}
+                  historical
+                  onPreviewEvent={undefined}
+                  cwd={cwd}
+                  failed={false}
+                  composerDraftTarget={props.composerDraftTarget}
+                  threadRef={props.threadRef}
+                  initialView={secondCircuitView(viewStateForFile(panelState, entryFile))}
+                  persistPreference={false}
+                  label="Historical secondary view"
+                />
+              )}
+            </>
           )}
         </div>
       )}
+      {savedBuilds.failed && !reporting ? (
+        <p role="status" className="px-3 py-2 text-xs">
+          Couldn't refresh saved builds. Refocus the app to retry.
+        </p>
+      ) : null}
       {reporting ? null : (
         <CircuitPlaybackControls
           key={historyScope}
