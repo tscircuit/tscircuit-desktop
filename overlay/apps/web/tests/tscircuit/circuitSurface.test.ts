@@ -6,6 +6,7 @@ import {
   circuitTabTitle,
   openTsxInCircuitTab,
 } from "../../src/tscircuit/circuitSurface";
+import { expectedBuild, isBuildOfSources } from "../../src/tscircuit/builtCircuit";
 
 const closedPanel: ThreadRightPanelState = { isOpen: false, activeSurfaceId: null, surfaces: [] };
 
@@ -50,4 +51,35 @@ describe("circuitTabTitle", () => {
   it("is plain Circuit until a file has been picked", () => {
     expect(circuitTabTitle(circuitSurface())).toBe("Circuit");
   });
+});
+
+it("cannot open completed simulation results after a report edit invalidates the build", () => {
+  const files = {
+    "index.circuit.tsx": "export default () => <board />",
+    "README.md": "Simulation pending",
+  };
+  const build = expectedBuild("index.circuit.tsx", files)!;
+  const circuitJson = JSON.stringify([
+    { type: "source_project_metadata", source_filesystem_md5_hash: build.sourceHash },
+    {
+      type: "simulation_transient_voltage_graph",
+      simulation_transient_voltage_graph_id: "graph_0",
+      timestamps: [0, 0.001],
+      voltage_levels: [0, 3.3],
+    },
+  ]);
+  const afterReport = expectedBuild("index.circuit.tsx", {
+    ...files,
+    "README.md": "Simulation complete: 3.3 V",
+  })!;
+
+  expect({
+    sourceBuildIsCurrent: isBuildOfSources(circuitJson, afterReport.sourceHash),
+    openedResult: openTsxInCircuitTab(closedPanel, build.path, undefined),
+  }).toMatchInlineSnapshot(`
+    {
+      "openedResult": null,
+      "sourceBuildIsCurrent": false,
+    }
+  `);
 });
