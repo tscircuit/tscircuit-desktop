@@ -19,6 +19,7 @@ export interface CircuitPlaybackStep {
   readonly at: number;
   readonly label: string;
   readonly snapshot: string | null;
+  readonly snapshotEvicted?: boolean;
   readonly bytes: number;
   readonly errorCount: number | null;
 }
@@ -110,7 +111,7 @@ function retain(history: ReadonlyArray<CircuitPlaybackStep>, step: CircuitPlayba
     if (item.snapshot === null) continue;
     bytes -= item.bytes;
     snapshots -= 1;
-    next[i] = { ...item, snapshot: null, bytes: 0 };
+    next[i] = { ...item, snapshot: null, snapshotEvicted: true, bytes: 0 };
   }
   return next;
 }

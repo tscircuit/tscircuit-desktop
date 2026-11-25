@@ -15,7 +15,7 @@ it("retains bounded immutable snapshots and explicit failures, deduplicating rep
   let history: ReadonlyArray<CircuitPlaybackStep> = [];
   for (let i = 0; i < 12; i += 1) history = recordBuiltCheckpoint(history, json(i), i);
   expect(history.filter((step) => step.snapshot !== null)).toHaveLength(10);
-  expect(history[0]?.snapshot).toBeNull();
+  expect(history[0]).toMatchObject({ snapshot: null, snapshotEvicted: true });
   expect(recordBuiltCheckpoint(history, json(11), 20)).toBe(history);
   const failed: CircuitObservation = { requestId: "attempt", sequence: 0, at: 21, stage: "failed" };
   history = recordCircuitObservation(history, failed);

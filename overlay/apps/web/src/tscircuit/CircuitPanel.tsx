@@ -359,7 +359,8 @@ export default function CircuitPanel(props: CircuitPanelProps) {
       ? null
       : selection.id;
   const selected = steps.find((step) => step.id === selectedId);
-  const snapshot = selectedId === null ? null : playbackSnapshot(steps, selectedId);
+  const snapshot =
+    selectedId === null || selected?.snapshotEvicted ? null : playbackSnapshot(steps, selectedId);
   const snapshotText = snapshot?.snapshot ?? null;
   const historicalFiles =
     snapshotText === null
@@ -469,11 +470,13 @@ export default function CircuitPanel(props: CircuitPanelProps) {
           <p role="status" className="border-b px-3 py-2 text-xs">
             {selected === undefined
               ? "Step no longer retained. Back to live returns to the current design."
-              : selected.snapshot !== null
-                ? "Historical snapshot · read-only"
-                : snapshot !== null
-                  ? "No new snapshot at this step · showing the preceding retained snapshot"
-                  : "No new snapshot at this step · no preceding snapshot retained"}
+              : selected.snapshotEvicted
+                ? "Snapshot no longer retained · this step remains in the timeline"
+                : selected.snapshot !== null
+                  ? "Historical snapshot · read-only"
+                  : snapshot !== null
+                    ? "No new snapshot at this step · showing the preceding retained snapshot"
+                    : "No new snapshot at this step · no preceding snapshot retained"}
           </p>
           <SecondaryCircuitPane
             project={project}
@@ -573,7 +576,7 @@ function CircuitPane(props: CircuitPaneProps) {
   const view = viewStateForFile(panelState, entryFile);
   const notice =
     props.historical && viewerFiles === null ? (
-      <Notice title="No snapshot" description="This step produced no retained drawable circuit." />
+      <Notice title="No snapshot" description="No drawable snapshot is retained for this step." />
     ) : !cwd ? (
       <Notice title="No project folder" description="Open a project to see its circuit here." />
     ) : props.failed ? (

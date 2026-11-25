@@ -112,7 +112,11 @@ export function CircuitPlaybackBar(props: {
         {props.steps.map((step) => (
           <option key={step.id} value={step.id}>
             {new Date(step.at).toLocaleTimeString()} · {step.label}
-            {step.snapshot === null ? " · no new snapshot" : ""}
+            {step.snapshotEvicted
+              ? " · snapshot evicted"
+              : step.snapshot === null
+                ? " · no new snapshot"
+                : ""}
           </option>
         ))}
         <option value="live">Live</option>
