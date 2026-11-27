@@ -10,7 +10,6 @@ const VIEWER_FILES = new Set([
   "/frame.html",
   "/runframe.min.js",
   "/viewer-assets.js",
-  "/preview-events.js",
 ]);
 
 export type ViewerRoute =

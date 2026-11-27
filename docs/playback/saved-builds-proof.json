@@ -1,6 +1,7 @@
 {
   "cliVersion": "0.1.2488",
   "tscircuitVersion": "0.0.3293",
+  "viewerVersion": "0.0.3300",
   "artifacts": [
     {
       "path": ".tscircuit-build-history/2026-11-25T17-50-56.343Z/dist/index/circuit.json",
@@ -27,34 +28,6 @@
       "text": "11/25/2026, 6:52:24 PM \u00b7 Saved build"
     },
     {
-      "value": "preview-1:0",
-      "text": "11/25/2026, 7:22:48 PM \u00b7 Preview started \u00b7 no new snapshot"
-    },
-    {
-      "value": "preview-1:1",
-      "text": "11/25/2026, 7:22:48 PM \u00b7 Source design-rule checks started \u00b7 no new snapshot"
-    },
-    {
-      "value": "preview-1:2",
-      "text": "11/25/2026, 7:22:48 PM \u00b7 PCB placement checks started \u00b7 no new snapshot"
-    },
-    {
-      "value": "preview-1:3",
-      "text": "11/25/2026, 7:22:48 PM \u00b7 PCB design-rule checks started \u00b7 no new snapshot"
-    },
-    {
-      "value": "preview-1:4",
-      "text": "11/25/2026, 7:22:48 PM \u00b7 Routing started \u00b7 no new snapshot"
-    },
-    {
-      "value": "preview-1:5",
-      "text": "11/25/2026, 7:22:49 PM \u00b7 Routing finished \u00b7 no new snapshot"
-    },
-    {
-      "value": "preview-1:6",
-      "text": "11/25/2026, 7:22:49 PM \u00b7 Preview finished \u00b7 0 error records"
-    },
-    {
       "value": "archive:dist/index/circuit.json",
       "text": "Latest disk build \u00b7 build time unavailable"
     },
@@ -71,34 +44,6 @@
     {
       "value": "archive:.tscircuit-build-history/2026-11-25T17-52-24.150Z/dist/index/circuit.json",
       "text": "11/25/2026, 6:52:24 PM \u00b7 Saved build"
-    },
-    {
-      "value": "preview-1:0",
-      "text": "11/25/2026, 7:23:17 PM \u00b7 Preview started \u00b7 no new snapshot"
-    },
-    {
-      "value": "preview-1:1",
-      "text": "11/25/2026, 7:23:17 PM \u00b7 Source design-rule checks started \u00b7 no new snapshot"
-    },
-    {
-      "value": "preview-1:2",
-      "text": "11/25/2026, 7:23:18 PM \u00b7 PCB placement checks started \u00b7 no new snapshot"
-    },
-    {
-      "value": "preview-1:3",
-      "text": "11/25/2026, 7:23:18 PM \u00b7 PCB design-rule checks started \u00b7 no new snapshot"
-    },
-    {
-      "value": "preview-1:4",
-      "text": "11/25/2026, 7:23:18 PM \u00b7 Routing started \u00b7 no new snapshot"
-    },
-    {
-      "value": "preview-1:5",
-      "text": "11/25/2026, 7:23:18 PM \u00b7 Routing finished \u00b7 no new snapshot"
-    },
-    {
-      "value": "preview-1:6",
-      "text": "11/25/2026, 7:23:18 PM \u00b7 Preview finished \u00b7 0 error records"
     },
     {
       "value": "archive:dist/index/circuit.json",
@@ -135,15 +80,10 @@
     "The test-only interface fallback, HTTP-cache disabling, and GPU disabling are outside the implementation.",
     "Packaged Electron runtime and opaque-origin browser PCB bitmap not verified."
   ],
+  "capturedAt": "2026-11-27T05:51:18.854614+00:00",
   "source": {
-    "baseCommit": "33b6bb0335bb1145665242e0411d2d2e7046c715",
-    "mergedMainCommit": "218af7aca758f386ace7e4f11594ca3afdd6a85a",
-    "overlayTreeSha": "36e96ed9d34e2dd873672fa88a3ed12e40f8d27e"
-  },
-  "recording": {
-    "path": "saved-builds.mp4",
-    "durationSeconds": 53.04,
-    "sha256": "01278388c8f6c984ee8e25fbadb79df7c54e6be1714579c2a884e4f6b8e431d1",
-    "capture": "Actual screen recording cropped to the Circuit panel; original timing preserved."
+    "baseCommit": "168f6202b8d0b929804407f3614ef6d68f13e0a2",
+    "scope": "saved CLI builds only",
+    "overlayTreeSha": "fb396ff4ab62593ccbbad4a8522e32321e2b02d1"
   }
 }

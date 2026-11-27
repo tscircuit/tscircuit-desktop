@@ -1,10 +1,10 @@
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "~/components/ui/button";
-import type { CircuitPlaybackStep } from "./circuitPlayback";
+import type { SavedCircuitBuild } from "./savedCircuitBuild";
 
 export function CircuitPlaybackControls(props: {
-  readonly steps: ReadonlyArray<CircuitPlaybackStep>;
+  readonly steps: ReadonlyArray<SavedCircuitBuild>;
   readonly selectedId: string | null;
   readonly onSelect: (id: string | null) => void;
   readonly visible: boolean;
@@ -30,7 +30,7 @@ export function CircuitPlaybackControls(props: {
     ? `${selected.label}${time === null ? "" : ` · ${time}`}`
     : props.selectedId === null
       ? "Live"
-      : "Step no longer retained";
+      : "Saved build unavailable";
   const seek = (next: number) => {
     setPlaying(false);
     props.onSelect(props.steps[next]?.id ?? null);
@@ -38,7 +38,7 @@ export function CircuitPlaybackControls(props: {
   return (
     <div
       role="group"
-      aria-label="Design playback"
+      aria-label="Build history"
       className="flex shrink-0 flex-col gap-1 border-t px-2 py-2 text-xs"
     >
       <div className="flex items-center gap-2">
@@ -59,7 +59,7 @@ export function CircuitPlaybackControls(props: {
         <Button
           size="icon-xs"
           variant="ghost"
-          aria-label="Previous step"
+          aria-label="Previous build"
           disabled={position === 0}
           onClick={() => seek(position - 1)}
         >
@@ -68,7 +68,7 @@ export function CircuitPlaybackControls(props: {
         <input
           type="range"
           className="min-w-12 flex-1 accent-primary"
-          aria-label="Design timeline"
+          aria-label="Build timeline"
           aria-valuetext={description}
           min={0}
           max={props.steps.length}
@@ -79,7 +79,7 @@ export function CircuitPlaybackControls(props: {
         <Button
           size="icon-xs"
           variant="ghost"
-          aria-label="Next step"
+          aria-label="Next build"
           disabled={position === props.steps.length}
           onClick={() => seek(position + 1)}
         >
@@ -95,7 +95,7 @@ export function CircuitPlaybackControls(props: {
         </Button>
       </div>
       <select
-        aria-label="Playback step"
+        aria-label="Saved build"
         className="w-full min-w-0 rounded border border-input bg-background px-1 py-1"
         value={selectedId ?? "live"}
         onChange={(event) => {
@@ -104,17 +104,12 @@ export function CircuitPlaybackControls(props: {
         }}
       >
         {selectedId !== null && index < 0 ? (
-          <option value={selectedId}>Step no longer retained</option>
+          <option value={selectedId}>Saved build unavailable</option>
         ) : null}
         {props.steps.map((step) => (
           <option key={step.id} value={step.id}>
             {step.at === null ? "" : `${new Date(step.at).toLocaleString()} · `}
             {step.label}
-            {step.snapshotEvicted
-              ? " · snapshot no longer retained"
-              : step.snapshot === null && step.archivePath === undefined
-                ? " · no new snapshot"
-                : ""}
           </option>
         ))}
         <option value="live">Live</option>
@@ -122,10 +117,7 @@ export function CircuitPlaybackControls(props: {
       <span aria-live="polite" className="text-muted-foreground">
         {description}
       </span>
-      <span className="text-muted-foreground">
-        Saved CLI builds + last 40 preview steps / 10 preview snapshots · error records are not an
-        independent ERC/DRC result
-      </span>
+      <span className="text-muted-foreground">Saved CLI builds · seeking is read-only</span>
     </div>
   );
 }

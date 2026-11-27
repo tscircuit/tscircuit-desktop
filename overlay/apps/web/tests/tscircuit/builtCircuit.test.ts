@@ -211,9 +211,8 @@ it("finds persisted builds for the selected nested project without reading artif
     },
     output,
   );
-  expect(steps.map((step) => [step.archivePath, step.at])).toEqual([
+  expect(steps.map((step) => [step.path, step.at])).toEqual([
     [path, Date.parse("2026-11-24T12:30:00.000Z")],
     ["packages/usb/dist/usb/circuit.json", null],
   ]);
-  expect(steps.every((step) => step.snapshot === null)).toBe(true);
 });

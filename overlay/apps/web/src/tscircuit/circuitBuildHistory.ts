@@ -4,7 +4,7 @@ import { appAtomRegistry } from "~/rpc/atomRegistry";
 import { filesystemEnvironment } from "~/state/filesystem";
 import { projectEnvironment } from "~/state/projects";
 import type { circuitBuildOutput } from "./builtCircuit";
-import type { CircuitPlaybackStep } from "./circuitPlayback";
+import type { SavedCircuitBuild } from "./savedCircuitBuild";
 
 const HISTORY_DIRECTORY = ".tscircuit-build-history";
 type BuildOutput = NonNullable<ReturnType<typeof circuitBuildOutput>>;
@@ -20,7 +20,7 @@ interface BuildHistoryReader {
 export async function readCircuitBuildHistory(
   reader: BuildHistoryReader,
   output: BuildOutput,
-): Promise<ReadonlyArray<CircuitPlaybackStep>> {
+): Promise<ReadonlyArray<SavedCircuitBuild>> {
   const prefix = output.projectDir === "" ? "" : `${output.projectDir}/`;
   const directory = `${prefix}${HISTORY_DIRECTORY}`;
   const root = await reader.list(output.projectDir);
@@ -47,7 +47,7 @@ export async function readCircuitBuildHistory(
   candidates.sort((a, b) => a.at! - b.at!);
   // Even an out-of-date output is useful history. It must never pass the live source freshness gate.
   candidates.push({ path: output.path, at: null });
-  const steps: CircuitPlaybackStep[] = [];
+  const steps: SavedCircuitBuild[] = [];
   for (let offset = 0; offset < candidates.length; offset += 64) {
     const batch = candidates.slice(offset, offset + 64);
     const exists = await reader.existingFiles(batch.map((entry) => entry.path));
@@ -57,9 +57,7 @@ export async function readCircuitBuildHistory(
         id: `archive:${entry.path}`,
         at: entry.at,
         label: entry.at === null ? "Latest disk build · build time unavailable" : "Saved build",
-        archivePath: entry.path,
-        snapshot: null,
-        bytes: 0,
+        path: entry.path,
       });
     }
   }

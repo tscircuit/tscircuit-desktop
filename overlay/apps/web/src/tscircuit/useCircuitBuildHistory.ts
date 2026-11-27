@@ -2,7 +2,7 @@ import type { EnvironmentId } from "@t3tools/contracts";
 import { useEffect, useState } from "react";
 import type { circuitBuildOutput } from "./builtCircuit";
 import { loadCircuitBuildHistory } from "./circuitBuildHistory";
-import { type CircuitPlaybackStep, inspectCircuitSnapshot } from "./circuitPlayback";
+import { type SavedCircuitBuild, isDrawableCircuitBuild } from "./savedCircuitBuild";
 import { readBuiltCircuitJson } from "./projectFsMap";
 
 export function useCircuitBuildHistory(input: {
@@ -19,7 +19,7 @@ export function useCircuitBuildHistory(input: {
   const [found, setFound] = useState<{
     scope: string;
     revision: string | null;
-    steps: ReadonlyArray<CircuitPlaybackStep>;
+    steps: ReadonlyArray<SavedCircuitBuild>;
     failed: boolean;
   } | null>(null);
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- lists the CLI's persisted builds from the environment on opening, agent work, and focus
@@ -61,7 +61,7 @@ export function useCircuitBuildHistory(input: {
   };
 }
 
-export function useArchivedCircuitSnapshot(input: {
+export function useSavedCircuitBuild(input: {
   readonly environmentId: EnvironmentId;
   readonly cwd: string | undefined;
   readonly path: string | null;
@@ -85,7 +85,7 @@ export function useArchivedCircuitSnapshot(input: {
           setFound({
             key,
             selection,
-            text: text !== null && inspectCircuitSnapshot(text)?.drawable ? text : null,
+            text: text !== null && isDrawableCircuitBuild(text) ? text : null,
           });
       })
       .catch(() => {

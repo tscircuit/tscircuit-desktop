@@ -6,15 +6,12 @@ import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import { expect, it, vi } from "vite-plus/test";
 import { act, render } from "../../test/render";
 import type { ComposerThreadTarget } from "~/composerDraftStore";
-import {
-  type CircuitPlaybackStep,
-  PREVIEW_REQUEST_FILE,
-} from "../../src/tscircuit/circuitPlayback";
+import type { SavedCircuitBuild } from "../../src/tscircuit/savedCircuitBuild";
 
 const workspace = vi.hoisted(() => ({
   source: "",
   truncated: false,
-  builds: [] as CircuitPlaybackStep[],
+  builds: [] as SavedCircuitBuild[],
   read: async (_path: string): Promise<string | null> => null,
 }));
 function setup() {
@@ -173,68 +170,14 @@ it("stacks at most two panes, isolates navigation/errors, and closes with focus 
   expect(document.activeElement?.getAttribute("aria-label")).toBe("Split circuit view");
 });
 
-it("seeks one snapshot in both panes without resending live source", async () => {
-  setup();
-  // The panel reads its workspace props without route state.
-  await using screen = await render(<CircuitPanel {...props} split />, { router: false });
-  const frame = document.querySelector("iframe")!;
-  using posted = vi.spyOn(frame.contentWindow!, "postMessage");
-  await act(() => ready(frame));
-  const previewId = () =>
-    posted.mock.calls.findLast(([data]) => data?.runframe_props?.fsMap)?.[0].runframe_props.fsMap[
-      PREVIEW_REQUEST_FILE
-    ];
-  await vi.waitFor(() => expect(previewId()).toBeTruthy());
-  const originalPreview = previewId();
-  const snapshot = '[{"type":"pcb_board","pcb_board_id":"original"}]';
-  const emitPreview = (id: string, sequence: number, stage: string, circuitJsonText?: string) =>
-    act(() =>
-      send(frame, {
-        tscircuit_desktop_type: "circuit_preview_event",
-        event: { previewId: id, sequence, observedAt: sequence, stage, circuitJsonText },
-      }),
-    );
-  await emitPreview(originalPreview, 0, "completed", snapshot);
-  workspace.source = "export default () => <board />";
-  await screen.rerender(<CircuitPanel {...props} split workspaceMutationId="edited" />);
-  await vi.waitFor(() => expect(previewId()).not.toBe(originalPreview));
-  await emitPreview(originalPreview, 1, "completed", "stale output");
-  await emitPreview(previewId(), 0, "failed");
-  await expect
-    .element(screen.getByRole("slider", { name: "Design timeline" }))
-    .toHaveAttribute("max", "2");
-  const sourceMessages = posted.mock.calls.length;
-  await screen.getByRole("button", { name: "Previous step" }).click();
-  const history = document.querySelector('[aria-label="Historical design"]')!;
-  expect(history.querySelector('[aria-label="Order"]')).toBeNull();
-  for (const historicalFrame of history.querySelectorAll("iframe")) {
-    using received = vi.spyOn(historicalFrame.contentWindow!, "postMessage");
-    await act(() => ready(historicalFrame));
-    await vi.waitFor(() =>
-      expect(received.mock.lastCall?.[0]?.runframe_props).toMatchObject({
-        mainComponentPath: "playback.circuit.json",
-        fsMap: { "playback.circuit.json": snapshot },
-      }),
-    );
-  }
-  await screen.getByRole("button", { name: "Back to live" }).click();
-  expect(posted.mock.calls).toHaveLength(sourceMessages);
-  await screen.rerender(<CircuitPanel {...props} cwd="/another-workspace" />);
-  await expect
-    .element(screen.getByRole("group", { name: "Design playback" }))
-    .not.toBeInTheDocument();
-});
-
-it("views saved builds before any preview completes and drops a late archive read", async () => {
+it("opens saved builds in both panes without rerunning live source or accepting a late read", async () => {
   setup();
   workspace.truncated = true;
-  const build = (id: string): CircuitPlaybackStep => ({
+  const build = (id: string): SavedCircuitBuild => ({
     id: `archive:${id}`,
     at: 1,
     label: "Saved build",
-    archivePath: id,
-    snapshot: null,
-    bytes: 0,
+    path: id,
   });
   workspace.builds = [build("older"), build("newer")];
   let finishOld!: (text: string) => void;
@@ -254,9 +197,9 @@ it("views saved builds before any preview completes and drops a late archive rea
   await vi.waitFor(() =>
     expect(document.querySelector('option[value="archive:older"]')).not.toBeNull(),
   );
-  await screen.getByRole("combobox", { name: "Playback step" }).selectOptions("archive:older");
+  await screen.getByRole("combobox", { name: "Saved build" }).selectOptions("archive:older");
   await expect.element(screen.getByText("Loading saved build…", { exact: true })).toBeVisible();
-  await screen.getByRole("combobox", { name: "Playback step" }).selectOptions("archive:newer");
+  await screen.getByRole("combobox", { name: "Saved build" }).selectOptions("archive:newer");
   const historyFrames = () =>
     document.querySelectorAll<HTMLIFrameElement>('[aria-label="Historical design"] iframe');
   await vi.waitFor(() => expect(historyFrames()).toHaveLength(2));
@@ -283,24 +226,18 @@ it("views saved builds before any preview completes and drops a late archive rea
   expect(firstPosts.mock.lastCall?.[0]?.runframe_props.fsMap["playback.circuit.json"]).toBe(
     snapshot,
   );
-  const liveInput = posted.mock.calls.find(([data]) => data?.runframe_props?.fsMap)?.[0]
-    .runframe_props.fsMap;
   const count = posted.mock.calls.length;
-  await act(() =>
-    send(live, {
-      tscircuit_desktop_type: "circuit_preview_event",
-      event: {
-        previewId: liveInput[PREVIEW_REQUEST_FILE],
-        sequence: 0,
-        observedAt: 2,
-        stage: "started",
-      },
-    }),
-  );
+  expect(
+    document.querySelector('[aria-label="Historical design"] [aria-label="Order"]'),
+  ).toBeNull();
   await expect
-    .element(screen.getByRole("combobox", { name: "Playback step" }))
+    .element(screen.getByRole("combobox", { name: "Saved build" }))
     .toHaveValue("archive:newer");
   expect(historyFrames()[0]?.isConnected).toBe(true);
   await screen.getByRole("button", { name: "Back to live" }).click();
   expect(posted.mock.calls).toHaveLength(count);
+  await screen.rerender(<CircuitPanel {...props} cwd="/another-workspace" />);
+  await expect
+    .element(screen.getByRole("group", { name: "Build history" }))
+    .not.toBeInTheDocument();
 });

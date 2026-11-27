@@ -29,7 +29,6 @@
     -->
     <div id="root"></div>
     <script src="./viewer-assets.js"></script>
-    <script src="./preview-events.js"></script>
     <script>
       (() => {
         const assets = self.TSCIRCUIT_VIEWER_ASSETS ?? {};
@@ -237,7 +236,6 @@
             tellPhases();
             return executeWithFsMap.apply(worker, args);
           };
-          self.tscircuitDesktopObservePreviewWorker?.(worker);
         };
         let runFrameWorker = globalThis.runFrameWorker;
         Object.defineProperty(globalThis, "runFrameWorker", {
