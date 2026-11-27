@@ -36,6 +36,7 @@ export const CircuithubRequest = Schema.Union([
 export type CircuithubRequest = typeof CircuithubRequest.Type;
 
 export const CircuithubAccount = Schema.Struct({
+  scope: Schema.optional(Schema.NullOr(Schema.String)),
   connected: Schema.Boolean,
   displayName: Schema.NullOr(Schema.String),
   expiresAt: Schema.NullOr(Schema.Number),

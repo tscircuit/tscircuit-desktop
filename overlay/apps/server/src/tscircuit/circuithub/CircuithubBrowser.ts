@@ -42,9 +42,9 @@ const make = Effect.gen(function* () {
           let session = sessions.get(sessionId);
           if (!session) {
             session = createCircuithubService({
-              readToken: async () => null,
-              writeToken: async () => false,
-              clearToken: async () => {},
+              readSession: async () => null,
+              writeSession: async () => false,
+              clearSession: async () => {},
               // The HTTP response provides an authorization link; the server never opens a browser.
               openBrowser: async () => true,
             });
@@ -56,7 +56,7 @@ const make = Effect.gen(function* () {
               : input,
           );
           const authorizationUrl = session.authorizationUrl;
-          if (input.action === "logout") {
+          if (input.action === "logout" && response.ok) {
             session.close();
             sessions.delete(sessionId);
           }

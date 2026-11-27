@@ -30,14 +30,14 @@ export const installCircuithub = Effect.fn("desktop.circuithub.install")(functio
     );
   });
   const service = createCircuithubService({
-    readToken: () =>
+    readSession: () =>
       run(
         Effect.gen(function* () {
           if (!(yield* fs.exists(tokenFile)) || !(yield* canPersist)) return null;
           return yield* storage.decryptString(yield* fs.readFile(tokenFile));
         }),
       ),
-    writeToken: (token) =>
+    writeSession: (token) =>
       run(
         Effect.gen(function* () {
           if (!(yield* canPersist)) return false;
@@ -49,7 +49,7 @@ export const installCircuithub = Effect.fn("desktop.circuithub.install")(functio
           return true;
         }),
       ),
-    clearToken: () => run(fs.remove(tokenFile, { force: true })),
+    clearSession: () => run(fs.remove(tokenFile, { force: true })),
     openBrowser: (url) => run(shell.openExternal(url)),
   });
   yield* Effect.addFinalizer(() => Effect.sync(() => service.close()));

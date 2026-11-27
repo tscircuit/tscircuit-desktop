@@ -37,14 +37,14 @@ function withDesktopBridge(value: DesktopBridge | undefined) {
 it("opens the actual authorization link and completes the pasted callback in a web preview", async () => {
   using _bridge = withDesktopBridge(undefined);
   const authorizationUrl =
-    "https://app.circuithub.com/platform/v1/auth/cli?redirect_uri=http://localhost:12345/circuithub/callback/nonce";
+    "https://app.circuithub.com/oauth/authorize?redirect_uri=http://127.0.0.1:12345/callback&state=nonce";
   let connected = false;
   let loginPending = false;
   requestBrowser.mockImplementation(async (request) => {
     if (request.action === "login") loginPending = true;
     if (request.action === "complete_login") {
       expect(Redacted.value(request.callbackUrl)).toBe(
-        "http://localhost:12345/circuithub/callback/nonce?token=fake-session",
+        "http://127.0.0.1:12345/callback?code=fake-code&state=nonce&iss=https%3A%2F%2Fapp.circuithub.com",
       );
       connected = true;
       loginPending = false;
@@ -66,11 +66,13 @@ it("opens the actual authorization link and completes the pasted callback in a w
   expect(screen.container.querySelector('a[href="https://app.circuithub.com/"]')).toBeNull();
   await screen.getByRole("button", { name: /Connect CircuitHub/ }).click();
   await expect
-    .element(screen.getByRole("link", { name: "Authorize CircuitHub (Link your CLI)" }))
+    .element(screen.getByRole("link", { name: "Authorize CircuitHub" }))
     .toHaveAttribute("href", authorizationUrl);
   await screen
     .getByLabelText("Callback URL from the authorization tab")
-    .fill("http://localhost:12345/circuithub/callback/nonce?token=fake-session");
+    .fill(
+      "http://127.0.0.1:12345/callback?code=fake-code&state=nonce&iss=https%3A%2F%2Fapp.circuithub.com",
+    );
   await screen.getByRole("button", { name: "Finish linking CircuitHub" }).click();
   await expect
     .element(screen.getByRole("button", { name: "Disconnect", exact: true }))
@@ -100,7 +102,13 @@ it("makes the native authorization handler the primary desktop action", async ()
 
 it("selects an account workspace and submits EAR99 by default or a custom classification", async () => {
   using _bridge = withDesktopBridge(undefined);
-  const connectedAccount = { ...account, connected: true, displayName: "abse" };
+  const connectedAccount = {
+    ...account,
+    connected: true,
+    displayName: "abse",
+    expiresAt: 1,
+    scope: "read design issues",
+  };
   requestBrowser.mockImplementation(async (request) => ({
     ok: request.action !== "create",
     account: connectedAccount,

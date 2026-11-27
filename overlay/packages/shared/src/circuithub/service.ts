@@ -1,5 +1,4 @@
 // @effect-diagnostics globalTimers:off -- Abortable native fetch workflow schedules its import polling outside Effect fibers.
-import * as Schema from "effect/Schema";
 import type {
   CircuithubAccount,
   CircuithubWorkspace,
@@ -7,21 +6,14 @@ import type {
   CircuithubRequest,
   CircuithubResponse,
 } from "@t3tools/contracts";
-import {
-  createApi,
-  CircuitHubHttpError,
-  checkoutUrl,
-  isBoardMeasured,
-  parseExportClassification,
-} from "./api.ts";
-import { startLogin, tokenClaims } from "./login.ts";
-
-const isCircuitHubHttpError = Schema.is(CircuitHubHttpError);
+import { createApi, checkoutUrl, isBoardMeasured, parseExportClassification } from "./api.ts";
+import { startLogin } from "./login.ts";
+import { createOAuthAccount } from "./oauth.ts";
 
 interface Options {
-  readonly readToken: () => Promise<string | null>;
-  readonly writeToken: (token: string) => Promise<boolean>;
-  readonly clearToken: () => Promise<void>;
+  readonly readSession: () => Promise<string | null>;
+  readonly writeSession: (token: string) => Promise<boolean>;
+  readonly clearSession: () => Promise<void>;
   readonly openBrowser: (url: string) => Promise<boolean>;
   readonly fetch?: typeof fetch;
   readonly login?: typeof startLogin;
@@ -73,47 +65,41 @@ export function validateProject(input: Extract<CircuithubRequest, { action: "cre
 }
 
 export function createCircuithubService(options: Options) {
-  let token: string | null = null;
-  let persistent = false;
-  let loaded: Promise<void> | null = null;
+  const oauth = createOAuthAccount({
+    read: options.readSession,
+    write: options.writeSession,
+    clear: options.clearSession,
+    fetch: options.fetch ?? globalThis.fetch,
+  });
   let login: Awaited<ReturnType<typeof startLogin>> | null = null;
   let generation = 0;
   let loginCompletion: Promise<void> | null = null;
   let progress: string | null = null;
   let active: AbortController | null = null;
   let authError: string | null = null;
-  let storageQueue = Promise.resolve();
-  const serializeStorage = <T>(operation: () => Promise<T>): Promise<T> => {
-    const result = storageQueue.then(operation, operation);
-    storageQueue = result.then(
-      () => {},
-      () => {},
+  const load = () => oauth.load();
+  const account = (): CircuithubAccount => ({
+    connected: oauth.current !== null,
+    displayName: null,
+    expiresAt: oauth.current?.expiresAt ?? null,
+    scope: oauth.current?.scope ?? null,
+    persistent: oauth.persistent,
+    loginPending: login !== null,
+    progress,
+  });
+  const apiFor = (signal: AbortSignal, expected: number) =>
+    createApi(
+      async (request) => {
+        if (expected !== generation)
+          throw new Error("The CircuitHub account changed. Please try again.");
+        const token = await oauth.accessToken(request);
+        if (expected !== generation)
+          throw new Error("The CircuitHub account changed. Please try again.");
+        return token;
+      },
+      signal,
+      options.fetch,
     );
-    return result;
-  };
-  const load = () =>
-    (loaded ??= options
-      .readToken()
-      .then((saved) => {
-        if (generation === 0 && saved && tokenClaims(saved)) {
-          token = saved;
-          persistent = true;
-        }
-      })
-      .catch(() => {
-        authError = "Could not unlock the saved CircuitHub session. Sign in again.";
-      }));
-  const account = (): CircuithubAccount => {
-    const claims = token ? tokenClaims(token) : null;
-    return {
-      connected: claims !== null,
-      displayName: claims?.name ?? null,
-      expiresAt: claims?.expiresAt ?? null,
-      persistent,
-      loginPending: login !== null,
-      progress,
-    };
-  };
   const resetLogin = () => {
     generation += 1;
     login?.close();
@@ -123,31 +109,25 @@ export function createCircuithubService(options: Options) {
   const logout = async () => {
     resetLogin();
     active?.abort();
-    token = null;
-    persistent = false;
+    await oauth.disconnect();
     authError = null;
-    await serializeStorage(options.clearToken);
   };
   async function beginLogin() {
     if (login || account().connected) return;
     if (active) throw new Error("Cancel the running quote before changing accounts.");
     authError = null;
     const attempt = ++generation;
-    const session = await (options.login ?? startLogin)();
+    const session = await (options.login ?? startLogin)(options.fetch);
     if (attempt !== generation) {
       session.close();
       return;
     }
     login = session;
-    loginCompletion = session.token
+    loginCompletion = session.credentials
       .then(async (received) => {
         if (attempt !== generation) return;
-        const saved = await serializeStorage(async () =>
-          attempt === generation ? options.writeToken(received) : false,
-        );
+        await oauth.connect(received, () => attempt === generation);
         if (attempt !== generation) return;
-        token = received;
-        persistent = saved;
         authError = null;
       })
       .catch(() => {
@@ -171,15 +151,10 @@ export function createCircuithubService(options: Options) {
   }
 
   async function listWorkspaces(): Promise<readonly CircuithubWorkspace[]> {
-    if (!token || !tokenClaims(token))
-      throw new Error("Sign in to CircuitHub to load your workspaces.");
+    if (!oauth.current) throw new Error("Sign in to CircuitHub to load your workspaces.");
     const accountGeneration = generation;
     try {
-      const result = await createApi(
-        token,
-        AbortSignal.timeout(30_000),
-        options.fetch,
-      ).workspaces();
+      const result = await apiFor(AbortSignal.timeout(30_000), accountGeneration).workspaces();
       if (accountGeneration !== generation)
         throw new Error("The CircuitHub account changed. Reload workspaces.");
       if (!Array.isArray(result.workspaces))
@@ -198,7 +173,6 @@ export function createCircuithubService(options: Options) {
     } catch (error) {
       if (accountGeneration !== generation)
         throw new Error("The CircuitHub account changed. Reload workspaces.", { cause: error });
-      if (isCircuitHubHttpError(error) && error.status === 401) await logout();
       throw error;
     }
   }
@@ -207,14 +181,17 @@ export function createCircuithubService(options: Options) {
     request: Extract<CircuithubRequest, { action: "create" | "refresh" }>,
   ): Promise<CircuithubQuoteResult> {
     if (active) throw new Error("A CircuitHub quote is already running.");
-    if (!token || !tokenClaims(token))
-      throw new Error("Sign in to CircuitHub before requesting a quote.");
+    if (!oauth.current) throw new Error("Sign in to CircuitHub before requesting a quote.");
+    if (!oauth.current.scope.split(/\s+/).includes("design"))
+      throw new Error(
+        "CircuitHub only allowed reading. Enable Engineering access under CircuitHub Settings → Connected apps, or disconnect and sign in again choosing Engineering.",
+      );
     if (request.action === "create") validateProject(request);
     const controller = new AbortController();
     const requestGeneration = generation;
     active = controller;
     const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(12 * 60_000)]);
-    const api = createApi(token, signal, options.fetch);
+    const api = apiFor(signal, requestGeneration);
     const sleep = options.pause ?? pause;
     try {
       let projectId: number;
@@ -312,10 +289,6 @@ export function createCircuithubService(options: Options) {
           .flatMap((line) => line.placements?.map((p) => p.ref) ?? line.referenceDesignators ?? []),
       };
     } catch (error) {
-      if (isCircuitHubHttpError(error) && error.status === 401) {
-        await logout();
-        throw error;
-      }
       if (signal.aborted)
         throw new Error(
           controller.signal.aborted
@@ -338,8 +311,8 @@ export function createCircuithubService(options: Options) {
         | CircuithubRequest
         | { readonly action: "complete_login"; readonly callbackUrl: string },
     ): Promise<CircuithubResponse> {
-      await load();
       try {
+        await load();
         let result: CircuithubQuoteResult | null = null;
         let workspaces: readonly CircuithubWorkspace[] | undefined;
         switch (request.action) {
@@ -353,7 +326,7 @@ export function createCircuithubService(options: Options) {
             const attempt = generation;
             if (!login || !completion || !login.acceptCallback(request.callbackUrl))
               throw new Error(
-                "This callback URL does not match the active CircuitHub sign-in, or its token has expired. Open the authorization link again.",
+                "This callback URL does not match the active CircuitHub sign-in, or its code has expired. Open the authorization link again.",
               );
             await completion;
             if (attempt !== generation) throw new Error("CircuitHub sign-in was cancelled.");

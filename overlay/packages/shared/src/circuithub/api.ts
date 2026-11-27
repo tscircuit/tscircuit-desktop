@@ -38,7 +38,8 @@ export class CircuitHubHttpError extends Schema.TaggedError<CircuitHubHttpError>
   },
 ) {
   override get message() {
-    if (this.status === 401) return "Your CircuitHub session expired. Sign in again.";
+    if (this.status === 401)
+      return "CircuitHub did not accept this access token. Try signing in again if the problem continues.";
     const operation = this.operation ? ` ${this.operation}` : " the request";
     const code = this.code ? ` [${this.code}]` : "";
     const detail = this.detail ? `: ${this.detail}` : ". Please try again.";
@@ -57,18 +58,38 @@ export function parseExportClassification(
   throw new Error("Choose EAR99, NotExportControlled, or enter an ECCN such as 3A001.");
 }
 
-export function createApi(token: string, signal: AbortSignal, fetchFn = globalThis.fetch) {
+export function createApi(
+  auth: string | ((options: { rejected?: string }) => Promise<string>),
+  signal: AbortSignal,
+  fetchFn = globalThis.fetch,
+) {
   async function call<T>(method: string, path: string, body?: unknown): Promise<T> {
-    const response = await fetchFn(`https://api.circuithub.com/v1${path}`, {
-      method,
-      signal,
-      headers: {
-        Authorization: `Bearer ${token}`,
-        Accept: "application/json",
-        ...(body ? { "Content-Type": "application/json" } : {}),
-      },
-      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
-    });
+    signal.throwIfAborted();
+    const token = typeof auth === "string" ? auth : await auth({});
+    signal.throwIfAborted();
+    const send = (token: string) =>
+      fetchFn(`https://api.circuithub.com/v1${path}`, {
+        method,
+        signal,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+          ...(body ? { "Content-Type": "application/json" } : {}),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+      });
+    let response = await send(token);
+    let usedToken = token;
+    if (
+      typeof auth !== "string" &&
+      response.status === 401 &&
+      /invalid_token/.test(response.headers.get("WWW-Authenticate") ?? "")
+    ) {
+      await response.body?.cancel();
+      usedToken = await auth({ rejected: token });
+      signal.throwIfAborted();
+      response = await send(usedToken);
+    }
     if (!response.ok) {
       let detail: string | undefined;
       let code: string | undefined;
@@ -104,6 +125,7 @@ export function createApi(token: string, signal: AbortSignal, fetchFn = globalTh
           if (typeof message === "string") {
             detail = message
               .replaceAll(token, "[redacted]")
+              .replaceAll(usedToken, "[redacted]")
               .replace(/Bearer\s+[^\s"'<>]+/gi, "Bearer [redacted]")
               .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[redacted]")
               .replace(/https?:\/\/[^\s"'<>]+/gi, "[redacted URL]")

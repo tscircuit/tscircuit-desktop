@@ -1,10 +1,22 @@
 import { describe, expect, it } from "vite-plus/test";
 import { createCircuithubService, validateProject } from "./service.ts";
 import { checkoutUrl } from "./api.ts";
-import { tokenClaims } from "./login.ts";
 import type { CircuithubRequest } from "@t3tools/contracts";
 
-const TOKEN = `header.${Buffer.from(JSON.stringify({ name: "Test User", exp: 40_000_000_000 })).toString("base64url")}.signature`;
+const ACCESS = "cha_test_access";
+const CREDENTIALS = {
+  version: 1 as const,
+  clientId: "desktop",
+  tokenEndpoint: "https://app.circuithub.com/oauth/token",
+  revocationEndpoint: "https://app.circuithub.com/oauth/revoke",
+  resource: "https://api.circuithub.com",
+  accessToken: ACCESS,
+  refreshToken: "chr_test_refresh",
+  expiresAt: 40_000_000_000_000,
+  renewAt: 39_000_000_000_000,
+  scope: "read design issues",
+};
+const TOKEN = JSON.stringify(CREDENTIALS);
 const input = (): Extract<CircuithubRequest, { action: "create" }> => ({
   action: "create",
   workspace: "my-team",
@@ -87,12 +99,12 @@ function setup(
     throw new Error(`Unexpected URL: ${value}`);
   };
   const service = createCircuithubService({
-    readToken: async () => stored,
-    writeToken: async (value) => {
+    readSession: async () => stored,
+    writeSession: async (value) => {
       stored = value;
       return true;
     },
-    clearToken: async () => {
+    clearSession: async () => {
       stored = null;
     },
     openBrowser: async () => true,
@@ -120,7 +132,7 @@ describe("CircuitHub integration", () => {
     expect(
       calls
         .filter((call) => call.url.startsWith("https://api.circuithub.com/"))
-        .every((call) => call.headers.get("Authorization") === `Bearer ${TOKEN}`),
+        .every((call) => call.headers.get("Authorization") === `Bearer ${ACCESS}`),
     ).toBe(true);
     expect(calls.some((call) => /order|purchase/.test(new URL(call.url).pathname))).toBe(false);
     service.close();
@@ -152,27 +164,27 @@ describe("CircuitHub integration", () => {
       ]);
       expect(calls).toHaveLength(1);
       expect(calls[0]?.url).toBe("https://api.circuithub.com/v1/workspaces");
-      expect(calls[0]?.headers.get("authorization")).toBe(`Bearer ${TOKEN}`);
+      expect(calls[0]?.headers.get("authorization")).toBe(`Bearer ${ACCESS}`);
       expect(JSON.stringify(response)).not.toContain(TOKEN);
     } finally {
       service.close();
     }
   });
 
-  it("requires sign-in and clears expired sessions after an API rejection", async () => {
+  it("requires sign-in but keeps the refresh grant on a generic API rejection", async () => {
     const disconnected = setup({ initialToken: null });
     expect((await disconnected.service.request(input())).error).toMatch(/Sign in/);
     expect(disconnected.calls).toHaveLength(0);
     const expired = setup({ failAuth: true });
     const response = await expired.service.request(input());
-    expect(response.account.connected).toBe(false);
-    expect(response.error).toMatch(/session expired/);
-    expect(expired.stored()).toBeNull();
+    expect(response.account.connected).toBe(true);
+    expect(response.error).toMatch(/access token/);
+    expect(expired.stored()).toBe(TOKEN);
     const listExpired = setup({ failAuth: true });
     const listResponse = await listExpired.service.request({ action: "workspaces" });
-    expect(listResponse.account.connected).toBe(false);
-    expect(listResponse.error).toMatch(/session expired/);
-    expect(listExpired.stored()).toBeNull();
+    expect(listResponse.account.connected).toBe(true);
+    expect(listResponse.error).toMatch(/access token/);
+    expect(listExpired.stored()).toBe(TOKEN);
     listExpired.service.close();
     disconnected.service.close();
     expired.service.close();
@@ -182,22 +194,33 @@ describe("CircuitHub integration", () => {
     const entered = Promise.withResolvers<void>();
     const response = Promise.withResolvers<Response>();
     let saved: string | null = TOKEN;
-    let loginUrl = "";
-    const next = `header.${Buffer.from(JSON.stringify({ name: "New account", exp: 40_000_000_000 })).toString("base64url")}.signature`;
+    const next = JSON.stringify({
+      ...CREDENTIALS,
+      accessToken: "cha_next_access",
+      refreshToken: "chr_next_refresh",
+    });
+    const received = Promise.withResolvers<typeof CREDENTIALS>();
     const service = createCircuithubService({
-      readToken: async () => saved,
-      writeToken: async (token) => {
+      readSession: async () => saved,
+      writeSession: async (token) => {
         saved = token;
         return true;
       },
-      clearToken: async () => {
+      clearSession: async () => {
         saved = null;
       },
-      openBrowser: async (url) => {
-        loginUrl = url;
-        return true;
-      },
-      fetch: async () => {
+      openBrowser: async () => true,
+      login: async () => ({
+        url: "https://app.circuithub.com/oauth/authorize",
+        credentials: received.promise,
+        acceptCallback: () => {
+          received.resolve(JSON.parse(next));
+          return true;
+        },
+        close() {},
+      }),
+      fetch: async (url) => {
+        if (String(url).endsWith("/revoke")) return new Response(null, { status: 200 });
         entered.resolve();
         return response.promise;
       },
@@ -207,15 +230,14 @@ describe("CircuitHub integration", () => {
       await entered.promise;
       await service.request({ action: "logout" });
       await service.request({ action: "login" });
-      const callback = new URL(new URL(loginUrl).searchParams.get("redirect_uri")!);
-      callback.searchParams.set("token", next);
+      const callback = new URL("http://127.0.0.1:1234/callback?code=for-fake-login");
       expect(
         (await service.request({ action: "complete_login", callbackUrl: callback.href })).ok,
       ).toBe(true);
       response.resolve(new Response("expired", { status: 401 }));
       const stale = await pending;
       expect(stale.ok).toBe(false);
-      expect(stale.account).toMatchObject({ connected: true, displayName: "New account" });
+      expect(stale.account).toMatchObject({ connected: true });
       expect(saved).toBe(next);
     } finally {
       service.close();
@@ -274,9 +296,9 @@ describe("CircuitHub integration", () => {
       throw new Error("Unexpected API call");
     };
     const service = createCircuithubService({
-      readToken: async () => TOKEN,
-      writeToken: async () => true,
-      clearToken: async () => {},
+      readSession: async () => TOKEN,
+      writeSession: async () => true,
+      clearSession: async () => {},
       openBrowser: async () => true,
       fetch: fake,
       pause: async (signal) => signal.throwIfAborted(),
@@ -292,32 +314,32 @@ describe("CircuitHub integration", () => {
   });
 
   it("does not save a late login callback after disconnect", async () => {
-    const received = Promise.withResolvers<string>();
+    const received = Promise.withResolvers<typeof CREDENTIALS>();
     let writes = 0;
     const service = createCircuithubService({
-      readToken: async () => null,
-      writeToken: async () => {
+      readSession: async () => null,
+      writeSession: async () => {
         writes++;
         return true;
       },
-      clearToken: async () => {},
+      clearSession: async () => {},
       openBrowser: async () => true,
       login: async () => ({
-        url: "https://app.circuithub.com/platform/v1/auth/cli",
-        token: received.promise,
+        url: "https://app.circuithub.com/oauth/authorize",
+        credentials: received.promise,
         acceptCallback: () => false,
         close() {},
       }),
     });
     expect((await service.request({ action: "login" })).account.loginPending).toBe(true);
     await service.request({ action: "logout" });
-    received.resolve(TOKEN);
+    received.resolve(CREDENTIALS);
     expect((await service.request({ action: "status" })).account.connected).toBe(false);
     expect(writes).toBe(0);
     service.close();
   });
 
-  it("only exposes valid CircuitHub checkout links and unexpired session claims", () => {
+  it("only exposes valid CircuitHub checkout links", () => {
     expect(checkoutUrl("https://app.circuithub.com/checkout/123")).not.toBeNull();
     for (const url of [
       "javascript:alert(1)",
@@ -326,8 +348,21 @@ describe("CircuitHub integration", () => {
       "https://evil.example/",
     ])
       expect(checkoutUrl(url)).toBeNull();
-    expect(tokenClaims(TOKEN)?.name).toBe("Test User");
-    expect(tokenClaims("not a token")).toBeNull();
-    expect(tokenClaims(`h.${Buffer.from('{"exp":1}').toString("base64url")}.s`)).toBeNull();
   });
+});
+
+it("allows reading workspaces but blocks quoting with a read-only grant before uploading", async () => {
+  const { service, calls } = setup({
+    initialToken: JSON.stringify({ ...CREDENTIALS, scope: "read" }),
+  });
+  try {
+    expect((await service.request({ action: "workspaces" })).ok).toBe(true);
+    const count = calls.length;
+    const quote = await service.request(input());
+    expect(quote.error).toContain("Engineering");
+    expect(quote.account.connected).toBe(true);
+    expect(calls).toHaveLength(count);
+  } finally {
+    service.close();
+  }
 });

@@ -88,3 +88,31 @@ it.each([
     expect(String(error)).not.toContain("sig=secret");
   },
 );
+
+it.each([
+  { challenge: 'Bearer error="invalid_token"', expectedRequests: 2 },
+  { challenge: 'Bearer realm="CircuitHub"', expectedRequests: 1 },
+])(
+  "renews and retries once only for an API invalid_token challenge: $challenge",
+  async ({ challenge, expectedRequests }) => {
+    const rejected: (string | undefined)[] = [];
+    let requests = 0;
+    const api = createApi(
+      async (options) => {
+        rejected.push(options.rejected);
+        return options.rejected ? "cha_renewed" : "cha_first";
+      },
+      new AbortController().signal,
+      async (_url, init) => {
+        requests++;
+        expect(new Headers(init?.headers).get("Authorization")).toBe(
+          requests === 1 ? "Bearer cha_first" : "Bearer cha_renewed",
+        );
+        return new Response(null, { status: 401, headers: { "WWW-Authenticate": challenge } });
+      },
+    );
+    await expect(api.workspaces()).rejects.toBeInstanceOf(CircuitHubHttpError);
+    expect(requests).toBe(expectedRequests);
+    expect(rejected).toEqual(expectedRequests === 2 ? [undefined, "cha_first"] : [undefined]);
+  },
+);

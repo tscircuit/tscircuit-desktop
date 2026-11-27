@@ -80,6 +80,7 @@ export function CircuithubQuotePanel(props: {
     readonly run: number;
     readonly circuitJsonText: string | null;
   } | null>(null);
+  const readOnly = account.scope != null && !account.scope.split(/\s+/).includes("design");
   const quoteAttempt = useRef(0);
   const id = useId();
   const stale =
@@ -126,10 +127,9 @@ export function CircuithubQuotePanel(props: {
   useEffect(() => {
     if (!expanded || !account.connected) return;
     let disposed = false;
-    const accountExpiry = account.expiresAt;
     void Promise.resolve()
       .then(() => {
-        if (disposed || (accountExpiry !== null && accountExpiry <= Date.now())) return;
+        if (disposed) return;
         setLoadingWorkspaces(true);
         setWorkspaceError(null);
         setWorkspaces([]);
@@ -159,7 +159,7 @@ export function CircuithubQuotePanel(props: {
       disposed = true;
     };
     // oxlint-disable-next-line react/exhaustive-effect-dependencies -- workspaceRefresh explicitly retries loading the account-owned workspace list
-  }, [expanded, account.connected, account.expiresAt, workspaceRefresh, api]);
+  }, [expanded, account.connected, workspaceRefresh, api]);
 
   const invoke = async (request: CircuithubRequest) => {
     const response = await api(request);
@@ -318,6 +318,12 @@ export function CircuithubQuotePanel(props: {
                 </Button>
               )}
             </div>
+            {account.connected && readOnly ? (
+              <p className="text-muted-foreground text-xs">
+                This CircuitHub connection allows reading only. Enable Engineering access under
+                CircuitHub Settings → Connected apps to request quotes.
+              </p>
+            ) : null}
             {browserMode && account.loginPending && authorizationUrl ? (
               <div className="flex flex-col gap-2">
                 <a
@@ -326,7 +332,7 @@ export function CircuithubQuotePanel(props: {
                   rel="noopener noreferrer"
                   className="text-primary underline"
                 >
-                  Authorize CircuitHub (Link your CLI)
+                  Authorize CircuitHub
                 </a>
                 <p className="text-muted-foreground text-xs">
                   Complete authorization in that tab. It will redirect to localhost, which may show
@@ -510,6 +516,7 @@ export function CircuithubQuotePanel(props: {
                       !props.ready ||
                       loadingWorkspaces ||
                       !workspaces.some((choice) => choice.slug === workspace) ||
+                      readOnly ||
                       (!projectId.trim() && !classification.trim())
                     }
                     onClick={() => void getQuote(false)}
@@ -520,7 +527,7 @@ export function CircuithubQuotePanel(props: {
                     <Button
                       size="sm"
                       variant="outline"
-                      disabled={busy || account.progress !== null}
+                      disabled={busy || account.progress !== null || readOnly}
                       onClick={() => void getQuote(true)}
                     >
                       Refresh prices
