@@ -1,0 +1,97 @@
+{
+  "baseCommit": "34c5d8e2931c2a750a03b5dffc651aa22427bc55",
+  "viewerVersion": "0.0.3300",
+  "cliVersion": "0.1.2488",
+  "cliOptions": [
+    "--disable-parts-engine",
+    "--autorouter-threads",
+    "1"
+  ],
+  "entrypoint": "npm run preview \u2192 Circuit review \u2192 Circuit \u2192 Schematic",
+  "beforeOptions": [
+    {
+      "value": "archive:.tscircuit-build-history/2026-11-25T17-50-56.343Z/dist/index/circuit.json",
+      "text": "11/25/2026, 6:50:56 PM \u00b7 Saved build"
+    },
+    {
+      "value": "archive:.tscircuit-build-history/2026-11-25T17-52-24.150Z/dist/index/circuit.json",
+      "text": "11/25/2026, 6:52:24 PM \u00b7 Saved build"
+    },
+    {
+      "value": "archive:dist/index/circuit.json",
+      "text": "Latest disk build \u00b7 build time unavailable"
+    },
+    {
+      "value": "live",
+      "text": "Live"
+    }
+  ],
+  "afterOptions": [
+    {
+      "value": "archive:.tscircuit-build-history/2026-11-25T17-50-56.343Z/dist/index/circuit.json",
+      "text": "11/25/2026, 6:50:56 PM \u00b7 Saved build"
+    },
+    {
+      "value": "archive:.tscircuit-build-history/2026-11-25T17-52-24.150Z/dist/index/circuit.json",
+      "text": "11/25/2026, 6:52:24 PM \u00b7 Saved build"
+    },
+    {
+      "value": "archive:.tscircuit-build-history/2026-11-27T18-16-33.357Z/dist/index/circuit.json",
+      "text": "11/27/2026, 7:16:33 PM \u00b7 Saved build"
+    },
+    {
+      "value": "archive:.tscircuit-build-history/2026-11-27T18-17-03.923Z/dist/index/circuit.json",
+      "text": "11/27/2026, 7:17:03 PM \u00b7 Saved build"
+    },
+    {
+      "value": "archive:.tscircuit-build-history/2026-11-27T18-17-20.376Z/dist/index/circuit.json",
+      "text": "11/27/2026, 7:17:20 PM \u00b7 Saved build"
+    },
+    {
+      "value": "archive:dist/index/circuit.json",
+      "text": "Latest disk build \u00b7 build time unavailable"
+    },
+    {
+      "value": "live",
+      "text": "Live"
+    }
+  ],
+  "newNativeBuilds": [
+    {
+      "resistance": "1k",
+      "sha256": "004a5f3172503878bf70dd3a9180cf9b51e19511cdc35e553fe1d3f5572d0a5f",
+      "bytes": 34268,
+      "at": "2026-11-27T18:17:03.968Z"
+    },
+    {
+      "resistance": "470",
+      "sha256": "e87a7c1fc734e1e37a7330018b6ff56fcbc54d1a1d298892eaa7116f423d296f",
+      "bytes": 34270,
+      "at": "2026-11-27T18:17:20.435Z"
+    },
+    {
+      "resistance": "100",
+      "sha256": "44c331210dd444ef88f072aeac2c1ab2ad2a2d93b0eda4bf93a3477c8ff80ef2",
+      "bytes": 34270,
+      "at": "2026-11-27T18:17:37.328Z"
+    }
+  ],
+  "refreshedWithoutFocusOrReopen": true,
+  "paused": "archive:.tscircuit-build-history/2026-11-25T17-52-24.150Z/dist/index/circuit.json",
+  "resumed": "archive:.tscircuit-build-history/2026-11-27T18-16-33.357Z/dist/index/circuit.json",
+  "pauseDurationMs": 5000,
+  "continuedFromPausedBuild": true,
+  "counts": {
+    "before": {
+      "eval": 3,
+      "workers": 1
+    },
+    "after": {
+      "eval": 3,
+      "workers": 1
+    }
+  },
+  "clock": "Playwright browser clock advanced to verify pause and resume; artifacts were produced by real CLI builds.",
+  "capturedAt": "2026-11-27T18:17:47.241Z",
+  "overlayTreeSha": "992a58a4b0b815c5138823a90aa36bf0fa7d1c3e"
+}

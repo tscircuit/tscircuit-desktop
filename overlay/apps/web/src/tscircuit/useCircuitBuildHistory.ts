@@ -5,6 +5,8 @@ import { loadCircuitBuildHistory } from "./circuitBuildHistory";
 import { type SavedCircuitBuild, isDrawableCircuitBuild } from "./savedCircuitBuild";
 import { readBuiltCircuitJson } from "./projectFsMap";
 
+const HISTORY_REFRESH_INTERVAL_MS = 3_000;
+
 export function useCircuitBuildHistory(input: {
   readonly environmentId: EnvironmentId;
   readonly cwd: string | undefined;
@@ -22,7 +24,7 @@ export function useCircuitBuildHistory(input: {
     steps: ReadonlyArray<SavedCircuitBuild>;
     failed: boolean;
   } | null>(null);
-  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- lists the CLI's persisted builds from the environment on opening, agent work, and focus
+  // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- refreshes persisted build metadata while visible, including builds created outside the app
   useEffect(() => {
     if (!visible || !cwd || projectDir === null || path === null) return;
     const abort = new AbortController();
@@ -50,9 +52,11 @@ export function useCircuitBuildHistory(input: {
     };
     load();
     window.addEventListener("focus", load);
+    const interval = window.setInterval(load, HISTORY_REFRESH_INTERVAL_MS);
     return () => {
       abort.abort();
       window.removeEventListener("focus", load);
+      window.clearInterval(interval);
     };
   }, [environmentId, cwd, projectDir, path, scope, visible, workspaceMutationId]);
   return {

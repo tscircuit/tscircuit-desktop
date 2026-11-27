@@ -510,6 +510,7 @@ export default function CircuitPanel(props: CircuitPanelProps) {
         <CircuitPlaybackControls
           key={historyScope}
           steps={steps}
+          loading={archive.loading}
           selectedId={selectedId}
           onSelect={select}
           visible={visible}

@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useStableCallback } from "~/hooks/useStableCallback";
 import { Button } from "~/components/ui/button";
 import type { SavedCircuitBuild } from "./savedCircuitBuild";
 
@@ -8,21 +9,23 @@ export function CircuitPlaybackControls(props: {
   readonly selectedId: string | null;
   readonly onSelect: (id: string | null) => void;
   readonly visible: boolean;
+  readonly loading: boolean;
 }) {
-  const { onSelect, visible, selectedId } = props;
+  const { visible, selectedId, loading } = props;
+  const onSelect = useStableCallback(props.onSelect);
   const [playing, setPlaying] = useState(false);
   const index = props.steps.findIndex((step) => step.id === props.selectedId);
   const position = index < 0 ? props.steps.length : index;
   const nextId = props.steps[position + 1]?.id;
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- advances the discrete playhead on a timer while the visible panel is playing
   useEffect(() => {
-    if (!playing || !visible || selectedId === null || index < 0) return;
+    if (!playing || !visible || loading || selectedId === null || index < 0) return;
     const timer = window.setTimeout(() => {
       if (nextId === undefined) setPlaying(false);
       else onSelect(nextId);
     }, 1500);
     return () => window.clearTimeout(timer);
-  }, [playing, visible, selectedId, index, nextId, onSelect]);
+  }, [playing, visible, loading, selectedId, index, nextId, onSelect]);
   if (props.steps.length === 0) return null;
   const selected = props.steps[index];
   const time = selected?.at != null ? new Date(selected.at).toLocaleString() : null;
@@ -31,6 +34,7 @@ export function CircuitPlaybackControls(props: {
     : props.selectedId === null
       ? "Live"
       : "Saved build unavailable";
+  const playLabel = selectedId === null ? "Play" : nextId === undefined ? "Replay" : "Resume";
   const seek = (next: number) => {
     setPlaying(false);
     props.onSelect(props.steps[next]?.id ?? null);
@@ -43,9 +47,9 @@ export function CircuitPlaybackControls(props: {
     >
       <div className="flex items-center gap-2">
         <Button
-          size="icon-xs"
+          size="xs"
           variant="ghost"
-          aria-label={playing ? "Pause playback" : "Play playback"}
+          aria-label={`${playing ? "Pause" : playLabel} playback`}
           onClick={() => {
             if (playing) setPlaying(false);
             else {
@@ -55,6 +59,7 @@ export function CircuitPlaybackControls(props: {
           }}
         >
           {playing ? <Pause /> : <Play />}
+          {playing ? "Pause" : playLabel}
         </Button>
         <Button
           size="icon-xs"
@@ -117,7 +122,10 @@ export function CircuitPlaybackControls(props: {
       <span aria-live="polite" className="text-muted-foreground">
         {description}
       </span>
-      <span className="text-muted-foreground">Saved CLI builds · seeking is read-only</span>
+      <span className="text-muted-foreground">
+        {props.steps.length} saved {props.steps.length === 1 ? "build" : "builds"} · seeking is
+        read-only
+      </span>
     </div>
   );
 }

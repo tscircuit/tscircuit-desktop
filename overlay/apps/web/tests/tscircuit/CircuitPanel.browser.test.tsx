@@ -4,7 +4,7 @@ import { useRightPanelStore } from "~/rightPanelStore";
 import { CircuitSplitControl } from "../../src/tscircuit/CircuitSplitControl";
 import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import { expect, it, vi } from "vite-plus/test";
-import { act, render } from "../../test/render";
+import { act, fakeTimers, render } from "../../test/render";
 import type { ComposerThreadTarget } from "~/composerDraftStore";
 import type { SavedCircuitBuild } from "../../src/tscircuit/savedCircuitBuild";
 
@@ -240,4 +240,62 @@ it("opens saved builds in both panes without rerunning live source or accepting 
   await expect
     .element(screen.getByRole("group", { name: "Build history" }))
     .not.toBeInTheDocument();
+});
+
+it("waits for saved builds to load, pauses and resumes playback, and refreshes history while open", async () => {
+  setup();
+  const build = (id: string): SavedCircuitBuild => ({
+    id: `archive:${id}`,
+    path: id,
+    at: 1,
+    label: id,
+  });
+  workspace.builds = [build("older"), build("newer")];
+  let finishOlder!: (text: string) => void;
+  workspace.read = (path) =>
+    path === "older"
+      ? new Promise((resolve) => {
+          finishOlder = resolve;
+        })
+      : Promise.resolve('[{"type":"pcb_board"}]');
+  using _timers = fakeTimers();
+  // The panel reads its workspace props without route state.
+  await using screen = await render(<CircuitPanel {...props} />, { router: false });
+  const picker = screen.getByRole("combobox", { name: "Saved build" });
+  await expect.element(picker).toHaveValue("live");
+  await screen.getByRole("button", { name: "Play playback" }).click();
+  await expect.element(picker).toHaveValue("archive:older");
+  await act(() => vi.advanceTimersByTime(5_000));
+  await expect.element(picker).toHaveValue("archive:older");
+  await screen.getByRole("button", { name: "Pause playback" }).click();
+  await act(async () => {
+    finishOlder('[{"type":"pcb_board"}]');
+  });
+  await act(() => vi.advanceTimersByTime(5_000));
+  await expect.element(picker).toHaveValue("archive:older");
+  await screen.getByRole("button", { name: /(?:Play|Resume) playback/ }).click();
+  await act(() => vi.advanceTimersByTime(1_000));
+  await screen.rerender(<CircuitPanel {...props} workspaceMutationId="background-refresh" />);
+  await act(() => vi.advanceTimersByTime(500));
+  await expect.element(picker).toHaveValue("archive:newer");
+  await screen.getByRole("button", { name: "Pause playback" }).click();
+  workspace.builds = [
+    build("older"),
+    build("newer"),
+    build("third"),
+    build("fourth"),
+    build("fifth"),
+    build("sixth"),
+  ];
+  await act(() => vi.advanceTimersByTime(3_000));
+  await expect
+    .element(screen.getByRole("slider", { name: "Build timeline" }))
+    .toHaveAttribute("max", "6");
+  await expect.element(picker).toHaveValue("archive:newer");
+  await screen.getByRole("button", { name: /(?:Play|Resume) playback/ }).click();
+  await act(() => vi.advanceTimersByTime(1_500));
+  await expect.element(picker).toHaveValue("archive:third");
+  await screen.getByRole("button", { name: "Back to live" }).click();
+  await act(() => vi.advanceTimersByTime(5_000));
+  await expect.element(picker).toHaveValue("live");
 });
