@@ -132,6 +132,16 @@ The row of views is the app's, not RunFrame's. The app tells RunFrame which view
 
 To change the icon, edit `branding/app-icon.svg` and run `sh branding/make-icons.sh`, then `npm run export`.
 
+### CircuitHub quotes
+
+Open **Order → CircuitHub** in the desktop app and sign in using your system browser. Choose a workspace from your connected account and enter board quantities. Export classification defaults to EAR99; choose **Not export controlled** or **Other classification (ECCN)** when applicable. An existing project ID adds a revision to that project instead of creating another project.
+
+**Get quote** uploads the completed board as a KiCad project, including its schematic symbols. The panel shows import progress, service offers, unresolved parts and whether pricing is preliminary. **Refresh prices** requests fresh prices for the uploaded revision; **Quote new revision** uploads the current board. Quotes from an earlier board version stay labelled as such. **Review in CircuitHub** opens checkout in the browser; requesting a quote never orders a board.
+
+CircuitHub sign-in uses OAuth with PKCE and asks for **Engineering** access (reading designs, changing designs, and issues). It does not ask for ordering or billing access. Short-lived access tokens are renewed automatically with rotating refresh tokens; desktop sign-ins are encrypted using OS safe storage, or kept in memory when secure storage is unavailable. Tokens never reach the viewer. **Disconnect** revokes the sign-in at CircuitHub before removing it locally; if revocation fails, retry Disconnect. Connections saved by the old JWT flow require one new sign-in.
+
+In browser and cloud previews, open **Authorize CircuitHub**, choose Engineering, then copy the full `http://127.0.0.1:…/callback?…` URL from the authorization tab into **Callback URL** in the preview. A connection error in that tab is expected for a remote workspace. The callback is bound to the initiating authenticated session; its code is exchanged on the server after the state and issuer are checked. Preview credentials stay only in that session's server memory. Restarting the workspace requires sign-in again. Account management requires the workspace's provider-management permission.
+
 ### The bundled skill
 
 `setup` downloads the newest [tscircuit skill](https://github.com/tscircuit/skill) and packs it into the app, so every build carries the skill as it was on the day it was built. It is generated, not committed.

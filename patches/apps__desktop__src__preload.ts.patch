@@ -1,0 +1,14 @@
+Expose the typed CircuitHub request bridge to the trusted application renderer.
+
+diff --git a/apps/desktop/src/preload.ts b/apps/desktop/src/preload.ts
+index a538b821ff77c2502c22439b40bfa7b67d94743b..70c1a3d1fd053bf2df22a2c4ca4f72f3e1682f52 100644
+--- a/apps/desktop/src/preload.ts
++++ b/apps/desktop/src/preload.ts
+@@ -104,6 +104,7 @@ function unwrapEnsureSshEnvironmentResult(result: unknown) {
+ }
+ 
+ contextBridge.exposeInMainWorld("desktopBridge", {
++  circuithub: (request) => ipcRenderer.invoke(IpcChannels.CIRCUITHUB_CHANNEL, request),
+   getAppBranding: () => {
+     const result = ipcRenderer.sendSync(IpcChannels.GET_APP_BRANDING_CHANNEL);
+     if (typeof result !== "object" || result === null) {

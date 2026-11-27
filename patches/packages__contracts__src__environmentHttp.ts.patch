@@ -1,0 +1,34 @@
+Expose the authenticated CircuitHub account/quote endpoint through the existing environment HTTP API so cloud previews can use the CLI-style callback handoff.
+
+diff --git a/packages/contracts/src/environmentHttp.ts b/packages/contracts/src/environmentHttp.ts
+index a9c635486db7dbd273b62a2398218cafccce9be6..a877432386de92944cb6d7ad3d636adb6c7e42b8 100644
+--- a/packages/contracts/src/environmentHttp.ts
++++ b/packages/contracts/src/environmentHttp.ts
+@@ -1,3 +1,4 @@
++import { CircuithubBrowserRequest, CircuithubBrowserResponse } from "./circuithub.ts";
+ import * as Context from "effect/Context";
+ import type * as DateTime from "effect/DateTime";
+ import * as Schema from "effect/Schema";
+@@ -1019,6 +1020,15 @@ class EnvironmentWebhooksHttpApi extends HttpApiGroup.make("webhooks")
+   .add(HttpApiEndpoint.patch("webhookPatch", WEBHOOK_PATH, webhookEndpoint))
+   .add(HttpApiEndpoint.get("webhookGet", WEBHOOK_PATH, webhookEndpoint)) {}
+ 
++export class EnvironmentCircuithubHttpApi extends HttpApiGroup.make("circuithub").add(
++  HttpApiEndpoint.post("request", "/api/circuithub", {
++    headers: OptionalBearerHeaders,
++    payload: CircuithubBrowserRequest,
++    success: CircuithubBrowserResponse,
++    error: EnvironmentScopedOperationErrors,
++  }).middleware(EnvironmentAuthenticatedAuth),
++) {}
++
+ export class EnvironmentHttpApi extends HttpApi.make("environment")
+   .add(EnvironmentMetadataHttpApi)
+   .add(EnvironmentAuthHttpApi)
+@@ -1028,4 +1038,5 @@ export class EnvironmentHttpApi extends HttpApi.make("environment")
+   .add(EnvironmentProjectsHttpApi)
+   .add(EnvironmentVoiceHttpApi)
+   .add(EnvironmentConnectHttpApi)
+-  .add(EnvironmentWebhooksHttpApi) {}
++  .add(EnvironmentWebhooksHttpApi)
++  .add(EnvironmentCircuithubHttpApi) {}

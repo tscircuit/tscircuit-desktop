@@ -1,0 +1,12 @@
+Export the shared CircuitHub account and quoting contracts used by desktop and web.
+
+diff --git a/packages/contracts/src/index.ts b/packages/contracts/src/index.ts
+index 8dd47df33a21f59719d57d18d353881c4e388ba1..182eb2020ed6a8695093e6bbf5ee5011211aa660 100644
+--- a/packages/contracts/src/index.ts
++++ b/packages/contracts/src/index.ts
+@@ -73,3 +73,5 @@ export * from "./secretRequest.ts";
+ export * from "./secretReference.ts";
+ export * from "./settingsSecretValue.ts";
+ export * from "./clientRpcPermissions.ts";
++
++export * from "./circuithub.ts";

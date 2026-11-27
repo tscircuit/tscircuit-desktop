@@ -1,0 +1,19 @@
+Add the optional native CircuitHub bridge while keeping browser-only clients supported.
+
+diff --git a/packages/contracts/src/ipc.ts b/packages/contracts/src/ipc.ts
+index 163c34a6520dea80ee2219daa79d6961705591da..b7ec2c88a1e4becd678f6dd1052d1e6f9f0f8937 100644
+--- a/packages/contracts/src/ipc.ts
++++ b/packages/contracts/src/ipc.ts
+@@ -1,3 +1,4 @@
++import type { CircuithubRequest, CircuithubResponse } from "./circuithub.ts";
+ import * as Schema from "effect/Schema";
+ import type { PreviewCaptureFailureEncoded } from "./previewCapture.ts";
+ 
+@@ -1046,6 +1047,7 @@ export const SystemSettingsPaneSchema = Schema.Literals(["full-disk-access"]);
+ export type SystemSettingsPane = typeof SystemSettingsPaneSchema.Type;
+ 
+ export interface DesktopBridge {
++  circuithub?: (request: CircuithubRequest) => Promise<CircuithubResponse>;
+   getAppBranding: () => DesktopAppBranding | null;
+   getRelayTelemetryEnabled: () => boolean;
+   getPathForFile: (file: File) => string;

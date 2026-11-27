@@ -1,0 +1,12 @@
+Give CircuitHub requests their own desktop IPC channel; tokens remain in the main process.
+
+diff --git a/apps/desktop/src/ipc/channels.ts b/apps/desktop/src/ipc/channels.ts
+index 80053c78caee4446b14e1e87823facaeeb479d7c..ac6fd57c1efca00c92f466572df3071f037dfffe 100644
+--- a/apps/desktop/src/ipc/channels.ts
++++ b/apps/desktop/src/ipc/channels.ts
+@@ -137,3 +137,5 @@ export const RECEIVE_PROVIDER_AUTH_CALLBACK_CHANNEL = "desktop:receive-provider-
+ export const CANCEL_PROVIDER_AUTH_CALLBACK_CHANNEL = "desktop:cancel-provider-auth-callback";
+ export const TAKE_LEGACY_LOCAL_STORAGE_CHANNEL = "desktop:take-legacy-local-storage";
+ export const COMPLETE_LEGACY_LOCAL_STORAGE_CHANNEL = "desktop:complete-legacy-local-storage";
++
++export const CIRCUITHUB_CHANNEL = "desktop:circuithub";

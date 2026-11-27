@@ -5,7 +5,7 @@
 import { type ElementCounts } from "./circuitViews";
 import { isRecord, type OrderRequestKind, type OrderResponsePayload } from "./orderRequest";
 
-export type OrderFileKind = Exclude<OrderRequestKind, "jlcpcb_quote">;
+export type OrderFileKind = Exclude<OrderRequestKind, "jlcpcb_quote" | "circuithub_project">;
 
 /** What a file is made from: a board outline, or parts placed on one. */
 type OrderFileNeed = "board" | "parts";
