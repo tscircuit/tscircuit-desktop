@@ -1,0 +1,13 @@
+Typecheck Desktop tests from the separate tests directory.
+
+diff --git a/apps/server/tsconfig.json b/apps/server/tsconfig.json
+index 63ce5a30c4581daba17dce08522587b4ba232711..81448d31b1c15a3e99613346e22f05f1eee81246 100644
+--- a/apps/server/tsconfig.json
++++ b/apps/server/tsconfig.json
+@@ -4,5 +4,5 @@
+     "types": ["node"],
+     "lib": ["ESNext", "esnext.disposable"]
+   },
+-  "include": ["src", "vite.config.ts", "scripts", "integration", "../../scripts/lib"]
++  "include": ["src", "tests", "vite.config.ts", "scripts", "integration", "../../scripts/lib"]
+ }

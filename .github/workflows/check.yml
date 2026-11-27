@@ -80,4 +80,4 @@ jobs:
 
       - name: CircuitHub account-linking browser tests
         if: github.event_name == 'pull_request'
-        run: node scripts/run.ts --dir apps/web vp test run --project browser src/tscircuit/CircuithubQuotePanel.browser.test.tsx
+        run: node scripts/run.ts --dir apps/web vp test run --project browser tests/tscircuit/CircuithubQuotePanel.browser.test.tsx

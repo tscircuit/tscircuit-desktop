@@ -321,7 +321,7 @@ export function CircuithubQuotePanel(props: {
             {account.connected && readOnly ? (
               <p className="text-muted-foreground text-xs">
                 This CircuitHub connection allows reading only. Enable Engineering access under
-                CircuitHub Settings → Connected apps to request quotes.
+                CircuitHub Settings → Connected apps, then reconnect to request quotes.
               </p>
             ) : null}
             {browserMode && account.loginPending && authorizationUrl ? (

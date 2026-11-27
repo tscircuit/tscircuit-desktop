@@ -19,6 +19,7 @@ overlay/        files that exist only here, and icons that replace T3 Code's
 patches/        one patch per T3 Code file we change, each with a note saying why
 branding/       the icon source and the script that generates the icon files
 scripts/        setup, export, bump
+tests/          tests for this repo’s scripts
 .t3code/        the generated app: T3 Code + renames + overlay + patches (not committed)
 ```
 
@@ -78,6 +79,8 @@ npm run export           # save your work back to overlay/ and patches/
 `export` sorts your changes: files that do not exist upstream go to `overlay/`, so do upstream images you replaced, and each upstream text file you edited gets a patch in `patches/`. A new patch starts with a TODO line; replace it with a sentence on why tscircuit desktop needs the change. Then commit `overlay/` and `patches/`.
 
 `setup` rebuilds `.t3code/` from scratch, so it refuses to run while the checkout holds work you have not exported. Use `npm run setup -- --force` to throw that work away.
+
+Desktop-owned app tests live in `overlay/apps/<app>/tests/tscircuit/`, separate from production source. Tests for this repo’s scripts live in `tests/scripts/`. Keep new Desktop tests in these directories.
 
 Files in `overlay/` live inside T3 Code's tree and follow its lint and format rules. Check them with T3 Code's own tools, for example `npm run t3 -- --dir apps/web vp lint src/tscircuit`.
 
