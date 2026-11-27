@@ -1,0 +1,89 @@
+{
+  "cliVersion": "0.1.2488",
+  "tscircuitVersion": "0.0.3293",
+  "viewerVersion": "0.0.3300",
+  "artifacts": [
+    {
+      "path": ".tscircuit-build-history/2026-11-25T17-50-56.343Z/dist/index/circuit.json",
+      "stamp": "2026-11-25T17-50-56.343Z",
+      "sha256": "5b50f67d9a8848f54f8ee04df3872f62fdafd2d37a03d7b24eefd6dc003d8776",
+      "sourceHash": "8e1071583427e1d861b4e8304c5aab07",
+      "errors": 0
+    },
+    {
+      "path": ".tscircuit-build-history/2026-11-25T17-52-24.150Z/dist/index/circuit.json",
+      "stamp": "2026-11-25T17-52-24.150Z",
+      "sha256": "328ccaede48be2c5f5c18a339ad2cb859d0cbbbfcacea1c9c04f19518caf3f41",
+      "sourceHash": "e4179b417025dcb872c4889950000d15",
+      "errors": 0
+    }
+  ],
+  "options": [
+    {
+      "value": "archive:.tscircuit-build-history/2026-11-25T17-50-56.343Z/dist/index/circuit.json",
+      "text": "11/25/2026, 6:50:56 PM \u00b7 Saved build"
+    },
+    {
+      "value": "archive:.tscircuit-build-history/2026-11-25T17-52-24.150Z/dist/index/circuit.json",
+      "text": "11/25/2026, 6:52:24 PM \u00b7 Saved build"
+    },
+    {
+      "value": "archive:dist/index/circuit.json",
+      "text": "Latest disk build \u00b7 build time unavailable"
+    },
+    {
+      "value": "live",
+      "text": "Live"
+    }
+  ],
+  "reopenedOptions": [
+    {
+      "value": "archive:.tscircuit-build-history/2026-11-25T17-50-56.343Z/dist/index/circuit.json",
+      "text": "11/25/2026, 6:50:56 PM \u00b7 Saved build"
+    },
+    {
+      "value": "archive:.tscircuit-build-history/2026-11-25T17-52-24.150Z/dist/index/circuit.json",
+      "text": "11/25/2026, 6:52:24 PM \u00b7 Saved build"
+    },
+    {
+      "value": "archive:dist/index/circuit.json",
+      "text": "Latest disk build \u00b7 build time unavailable"
+    },
+    {
+      "value": "live",
+      "text": "Live"
+    }
+  ],
+  "counts": {
+    "before": {
+      "eval": 2,
+      "workers": 2
+    },
+    "after": {
+      "eval": 2,
+      "workers": 2
+    },
+    "reopenedBefore": 2,
+    "reopenedAfter": 2
+  },
+  "sourceAtOpen": "1k",
+  "selectedOldBuilds": [
+    "10k",
+    "4.7k",
+    "2.2k"
+  ],
+  "splitViews": 2,
+  "fullAppReload": true,
+  "generatedEntrypoint": "npm run preview \u2192 Circuit review \u2192 Circuit \u2192 Schematic",
+  "notes": [
+    "CLI builds used Node with the tsx loader because the sandbox blocks the tsx CLI IPC socket.",
+    "The test-only interface fallback, HTTP-cache disabling, and GPU disabling are outside the implementation.",
+    "Packaged Electron runtime and opaque-origin browser PCB bitmap not verified."
+  ],
+  "capturedAt": "2026-11-27T05:51:18.854614+00:00",
+  "source": {
+    "baseCommit": "168f6202b8d0b929804407f3614ef6d68f13e0a2",
+    "scope": "saved CLI builds only",
+    "overlayTreeSha": "fb396ff4ab62593ccbbad4a8522e32321e2b02d1"
+  }
+}

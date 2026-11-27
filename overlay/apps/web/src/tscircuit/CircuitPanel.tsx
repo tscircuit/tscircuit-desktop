@@ -27,7 +27,7 @@ import { getLocalStorageItem, setLocalStorageItem } from "~/hooks/useLocalStorag
 import { observeResize } from "~/lib/observeResize";
 import { cn } from "~/lib/utils";
 
-import { expectedBuild, isBuildOfSources } from "./builtCircuit";
+import { circuitBuildOutput, expectedBuild, isBuildOfSources } from "./builtCircuit";
 import type { AutorouterPhase } from "./autorouterPhases";
 import { AutorouterReportDialog } from "./AutorouterReportDialog";
 import { useAutorouterReportRequest } from "./autorouterReportRequest";
@@ -67,7 +67,9 @@ import {
   viewerTabProps,
 } from "./runframeMessages";
 import { viewerFrame } from "./viewerFrame";
+import { CircuitPlaybackControls } from "./CircuitPlaybackControls";
 import { secondCircuitView } from "./circuitSplit";
+import { useSavedCircuitBuild, useCircuitBuildHistory } from "./useCircuitBuildHistory";
 
 /**
  * The app's own copy of RunFrame, a bare viewer that takes files over
@@ -98,7 +100,6 @@ interface FilePhases {
 }
 
 let phaseInputRequestCount = 0;
-
 /**
  * Asks the viewer frame for the Simple Route JSON a phase of its last run
  * started from. Null when the viewer has none, or does not answer.
@@ -132,10 +133,11 @@ type ProjectState =
   | {
       readonly status: "ready";
       readonly project: LoadedProject;
+      readonly scope: string;
       /** The workspace mutation this read was made for. */
       readonly revision: string | null;
     }
-  | { readonly status: "failed" };
+  | { readonly status: "failed"; readonly scope: string };
 
 function sameFiles(a: ProjectFsMap | null, b: ProjectFsMap | null): boolean {
   if (a === null || b === null) return a === b;
@@ -179,11 +181,14 @@ export function useBuiltCircuit(input: {
   readonly workspaceMutationId: string | null;
   /** Null hash opens an explicitly selected result; source previews require a matching hash. */
   readonly build: { readonly path: string; readonly sourceHash: string | null } | null;
+  readonly contextKey?: string | null;
 }): BuiltCircuit {
   const { environmentId, cwd, visible, workspaceMutationId } = input;
   const path = input.build?.path ?? null;
   const sourceHash = input.build?.sourceHash ?? null;
+  const scope = JSON.stringify([environmentId, cwd, input.contextKey]);
   const [found, setFound] = useState<{
+    readonly scope: string;
     readonly path: string;
     readonly sourceHash: string | null;
     /** The workspace mutation this look was made for. */
@@ -192,6 +197,7 @@ export function useBuiltCircuit(input: {
   } | null>(null);
   const answer =
     found !== null &&
+    found.scope === scope &&
     found.path === path &&
     found.sourceHash === sourceHash &&
     (sourceHash !== null || found.revision === workspaceMutationId);
@@ -209,14 +215,14 @@ export function useBuiltCircuit(input: {
         .catch(() => null)
         .then((text) => {
           if (abort.signal.aborted) return;
+          const available =
+            text !== null && (sourceHash === null || isBuildOfSources(text, sourceHash));
           setFound({
+            scope,
             path,
             sourceHash,
             revision: workspaceMutationId,
-            files:
-              text !== null && (sourceHash === null || isBuildOfSources(text, sourceHash))
-                ? { fsMap: { [path]: text }, mainComponentPath: path }
-                : null,
+            files: available ? { fsMap: { [path]: text }, mainComponentPath: path } : null,
           });
         })
         .finally(() => {
@@ -229,14 +235,14 @@ export function useBuiltCircuit(input: {
       abort.abort();
       window.removeEventListener("focus", look);
     };
-  }, [environmentId, cwd, visible, workspaceMutationId, path, sourceHash, settled]);
+  }, [environmentId, cwd, visible, workspaceMutationId, path, sourceHash, settled, scope]);
 
   if (path === null) return { status: "none" };
   if (!answer) return { status: "checking" };
   return found.files === null ? { status: "none" } : { status: "current", files: found.files };
 }
 
-export default function CircuitPanel(props: {
+interface CircuitPanelProps {
   readonly environmentId: EnvironmentId;
   readonly cwd: string | undefined;
   /** The file the user opened, or null to render the project's entry file. */
@@ -248,8 +254,11 @@ export default function CircuitPanel(props: {
   /** The thread whose panel this tab is in, where its Order button opens the Order tab. */
   readonly threadRef: ScopedThreadRef;
   readonly split?: boolean;
-}) {
+}
+
+export default function CircuitPanel(props: CircuitPanelProps) {
   const { environmentId, cwd, relativePath, visible, workspaceMutationId } = props;
+  const scope = JSON.stringify([environmentId, cwd]);
   const [panelState, dispatch] = useReducer(
     circuitPanelReducer,
     preferredViewFrom(getLocalStorageItem(PREFERRED_VIEW_STORAGE_KEY, Schema.String)),
@@ -258,7 +267,8 @@ export default function CircuitPanel(props: {
   const [projectState, setProjectState] = useState<ProjectState>({ status: "loading" });
   const reporting = useAutorouterReportRequest((request) => request.requested) && visible;
 
-  const project = projectState.status === "ready" ? projectState.project : null;
+  const project =
+    projectState.status === "ready" && projectState.scope === scope ? projectState.project : null;
   const pollForEdits = project === null || Object.keys(project.fsMap).length <= MAX_FILES_TO_POLL;
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- reads the project's files from the environment; refetches after agent work, on focus, and on a timer for small projects
   useEffect(() => {
@@ -273,19 +283,23 @@ export default function CircuitPanel(props: {
           if (abort.signal.aborted) return;
           setProjectState((current) => {
             const project =
-              current.status === "ready" ? keepUnchangedFiles(current.project, loaded) : loaded;
+              current.status === "ready" && current.scope === scope
+                ? keepUnchangedFiles(current.project, loaded)
+                : loaded;
             return current.status === "ready" &&
               current.project === project &&
               current.revision === workspaceMutationId
               ? current
-              : { status: "ready", project, revision: workspaceMutationId };
+              : { status: "ready", scope, project, revision: workspaceMutationId };
           });
         })
         .catch(() => {
           if (abort.signal.aborted) return;
           // A failed refresh keeps the last good read instead of blanking the board.
           setProjectState((current) =>
-            current.status === "ready" ? current : { status: "failed" },
+            current.status === "ready" && current.scope === scope
+              ? current
+              : { status: "failed", scope },
           );
         })
         .finally(() => {
@@ -300,7 +314,7 @@ export default function CircuitPanel(props: {
       window.removeEventListener("focus", load);
       if (interval !== null) window.clearInterval(interval);
     };
-  }, [environmentId, cwd, workspaceMutationId, visible, pollForEdits]);
+  }, [environmentId, cwd, workspaceMutationId, visible, pollForEdits, scope]);
 
   const entryFile =
     project === null
@@ -309,11 +323,58 @@ export default function CircuitPanel(props: {
         ? relativePath
         : pickEntryFile(project.fsMap);
 
+  const historyScope =
+    entryFile === null ? null : JSON.stringify([scope, props.threadRef.threadId, entryFile]);
+  const [selection, setSelection] = useState<{
+    readonly scope: string;
+    readonly id: string;
+  } | null>(null);
+  const savedBuilds = useCircuitBuildHistory({
+    environmentId,
+    cwd,
+    visible,
+    workspaceMutationId,
+    output:
+      entryFile === null || project === null
+        ? null
+        : circuitBuildOutput(entryFile, project.hashedFiles ?? project.fsMap),
+  });
+  const steps = savedBuilds.steps;
+  const selectedId =
+    reporting || selection === null || selection.scope !== historyScope ? null : selection.id;
+  const selected = steps.find((step) => step.id === selectedId);
+  const archive = useSavedCircuitBuild({
+    environmentId,
+    cwd,
+    path: selected?.path ?? null,
+    scope: historyScope,
+    selection,
+  });
+  const snapshotText = archive.text;
+  const historicalFiles =
+    snapshotText === null
+      ? null
+      : {
+          fsMap: { "playback.circuit.json": snapshotText },
+          mainComponentPath: "playback.circuit.json",
+        };
+  const select = (id: string | null) => {
+    if (historyScope !== null)
+      setSelection(
+        id === null
+          ? null
+          : {
+              scope: historyScope,
+              id,
+            },
+      );
+  };
   const built = useBuiltCircuit({
     environmentId,
     cwd,
     visible,
     workspaceMutationId,
+    contextKey: historyScope,
     build:
       entryFile !== null && isCircuitJsonPath(entryFile)
         ? { path: entryFile, sourceHash: null }
@@ -334,42 +395,125 @@ export default function CircuitPanel(props: {
       className="flex min-h-0 min-w-0 flex-1 flex-col divide-y divide-border/60 bg-background"
       data-circuit-panel
     >
-      <CircuitPane
-        project={project}
-        entryFile={entryFile}
-        // Only the primary frame runs sources for a report; the comparison stays on its build.
-        viewerFiles={
-          reporting && viewerFiles !== null && project !== null && entryFile !== null
-            ? { fsMap: project.fsMap, mainComponentPath: entryFile }
-            : viewerFiles
-        }
-        reportOwner
-        showOrder
-        reporting={reporting}
-        cwd={cwd}
-        failed={projectState.status === "failed"}
-        composerDraftTarget={props.composerDraftTarget}
-        threadRef={props.threadRef}
-        panelState={panelState}
-        dispatch={dispatch}
-        persistPreference
-        label="Primary circuit view"
-      />
-      {!props.split ? null : (
-        <SecondaryCircuitPane
+      <div
+        className="flex min-h-0 flex-1 flex-col divide-y divide-border/60"
+        style={selectedId === null ? undefined : { display: "none" }}
+        inert={selectedId !== null}
+      >
+        <CircuitPane
+          key={historyScope}
           project={project}
           entryFile={entryFile}
-          viewerFiles={viewerFiles}
-          reportOwner={false}
-          showOrder={false}
-          reporting={false}
+          viewerFiles={
+            reporting && project !== null && entryFile !== null
+              ? { fsMap: project.fsMap, mainComponentPath: entryFile }
+              : viewerFiles
+          }
+          reportOwner
+          showOrder
+          historical={false}
+          reporting={reporting}
           cwd={cwd}
-          failed={projectState.status === "failed"}
+          failed={projectState.status === "failed" && projectState.scope === scope}
           composerDraftTarget={props.composerDraftTarget}
           threadRef={props.threadRef}
-          initialView={secondCircuitView(viewStateForFile(panelState, entryFile))}
-          persistPreference={false}
-          label="Secondary circuit view"
+          panelState={panelState}
+          dispatch={dispatch}
+          persistPreference
+          label="Primary circuit view"
+        />
+        {!props.split ? null : (
+          <CircuitPaneWithLocalState
+            key={`secondary:${historyScope}`}
+            project={project}
+            entryFile={entryFile}
+            viewerFiles={viewerFiles}
+            reportOwner={false}
+            showOrder={false}
+            reporting={false}
+            historical={false}
+            cwd={cwd}
+            failed={projectState.status === "failed" && projectState.scope === scope}
+            composerDraftTarget={props.composerDraftTarget}
+            threadRef={props.threadRef}
+            initialView={secondCircuitView(viewStateForFile(panelState, entryFile))}
+            persistPreference={false}
+            label="Secondary circuit view"
+          />
+        )}
+      </div>
+      {selectedId === null ? null : (
+        <div className="flex min-h-0 flex-1 flex-col" aria-label="Historical design">
+          <p role="status" className="border-b px-3 py-2 text-xs">
+            {archive.loading
+              ? "Loading saved build…"
+              : selected === undefined
+                ? "Saved build no longer available. Back to live returns to the current design."
+                : archive.text === null
+                  ? "Saved build unavailable · the file is missing, unreadable, too large, or has no drawable circuit."
+                  : "Saved build · read-only"}
+          </p>
+          {archive.loading ? (
+            <div className="flex min-h-0 flex-1 items-center justify-center">
+              <Notice title="Loading saved build" busy />
+            </div>
+          ) : (
+            <>
+              <CircuitPaneWithLocalState
+                project={project}
+                entryFile={entryFile}
+                viewerFiles={historicalFiles}
+                reportOwner={false}
+                showOrder={false}
+                reporting={false}
+                historical
+                cwd={cwd}
+                failed={false}
+                composerDraftTarget={props.composerDraftTarget}
+                threadRef={props.threadRef}
+                initialView={
+                  canBePreferred(viewStateForFile(panelState, entryFile).screen)
+                    ? (viewStateForFile(panelState, entryFile).screen as CircuitViewId)
+                    : "schematic"
+                }
+                persistPreference={false}
+                label="Historical primary view"
+              />
+              {!props.split ? null : (
+                <CircuitPaneWithLocalState
+                  project={project}
+                  entryFile={entryFile}
+                  viewerFiles={historicalFiles}
+                  reportOwner={false}
+                  showOrder={false}
+                  reporting={false}
+                  historical
+                  cwd={cwd}
+                  failed={false}
+                  composerDraftTarget={props.composerDraftTarget}
+                  threadRef={props.threadRef}
+                  initialView={secondCircuitView(viewStateForFile(panelState, entryFile))}
+                  persistPreference={false}
+                  label="Historical secondary view"
+                />
+              )}
+            </>
+          )}
+        </div>
+      )}
+      {savedBuilds.failed && !reporting ? (
+        <p role="status" className="px-3 py-2 text-xs">
+          Couldn't refresh saved builds. Refocus the app to retry.
+        </p>
+      ) : null}
+      {reporting ? null : (
+        <CircuitPlaybackControls
+          key={historyScope}
+          steps={steps}
+          loading={archive.loading}
+          selectedId={selectedId}
+          onSelect={select}
+          visible={visible}
         />
       )}
     </div>
@@ -391,9 +535,10 @@ interface CircuitPaneProps {
   readonly reportOwner: boolean;
   readonly showOrder: boolean;
   readonly reporting: boolean;
+  readonly historical: boolean;
 }
 
-function SecondaryCircuitPane(
+function CircuitPaneWithLocalState(
   props: Omit<CircuitPaneProps, "panelState" | "dispatch"> & {
     readonly initialView: CircuitViewId;
   },
@@ -415,24 +560,30 @@ function CircuitPane(props: CircuitPaneProps) {
   const [viewerAttempt, setViewerAttempt] = useState(0);
   const [helpFor, setHelpFor] = useState<StandingViewId | null>(null);
   const view = viewStateForFile(panelState, entryFile);
-  const notice = !cwd ? (
-    <Notice title="No project folder" description="Open a project to see its circuit here." />
-  ) : props.failed ? (
-    <Notice
-      title="Couldn't read the project"
-      description="The project's files could not be read from this environment."
-    />
-  ) : project === null ? (
-    <Notice title="Reading project files" busy />
-  ) : entryFile === null ? (
-    <Notice
-      title="No circuit yet"
-      description="This project has no .tsx files. Ask the agent for a circuit and it shows up here."
-    />
-  ) : viewerFiles === null && panelState.file !== entryFile && view.screen !== "source" ? (
-    // The viewer still shows the file opened before this one.
-    <Notice title="Reading project files" busy />
-  ) : null;
+  const notice =
+    props.historical && viewerFiles === null ? (
+      <Notice
+        title="Build unavailable"
+        description="No drawable Circuit JSON is available for this build."
+      />
+    ) : !cwd ? (
+      <Notice title="No project folder" description="Open a project to see its circuit here." />
+    ) : props.failed ? (
+      <Notice
+        title="Couldn't read the project"
+        description="The project's files could not be read from this environment."
+      />
+    ) : project === null ? (
+      <Notice title="Reading project files" busy />
+    ) : entryFile === null ? (
+      <Notice
+        title="No circuit yet"
+        description="This project has no .tsx files. Ask the agent for a circuit and it shows up here."
+      />
+    ) : viewerFiles === null && panelState.file !== entryFile && view.screen !== "source" ? (
+      // The viewer still shows the file opened before this one.
+      <Notice title="Reading project files" busy />
+    ) : null;
 
   // Null until the viewer has started a run of this file's sources.
   const phases = filePhases !== null && filePhases.file === entryFile ? filePhases.phases : null;
@@ -444,7 +595,7 @@ function CircuitPane(props: CircuitPaneProps) {
   const pickScreen = (screen: CircuitScreen) => {
     if (entryFile === null) return;
     if (screen !== "source" && screen !== "errors" && !unmuted.has(screen)) {
-      if (hasStandingTab(screen)) setHelpFor(screen);
+      if (!props.historical && hasStandingTab(screen)) setHelpFor(screen);
       return;
     }
     if (props.persistPreference && canBePreferred(screen)) {
@@ -466,7 +617,11 @@ function CircuitPane(props: CircuitPaneProps) {
       aria-label={props.label}
     >
       <CircuitViewTabs
-        tabs={entryFile === null ? [] : viewTabs(view)}
+        tabs={
+          entryFile === null
+            ? []
+            : viewTabs(view).filter((tab) => !props.historical || tab.id !== "source")
+        }
         screen={view.screen}
         unmuted={unmuted}
         errorCount={countErrors(view.counts) + (view.executionError === null ? 0 : 1)}
@@ -767,7 +922,11 @@ function CircuitViewer(props: {
   const [state, setState] = useState<"loading" | "ready" | "failed">("loading");
   // What the viewer last received. Its events are about the file named here.
   const sentRef = useRef<
-    ({ readonly file: string; readonly rebuilds: number } & ViewerFiles) | null
+    | ({
+        readonly file: string;
+        readonly rebuilds: number;
+      } & ViewerFiles)
+    | null
   >(null);
 
   // oxlint-disable-next-line t3code/no-unreasoned-state-sync -- subscribes to the viewer frame's messages and gives up waiting for it after a timeout
@@ -820,7 +979,12 @@ function CircuitViewer(props: {
         runframe_type: "runframe_props_changed",
         // The files go once: resending them would run the circuit again for a change of tab.
         runframe_props: filesChanged
-          ? viewerFileProps({ fsMap, mainComponentPath, screen, rebuilds })
+          ? viewerFileProps({
+              fsMap,
+              mainComponentPath,
+              screen,
+              rebuilds,
+            })
           : viewerTabProps(screen),
       },
       VIEWER_FRAME.targetOrigin,

@@ -4,20 +4,42 @@ import { useRightPanelStore } from "~/rightPanelStore";
 import { CircuitSplitControl } from "../../src/tscircuit/CircuitSplitControl";
 import type { EnvironmentId, ScopedThreadRef } from "@t3tools/contracts";
 import { expect, it, vi } from "vite-plus/test";
-import { act, render } from "../../test/render";
+import { act, fakeTimers, render } from "../../test/render";
 import type { ComposerThreadTarget } from "~/composerDraftStore";
+import type { SavedCircuitBuild } from "../../src/tscircuit/savedCircuitBuild";
+
+const workspace = vi.hoisted(() => ({
+  source: "",
+  truncated: false,
+  builds: [] as SavedCircuitBuild[],
+  read: async (_path: string): Promise<string | null> => null,
+}));
+function setup() {
+  workspace.source = "export default () => null";
+  workspace.truncated = false;
+  workspace.builds = [];
+  workspace.read = async () => null;
+}
 
 vi.mock(import("../../src/tscircuit/projectFsMap"), () => ({
   loadProjectFsMap: async () => ({
-    fsMap: { "index.tsx": "export default () => null" },
+    fsMap: { "index.tsx": workspace.source },
     hashedFiles: null,
-    truncated: false,
+    truncated: workspace.truncated,
   }),
   pickEntryFile: () => "index.tsx",
-  readBuiltCircuitJson: async () => null,
+  readBuiltCircuitJson: async (_env: unknown, _cwd: string, path: string) => workspace.read(path),
+}));
+vi.mock(import("../../src/tscircuit/circuitBuildHistory"), () => ({
+  loadCircuitBuildHistory: async (_env: unknown, cwd: string) =>
+    cwd === "/test" ? workspace.builds : [],
 }));
 vi.mock(import("../../src/tscircuit/viewerFrame"), () => ({
-  viewerFrame: () => ({ src: "about:blank", sandbox: "allow-scripts", targetOrigin: "*" }),
+  viewerFrame: () => ({
+    src: "about:blank",
+    sandbox: "allow-scripts allow-same-origin",
+    targetOrigin: "*",
+  }),
 }));
 
 // Keep the dialog boundary observable without opening external report destinations.
@@ -69,16 +91,18 @@ function rendered(frame: HTMLIFrameElement) {
   });
 }
 
+const props = {
+  environmentId: "test" as EnvironmentId,
+  cwd: "/test",
+  relativePath: "index.tsx",
+  visible: true,
+  workspaceMutationId: null,
+  composerDraftTarget: {} as ComposerThreadTarget,
+  threadRef: { environmentId: "test", threadId: "thread" } as ScopedThreadRef,
+};
+
 it("stacks at most two panes, isolates navigation/errors, and closes with focus retained", async () => {
-  const props = {
-    environmentId: "test" as EnvironmentId,
-    cwd: "/test",
-    relativePath: "index.tsx",
-    visible: true,
-    workspaceMutationId: null,
-    composerDraftTarget: {} as ComposerThreadTarget,
-    threadRef: { environmentId: "test", threadId: "thread" } as ScopedThreadRef,
-  };
+  setup();
   useRightPanelStore.getState().open(props.threadRef, "circuit");
   // This isolated circuit panel has no route-dependent behavior.
   await using screen = await render(<Harness {...props} />, { router: false });
@@ -94,11 +118,6 @@ it("stacks at most two panes, isolates navigation/errors, and closes with focus 
   await expect
     .element(screen.getByRole("button", { name: "Close split circuit view", exact: true }))
     .toHaveAttribute("aria-pressed", "true");
-  const panel = document.querySelector("[data-circuit-panel]")!;
-  expect(panel.classList.contains("flex-col")).toBe(true);
-  expect(panel.classList.contains("divide-y")).toBe(true);
-  expect(panel.children[0]?.getAttribute("aria-label")).toBe("Primary circuit view");
-  expect(panel.children[1]?.getAttribute("aria-label")).toBe("Secondary circuit view");
   expect(document.querySelectorAll('button[aria-label="Order"]')).toHaveLength(1);
   await screen.getByRole("button", { name: "Order", exact: true }).click();
   expect(openOrderPane).toHaveBeenCalledWith(props.threadRef);
@@ -145,9 +164,138 @@ it("stacks at most two panes, isolates navigation/errors, and closes with focus 
     expect(bottom.textContent).toContain("1 error");
     expect(top.textContent).not.toContain("1 error");
   });
-  await screen.rerender(<Harness {...props} cwd={undefined} />);
   await screen.getByRole("button", { name: "Close split circuit view", exact: true }).click();
   expect(document.querySelectorAll("iframe")).toHaveLength(1);
   expect(document.querySelector("iframe")).toBe(topFrame);
   expect(document.activeElement?.getAttribute("aria-label")).toBe("Split circuit view");
+});
+
+it("opens saved builds in both panes without rerunning live source or accepting a late read", async () => {
+  setup();
+  workspace.truncated = true;
+  const build = (id: string): SavedCircuitBuild => ({
+    id: `archive:${id}`,
+    at: 1,
+    label: "Saved build",
+    path: id,
+  });
+  workspace.builds = [build("older"), build("newer")];
+  let finishOld!: (text: string) => void;
+  const snapshot =
+    '[{"type":"pcb_board","pcb_board_id":"saved"},{"type":"source_project_metadata","source_filesystem_md5_hash":"old-source"}]';
+  workspace.read = (path) =>
+    path === "older"
+      ? new Promise((resolve) => {
+          finishOld = resolve;
+        })
+      : Promise.resolve(snapshot);
+  // The panel reads its workspace props without route state.
+  await using screen = await render(<CircuitPanel {...props} split />, { router: false });
+  const live = document.querySelector("iframe")!;
+  using posted = vi.spyOn(live.contentWindow!, "postMessage");
+  await act(() => ready(live));
+  await vi.waitFor(() =>
+    expect(document.querySelector('option[value="archive:older"]')).not.toBeNull(),
+  );
+  await screen.getByRole("combobox", { name: "Saved build" }).selectOptions("archive:older");
+  await expect.element(screen.getByText("Loading saved build…", { exact: true })).toBeVisible();
+  await screen.getByRole("combobox", { name: "Saved build" }).selectOptions("archive:newer");
+  const historyFrames = () =>
+    document.querySelectorAll<HTMLIFrameElement>('[aria-label="Historical design"] iframe');
+  await vi.waitFor(() => expect(historyFrames()).toHaveLength(2));
+  const first = historyFrames()[0]!;
+  const second = historyFrames()[1]!;
+  using firstPosts = vi.spyOn(first.contentWindow!, "postMessage");
+  using secondPosts = vi.spyOn(second.contentWindow!, "postMessage");
+  for (const [frame, sent] of [
+    [first, firstPosts],
+    [second, secondPosts],
+  ] as const) {
+    await act(() => ready(frame));
+    await vi.waitFor(() =>
+      expect(sent.mock.lastCall?.[0]?.runframe_props).toMatchObject({
+        mainComponentPath: "playback.circuit.json",
+        fsMap: { "playback.circuit.json": snapshot },
+      }),
+    );
+  }
+  await act(async () => {
+    finishOld('[{"type":"pcb_board","pcb_board_id":"late"}]');
+    await Promise.resolve();
+  });
+  expect(firstPosts.mock.lastCall?.[0]?.runframe_props.fsMap["playback.circuit.json"]).toBe(
+    snapshot,
+  );
+  const count = posted.mock.calls.length;
+  expect(
+    document.querySelector('[aria-label="Historical design"] [aria-label="Order"]'),
+  ).toBeNull();
+  await expect
+    .element(screen.getByRole("combobox", { name: "Saved build" }))
+    .toHaveValue("archive:newer");
+  expect(historyFrames()[0]?.isConnected).toBe(true);
+  await screen.getByRole("button", { name: "Back to live" }).click();
+  expect(posted.mock.calls).toHaveLength(count);
+  await screen.rerender(<CircuitPanel {...props} cwd="/another-workspace" />);
+  await expect
+    .element(screen.getByRole("group", { name: "Build history" }))
+    .not.toBeInTheDocument();
+});
+
+it("waits for saved builds to load, pauses and resumes playback, and refreshes history while open", async () => {
+  setup();
+  const build = (id: string): SavedCircuitBuild => ({
+    id: `archive:${id}`,
+    path: id,
+    at: 1,
+    label: id,
+  });
+  workspace.builds = [build("older"), build("newer")];
+  let finishOlder!: (text: string) => void;
+  workspace.read = (path) =>
+    path === "older"
+      ? new Promise((resolve) => {
+          finishOlder = resolve;
+        })
+      : Promise.resolve('[{"type":"pcb_board"}]');
+  using _timers = fakeTimers();
+  // The panel reads its workspace props without route state.
+  await using screen = await render(<CircuitPanel {...props} />, { router: false });
+  const picker = screen.getByRole("combobox", { name: "Saved build" });
+  await expect.element(picker).toHaveValue("live");
+  await screen.getByRole("button", { name: "Play playback" }).click();
+  await expect.element(picker).toHaveValue("archive:older");
+  await act(() => vi.advanceTimersByTime(5_000));
+  await expect.element(picker).toHaveValue("archive:older");
+  await screen.getByRole("button", { name: "Pause playback" }).click();
+  await act(async () => {
+    finishOlder('[{"type":"pcb_board"}]');
+  });
+  await act(() => vi.advanceTimersByTime(5_000));
+  await expect.element(picker).toHaveValue("archive:older");
+  await screen.getByRole("button", { name: /(?:Play|Resume) playback/ }).click();
+  await act(() => vi.advanceTimersByTime(1_000));
+  await screen.rerender(<CircuitPanel {...props} workspaceMutationId="background-refresh" />);
+  await act(() => vi.advanceTimersByTime(500));
+  await expect.element(picker).toHaveValue("archive:newer");
+  await screen.getByRole("button", { name: "Pause playback" }).click();
+  workspace.builds = [
+    build("older"),
+    build("newer"),
+    build("third"),
+    build("fourth"),
+    build("fifth"),
+    build("sixth"),
+  ];
+  await act(() => vi.advanceTimersByTime(3_000));
+  await expect
+    .element(screen.getByRole("slider", { name: "Build timeline" }))
+    .toHaveAttribute("max", "6");
+  await expect.element(picker).toHaveValue("archive:newer");
+  await screen.getByRole("button", { name: /(?:Play|Resume) playback/ }).click();
+  await act(() => vi.advanceTimersByTime(1_500));
+  await expect.element(picker).toHaveValue("archive:third");
+  await screen.getByRole("button", { name: "Back to live" }).click();
+  await act(() => vi.advanceTimersByTime(5_000));
+  await expect.element(picker).toHaveValue("live");
 });

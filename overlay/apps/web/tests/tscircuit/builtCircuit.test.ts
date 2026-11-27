@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
 
-import { expectedBuild, isBuildOfSources } from "../../src/tscircuit/builtCircuit";
+import {
+  circuitBuildOutput,
+  expectedBuild,
+  isBuildOfSources,
+} from "../../src/tscircuit/builtCircuit";
 import { type ProjectReader, readProject } from "../../src/tscircuit/projectFsMap";
+import { readCircuitBuildHistory } from "../../src/tscircuit/circuitBuildHistory";
 
 const PROJECT: Record<string, string> = {
   "package.json": '{ "name": "phone" }\n',
@@ -186,4 +191,37 @@ describe("isBuildOfSources", () => {
   ])("turns down %s", (_name, text) => {
     expect(isBuildOfSources(text, hash)).toBe(false);
   });
+});
+
+it("finds persisted builds for the selected nested project without reading artifacts or comparing live hashes", async () => {
+  const output = circuitBuildOutput("packages/usb/usb.board.tsx", PROJECT)!;
+  const root = "packages/usb/.tscircuit-build-history";
+  const stamp = "2026-11-24T12-30-00.000Z";
+  const path = `${root}/${stamp}/dist/usb/circuit.json`;
+  const older = `${root}/2026-11-23T12-30-00.000Z/dist/usb/circuit.json`;
+  const oldest = `${root}/2026-11-22T12-30-00.000Z/dist/usb/circuit.json`;
+  const steps = await readCircuitBuildHistory(
+    {
+      list: async (directory) =>
+        directory === "packages/usb"
+          ? [{ path: root, kind: "directory" }]
+          : [
+              stamp,
+              "2026-11-23T12-30-00.000Z",
+              "2026-11-22T12-30-00.000Z",
+              "2026-11-21T12-30-00.000Z",
+              "2026-02-31T12-30-00.000Z",
+              "../other",
+            ].map((name) => ({ path: `${root}/${name}`, kind: "directory" })),
+      existingFiles: async (paths) =>
+        paths.map((candidate) => [path, older, oldest, output.path].includes(candidate)),
+    },
+    output,
+  );
+  expect(steps.map((step) => [step.path, step.at])).toEqual([
+    [oldest, Date.parse("2026-11-22T12:30:00.000Z")],
+    [older, Date.parse("2026-11-23T12:30:00.000Z")],
+    [path, Date.parse("2026-11-24T12:30:00.000Z")],
+    ["packages/usb/dist/usb/circuit.json", null],
+  ]);
 });

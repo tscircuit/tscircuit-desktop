@@ -25,6 +25,7 @@ describe("routeViewerRequest", () => {
       kind: "viewer",
       appUrl: "tscircuit-desktop://app/tscircuit-viewer/frame.html",
     });
+
     expect(route("tscircuit-desktop-dev://viewer/runframe.min.js?v=1", "HEAD")).toEqual({
       kind: "viewer",
       appUrl: "tscircuit-desktop-dev://app/tscircuit-viewer/runframe.min.js",
